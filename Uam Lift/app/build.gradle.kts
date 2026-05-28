@@ -39,13 +39,11 @@ android {
     }
 }
 
-// SOLUCIÓN EXTRA: Bloque de seguridad para limpiar clases duplicadas en el motor de Gradle
 configurations.all {
     resolutionStrategy {
         exclude(group = "androidx.datastore", module = "datastore-core-jvm")
     }
 }
-
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -55,12 +53,11 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.navigation.runtime.ktx)
-
-    // Dejamos únicamente la librería core base de Datastore
-    implementation(libs.androidx.datastore.core)
-
-    // ELIMINADA la línea: implementation(libs.androidx.datastore.core.jvm)
+    //solucion de error
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+    implementation(libs.androidx.benchmark.common)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
