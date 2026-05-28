@@ -5,19 +5,47 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import ni.edu.uam.uamlift.screens.messages.MessageItem
+// IMPORTANTE: Asegúrate de importar tu ChatScreen correctamente
+import ni.edu.uam.uamlift.screens.chat.ChatScreen
 
+// Modelo de datos para empaquetar la información del usuario
+data class ChatUser(
+    val id: Int,
+    val name: String,
+    val initials: String,
+    val lastMessage: String,
+    val time: String,
+    val unread: Int,
+    val isOnline: Boolean
+)
 
 @Composable
 fun MessagesScreen(modifier: Modifier = Modifier) {
-    var selectedChat by remember { mutableStateOf<Int?>(null) }
+    // 1. Datos simulados
+    val mockChats = remember {
+        listOf(
+            ChatUser(1, "María Rodríguez", "MR", "¡Perfecto, nos vemos mañana! 👍", "9:41", 2, isOnline = true),
+            ChatUser(2, "Juan López", "JL", "¿Puedes salir 10 min antes?", "8:20", 0, isOnline = true),
+            ChatUser(3, "Andrea Pérez", "AP", "Hola! Confirmas el viaje de mañana?", "Ayer", 0, isOnline = false)
+        )
+    }
 
-    if (selectedChat != null) {
-        ChatDetailScreen(chatId = selectedChat!!, onBack = { selectedChat = null })
+    // 2. Estado que controla qué chat está abierto (null = lista de mensajes)
+    var selectedChatUser by remember { mutableStateOf<ChatUser?>(null) }
+
+    // 3. Condicional de Navegación
+    if (selectedChatUser != null) {
+        // Si hay un usuario seleccionado, saltamos a tu ChatScreen con sus datos reales
+        ChatScreen(
+            name = selectedChatUser!!.name,
+            initials = selectedChatUser!!.initials,
+            isOnline = selectedChatUser!!.isOnline,
+            onBackClick = { selectedChatUser = null } // Al dar atrás, volvemos a la lista
+        )
     } else {
+        // Si es null, mostramos la lista de chats
         Column(modifier = modifier.fillMaxSize()) {
             Text(
                 text = "Mensajes",
@@ -26,32 +54,17 @@ fun MessagesScreen(modifier: Modifier = Modifier) {
             )
 
             LazyColumn(modifier = Modifier.padding(horizontal = 16.dp)) {
-                items(listOf(1, 2, 3, 4)) { id ->
+                items(mockChats) { chat ->
                     MessageItem(
-                        initials = if (id == 1) "MR" else if (id == 2) "JL" else "AP",
-                        name = if (id == 1) "María Rodríguez" else if (id == 2) "Juan López" else "Andrea Pérez",
-                        lastMessage = if (id == 1) "¡Perfecto, nos vemos mañana!" else "¿Puedes salir 10 min antes?",
-                        time = if (id == 1) "9:41" else "8:20",
-                        unread = if (id == 1) 2 else 0,
-                        onClick = { selectedChat = id }
+                        initials = chat.initials,
+                        name = chat.name,
+                        lastMessage = chat.lastMessage,
+                        time = chat.time,
+                        unread = chat.unread,
+                        onClick = { selectedChatUser = chat } // <--- AQUÍ SE DETONA EL CAMBIO
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun ChatDetailScreen(chatId: Int, onBack: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(20.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Chat ID: $chatId", style = MaterialTheme.typography.headlineSmall)
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onBack) {
-            Text("Volver a Mensajes")
         }
     }
 }

@@ -58,6 +58,9 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
     implementation(libs.androidx.benchmark.common)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ink.brush)
+    implementation(libs.firebase.annotations)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

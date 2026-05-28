@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ni.edu.uam.uamlift.ui.theme.Degradado1
+import ni.edu.uam.uamlift.ui.theme.Degradado2
 
 @Composable
 fun BottomNavigationBar(
@@ -46,7 +48,7 @@ fun BottomNavigationBar(
             val selected = currentTab == item.route
 
             if (item.route == "create") {
-                // CASO ESPECIAL: Botón "Crear"
+                //Botón "Crear"
                 Box(
                     modifier = Modifier
                         .weight(1.5f) // Le damos un poquito más de espacio a los lados para que respire
@@ -66,7 +68,7 @@ fun BottomNavigationBar(
                                 .size(56.dp)
                                 .shadow(elevation = 6.dp, shape = RoundedCornerShape(22.dp))
                                 .clip(RoundedCornerShape(22.dp))
-                                .background(brandColor),
+                                .background(Degradado1),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(

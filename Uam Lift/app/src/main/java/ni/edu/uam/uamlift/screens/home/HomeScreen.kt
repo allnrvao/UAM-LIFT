@@ -16,10 +16,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ni.edu.uam.uamlift.components.RideCard
+import ni.edu.uam.uamlift.ui.theme.Degradado2
+import ni.edu.uam.uamlift.ui.theme.Gray
+
 
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier) {
-    val backgroundColor = Color(0xFFF6F8FB) // El color gris de fondo exacto
+    val backgroundColor = Gray
 
     Column(
         modifier = modifier
@@ -27,7 +30,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             .verticalScroll(rememberScrollState())
             .background(backgroundColor)
     ) {
-        // Cabeza de pagina (Mantiene fondo blanco para resaltar el logo)
+        // Cabeza de pagina
         Surface(
             color = Color.White,
             modifier = Modifier
@@ -75,8 +78,8 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
-                    .background(color = Color(0xFF019AA8))
+                    .height(255.dp)
+                    .background(Degradado2)
             )
 
             // Contenido que se encima en la Box
@@ -113,41 +116,74 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp),
                     shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White
+                    ),
+                    // DEFINIMOS LA ELEVACIÓN DE LA TARJETA
+                    elevation = CardDefaults.cardElevation(
+                        defaultElevation = 20.dp, // Sombra base idéntica a tu imagen de referencia
+                        pressedElevation = 20.dp  // Al pulsar la tarjeta, se hunde ligeramente de forma realista
+                    )
                 ) {
                     Column(
-                        modifier = Modifier.padding(24.dp),
+                        modifier = Modifier.padding(15.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "📍 ¿Desde dónde sales?\n\n🏢 UAM - Campus Central",
-                            color = Color.Gray,
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                            fontSize = 16.sp,
-                            lineHeight = 24.sp
+
+                        OutlinedTextField(
+                            value = "",
+                            onValueChange = {},
+                            placeholder = { Text("¿Desde dónde sales?") },
+                            leadingIcon = { Icon(Icons.Default.Search, null) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp)
                         )
 
                         // Botón Buscar Viajes
                         Button(
+                            //espacio entre el boton y outlinetexfield
+                            contentPadding = PaddingValues(vertical = 6.dp),
+
                             onClick = { /* abrir búsqueda */ },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(54.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF019AA8)),
-                            shape = RoundedCornerShape(16.dp)
+                            shape = RoundedCornerShape(16.dp), // Redondea la interacción del botón
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.Transparent // Fondo base invisible
+                            )
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Buscar viajes",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+
+                            // El Box va ADENTRO del botón para que el degradado respete el tamaño y la forma
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        brush = Degradado2,
+                                        shape = RoundedCornerShape(16.dp) // Redondea el Degradado
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Buscar viajes",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
                         }
                     }
                 }
