@@ -38,7 +38,7 @@ public class Viaje {
         private int numeroAsientosDisponibles;
         @Column(nullable = false)
         @Min(value = 1, message = "El precio del viaje debe ser al menos 1")
-        private double precio;
+        private double precioPorPersona;
 
         @ManyToMany(fetch = FetchType.LAZY)
         @JoinTable(

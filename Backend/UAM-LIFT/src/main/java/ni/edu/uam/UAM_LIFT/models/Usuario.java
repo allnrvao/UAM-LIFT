@@ -13,7 +13,8 @@ public class Usuario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    @Column(unique = true, nullable = false, length = 50)
+    private String nombreUsuario;
     @Column(nullable = false, length = 50)
     private String nombre;
     @Column(nullable = false, length = 50)
@@ -24,5 +25,7 @@ public class Usuario {
     private String contraseña;
     @Column(nullable = false, length = 100)
     private String imagenUrl;
+    @Column(nullable = false)
+    private boolean estado;
 
 }
