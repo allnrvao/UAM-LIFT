@@ -5,7 +5,12 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.Min;
 import lombok.*;
+import ni.edu.uam.UAM_LIFT.enums.EstadoViaje;
+import ni.edu.uam.UAM_LIFT.enums.EstadoViajeUsuario;
+import org.hibernate.annotations.SQLDelete;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -15,6 +20,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "viajes")
+@SQLDelete(sql = "UPDATE viajes SET estado = false WHERE id = ?")
 public class Viaje {
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,10 +35,10 @@ public class Viaje {
 
         @Column(nullable = false)
         @FutureOrPresent
-        private Date fechaHoraSalida;
+        private LocalDateTime fechaHoraSalida;
         @Column(nullable = false)
         @FutureOrPresent
-        private Date fechaHoraLlegada;
+        private LocalDateTime fechaHoraLlegada;
         @Column(nullable = false)
         @Min(value = 1, message = "El número de asientos disponibles debe ser al menos 1")
         private int numeroAsientosDisponibles;
@@ -40,29 +46,34 @@ public class Viaje {
         @Min(value = 1, message = "El precio del viaje debe ser al menos 1")
         private double precioPorPersona;
 
-        @ManyToMany(fetch = FetchType.LAZY)
-        @JoinTable(
-                name = "viaje_usuario",
-                joinColumns = @JoinColumn(name = "viaje_id"),
-                inverseJoinColumns = @JoinColumn(name = "usuario_id")
-        )
-        private List<Usuario> usuarios;
+        @OneToMany(mappedBy = "viaje", cascade = CascadeType.ALL)
+        private List<ViajeUsuario> pasajeros = new ArrayList<>();
+
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "conductor_id", nullable = false)
+        private Usuario conductor;
+
+        @Column(nullable = false)
+        private boolean estado = true;
+
+        @Enumerated(EnumType.STRING)
+        private EstadoViaje estadoViaje;
 
         @AssertTrue(message = "La fecha y hora de llegada deben ser posteriores a la fecha y hora de salida")
         public boolean isFechaHoraLlegadaValida() {
             if (fechaHoraSalida == null || fechaHoraLlegada == null) {
                 return true;
             }
-            return fechaHoraLlegada.after(fechaHoraSalida);
+            return fechaHoraLlegada.isAfter(fechaHoraSalida);
 
         }
 
         @AssertTrue(message = "El número de usuarios inscritos no puede exceder el número de asientos disponibles")
         public boolean isNumeroAsientosSuficientes() {
-            if (usuarios == null) {
+            if (pasajeros == null) {
                 return true;
             }
-            return usuarios.size() <= numeroAsientosDisponibles;
+            return pasajeros.size() <= numeroAsientosDisponibles;
         }
 
 

@@ -1,11 +1,13 @@
 package ni.edu.uam.UAM_LIFT.repositories;
 
 import ni.edu.uam.UAM_LIFT.models.Usuario;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
-public interface RepoUsuario extends RepoGeneral {
-     public boolean AddUsuario(Usuario usuario);
-     public boolean UpdateUsuario(Usuario usuario);
-     public boolean DeleteUsuario(Usuario usuario);
-     public Usuario findByUsername(String username);
-     public Usuario findByEmail(String email);
+import java.util.Optional;
+@Repository
+public interface RepoUsuario extends JpaRepository<Usuario, Long> {
+     Optional<Usuario> findByNombreUsuario(String nombreUsuario);
+     Optional<Usuario> findByCorreo(String correo);
+     Optional<Usuario> findByCif(String cif);
 }

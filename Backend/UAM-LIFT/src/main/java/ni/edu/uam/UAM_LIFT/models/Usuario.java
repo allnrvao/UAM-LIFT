@@ -2,6 +2,7 @@ package ni.edu.uam.UAM_LIFT.models;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
 
 @Entity
 @Getter
@@ -9,10 +10,13 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "usuarios")
+@SQLDelete(sql = "UPDATE usuarios SET estado = false WHERE id = ?")
 public class Usuario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(length = 100, unique = true, nullable = false)
+    private String cif;
     @Column(unique = true, nullable = false, length = 50)
     private String nombreUsuario;
     @Column(nullable = false, length = 50)
@@ -26,6 +30,6 @@ public class Usuario {
     @Column(nullable = false, length = 100)
     private String imagenUrl;
     @Column(nullable = false)
-    private boolean estado;
+    private boolean estado = true;
 
 }
