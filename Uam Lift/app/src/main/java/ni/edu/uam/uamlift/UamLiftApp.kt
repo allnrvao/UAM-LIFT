@@ -8,12 +8,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import ni.edu.uam.UAM_LIFT.screens.create.CreateRideScreen
 import ni.edu.uam.UAM_LIFT.screens.search.SearchScreen
-import ni.edu.uam.uamlift.navegation.BottomNavigationBar
-import ni.edu.uam.uamlift.screens.home.HomeScreen
 import ni.edu.uam.uamlift.screens.messages.MessagesScreen
-import ni.edu.uam.uamlift.screens.profile.ProfileScreen
+import ni.edu.uam.uamlift.ui.navegation.BottomNavigationBar
+import ni.edu.uam.uamlift.ui.screens.create.createRide.CreateRideScreen
+import ni.edu.uam.uamlift.ui.screens.home.HomeScreen
+import ni.edu.uam.uamlift.ui.screens.profile.ProfileScreen
 
 
 @Composable
