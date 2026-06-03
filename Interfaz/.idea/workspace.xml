@@ -5,16 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="35c2eca2-a25d-4432-ac64-896dc0b0701d" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Uam Lift/.gradle/9.3.1/checksums/checksums.lock" beforeDir="false" afterPath="$PROJECT_DIR$/../Uam Lift/.gradle/9.3.1/checksums/checksums.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Uam Lift/.gradle/9.3.1/checksums/md5-checksums.bin" beforeDir="false" afterPath="$PROJECT_DIR$/../Uam Lift/.gradle/9.3.1/checksums/md5-checksums.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Uam Lift/.gradle/9.3.1/checksums/sha1-checksums.bin" beforeDir="false" afterPath="$PROJECT_DIR$/../Uam Lift/.gradle/9.3.1/checksums/sha1-checksums.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Uam Lift/.gradle/9.3.1/fileHashes/fileHashes.bin" beforeDir="false" afterPath="$PROJECT_DIR$/../Uam Lift/.gradle/9.3.1/fileHashes/fileHashes.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Uam Lift/.gradle/9.3.1/fileHashes/fileHashes.lock" beforeDir="false" afterPath="$PROJECT_DIR$/../Uam Lift/.gradle/9.3.1/fileHashes/fileHashes.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Uam Lift/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../Uam Lift/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Uam Lift/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../Uam Lift/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Uam Lift/local.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../Uam Lift/local.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Backend/UAM-LIFT/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../Backend/UAM-LIFT/.idea/compiler.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Backend/UAM-LIFT/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../Backend/UAM-LIFT/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Backend/UAM-LIFT/.idea/modules.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -29,7 +23,7 @@
       <entry key="_C:/Users/ferga/Documents/poo 2/Proyecto Final/Interfaz" value="3Dudg4Lpl0VhDbTBoGSwMMgSoxq" />
     </persistenceIdMap>
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[LocalEmulator::path=C:\Users\ferga\.android\avd\Pixel_9_Pro.avd]" />
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[]" />
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$">
       <ProjectState />
@@ -64,20 +58,20 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.cidr.known.project.marker": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.readMode.enableVisualFormatting": "true",
-    "cf.first.check.clang-format": "false",
-    "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "Fernando",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/Users/ferga/Documents/poo 2/Proyecto Final/Interfaz"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;Allan&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/ferga/Documents/poo 2/Proyecto Final/Interfaz&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration name="app" type="AndroidRunConfigurationType" factoryName="Android App" activateToolWindowBeforeRun="false">
       <module name="UAMLift.app" />
