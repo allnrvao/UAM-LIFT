@@ -31,5 +31,7 @@ public class Usuario {
     private String imagenUrl;
     @Column(nullable = false)
     private boolean estado = true;
+    @Column(nullable = false)
+    private boolean correoVerificado = false;
 
 }
