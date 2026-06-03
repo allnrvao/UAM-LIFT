@@ -11,6 +11,7 @@
   <component name="ChangeListManager">
     <list default="true" id="16e270b6-512a-4d84-891a-44564772a34c" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/local.properties" beforeDir="false" afterPath="$PROJECT_DIR$/local.properties" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -23,9 +24,10 @@
   <component name="CopilotPersistence">
     <persistenceIdMap>
       <entry key="_C:/Users/HP VICTUS/Downloads/Uamlift/UAM-LIFT/Uam Lift" value="3EYQb1SrVoUhH63kfVPFI7Hf3ew" />
+      <entry key="_C:/Users/ferga/Documents/poo 2/Proyecto Final/Uam Lift" value="3EeDgpWQBLUiL3ZUt4Qd6Q5Acc7" />
     </persistenceIdMap>
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[LocalEmulator::path=C:\Users\HP VICTUS\.android\avd\Medium_Phone_3.avd]" />
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[]" />
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$">
       <ProjectState />
@@ -34,22 +36,22 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "AlvaroJCortesD"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;AlvaroJCortesD&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/allnrvao/UAM-LIFT.git",
-    "accountId": "6dcbd53b-1f4c-4230-a19d-57aeb060a4d8"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/allnrvao/UAM-LIFT.git&quot;,
+    &quot;accountId&quot;: &quot;6dcbd53b-1f4c-4230-a19d-57aeb060a4d8&quot;
   }
-}]]></component>
+}</component>
   <component name="GradleScriptDefinitionsStorage" workingDir="$PROJECT_DIR$" gradleHome="C:\Users\HP VICTUS\.gradle\wrapper\dists\gradle-9.3.1-bin\23ovyewtku6u96viwx3xl3oks\gradle-9.3.1" javaHome="C:\Program Files\Android\Android Studio\jbr" gradleVersion="9.3.1" />
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 4
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
   <component name="ProjectId" id="3EYQb1SrVoUhH63kfVPFI7Hf3ew" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -62,11 +64,12 @@
     "RunOnceActivity.cidr.known.project.marker": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "android.gradle.sync.needed": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "Allan",
+    "git-widget-placeholder": "Fernando",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/Users/HP VICTUS/Downloads/Uamlift/UAM-LIFT/Uam Lift",
+    "last_opened_file_path": "C:/Users/ferga/Documents/poo 2/Proyecto Final/Uam Lift",
     "settings.editor.selected.configurable": "reference.settingsdialog.project.gradle"
   }
 }]]></component>
@@ -153,6 +156,14 @@
       <updated>1780353091274</updated>
     </task>
     <servers />
+  </component>
+  <component name="github-copilot-workspace">
+    <instructionFileLocations>
+      <option value=".github/instructions" />
+    </instructionFileLocations>
+    <promptFileLocations>
+      <option value=".github/prompts" />
+    </promptFileLocations>
   </component>
   <component name="play_dynamic_filters_status">
     <option name="appIdToCheckInfo">
