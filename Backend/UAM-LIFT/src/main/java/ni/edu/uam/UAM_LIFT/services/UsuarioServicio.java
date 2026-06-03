@@ -8,9 +8,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class UsuarioServicio implements InterfazUsuario {
     private final RepoUsuario repoUsuario;
+    private final EmailVerificationService emailVerificationService;
 
-    public UsuarioServicio(RepoUsuario repoUsuario) {
+    public UsuarioServicio(RepoUsuario repoUsuario, EmailVerificationService emailVerificationService) {
         this.repoUsuario = repoUsuario;
+        this.emailVerificationService = emailVerificationService;
     }
 
     @Override
@@ -29,7 +31,11 @@ public class UsuarioServicio implements InterfazUsuario {
 
     public boolean AddUsuario(Usuario usuario) {
         try {
+            if (usuario.getCorreo() == null || !usuario.getCorreo().endsWith("@uamv.edu.ni")) {
+                return false;
+            }
             repoUsuario.save(usuario);
+            emailVerificationService.requestVerification(usuario.getCorreo());
         }catch(Exception e){
             System.out.println("Error al agregar usuario: " + e.getMessage());
             return false;
@@ -55,5 +61,13 @@ public class UsuarioServicio implements InterfazUsuario {
             return false;
         }
         return true;
+    }
+
+    public boolean solicitarVerificacionCorreo(String correo) {
+        return emailVerificationService.requestVerification(correo);
+    }
+
+    public boolean confirmarVerificacionCorreo(String correo, String code) {
+        return emailVerificationService.confirmVerification(correo, code);
     }
 }

@@ -1,5 +1,8 @@
 package ni.edu.uam.UAM_LIFT.controller;
 
+import jakarta.validation.Valid;
+import ni.edu.uam.UAM_LIFT.dto.EmailVerificationConfirm;
+import ni.edu.uam.UAM_LIFT.dto.EmailVerificationRequest;
 import ni.edu.uam.UAM_LIFT.models.Usuario;
 import ni.edu.uam.UAM_LIFT.services.UsuarioServicio;
 import org.springframework.web.bind.annotation.*;
@@ -35,5 +38,15 @@ public class UsuarioController {
             return false;
         }
         return usuarioServicio.DeleteUsuario(usuarioExistente);
+    }
+
+    @PostMapping("/verificacion/solicitar")
+    public boolean solicitarVerificacion(@Valid @RequestBody EmailVerificationRequest request) {
+        return usuarioServicio.solicitarVerificacionCorreo(request.getCorreo());
+    }
+
+    @PostMapping("/verificacion/confirmar")
+    public boolean confirmarVerificacion(@Valid @RequestBody EmailVerificationConfirm request) {
+        return usuarioServicio.confirmarVerificacionCorreo(request.getCorreo(), request.getCode());
     }
 }
