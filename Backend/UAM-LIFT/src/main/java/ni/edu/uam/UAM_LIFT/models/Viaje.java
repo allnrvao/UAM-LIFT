@@ -20,14 +20,15 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "viajes")
-@SQLDelete(sql = "UPDATE viajes SET estado = false WHERE id = ?")
 public class Viaje {
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         private Long id;
 
-        private String origen;
-        @Column(nullable = false, length = 100)
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "origen_id", nullable = false)
+        private Destino origen;
+
 
         @ManyToOne(fetch = FetchType.LAZY)
         @JoinColumn(name = "destino_id", nullable = false)
@@ -53,8 +54,6 @@ public class Viaje {
         @JoinColumn(name = "conductor_id", nullable = false)
         private Usuario conductor;
 
-        @Column(nullable = false)
-        private boolean estado = true;
 
         @Enumerated(EnumType.STRING)
         private EstadoViaje estadoViaje;
