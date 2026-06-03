@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/src/main/java/ni/edu/uam/UAM_LIFT/repositories/ValidacionViaje.java">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/src/main/java/ni/edu/uam/UAM_LIFT/repositories/ValidacionViaje.java" />
+              <option name="originalContent" value="package ni.edu.uam.UAM_LIFT.repositories;&#10;&#10;public interface ValidacionViaje {&#10;    boolean validarAsientoDisponible(Long viajeId);&#10;    void ValidarUsuarioNoParticipante(Long viajeId, String usuarioCif);&#10;    void ValidarConductorNoEsPasajero(Long viajeId, String usuarioCif);&#10;}&#10;" />
+              <option name="updatedContent" value="package ni.edu.uam.UAM_LIFT.repositories;&#10;&#10;public interface ValidacionViaje {&#10;    boolean validarAsientoDisponible(Long viajeId);&#10;    void ValidarUsuarioNoParticipante(Long viajeId, String usuarioCif);&#10;    void ValidarConductorNoEsPasajero(Long viajeId, String usuarioCif);&#10;}" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
