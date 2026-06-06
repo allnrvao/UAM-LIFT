@@ -46,7 +46,7 @@ public class ViajeServicio implements InterfazViaje {
         }
 
         validacionViaje.ValidarUsuarioNoParticipante(viajeId, usuarioCif);
-        
+
         validacionViaje.ValidarConductorNoEsPasajero(viajeId, usuarioCif);
 
         Usuario pasajero = repoUsuario.findByCif(usuarioCif).orElseThrow(() -> new RuntimeException("Usuario no encontrado con CIF: " + usuarioCif));

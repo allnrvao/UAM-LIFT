@@ -49,4 +49,5 @@ public class UsuarioController {
     public boolean confirmarVerificacion(@Valid @RequestBody EmailVerificationConfirm request) {
         return usuarioServicio.confirmarVerificacionCorreo(request.getCorreo(), request.getCode());
     }
+
 }
