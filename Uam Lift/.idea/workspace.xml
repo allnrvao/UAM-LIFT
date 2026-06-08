@@ -10,8 +10,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="16e270b6-512a-4d84-891a-44564772a34c" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/../WebSocker/src/main/java/ni/edu/uamv/WebSocker/config/WebSockerConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../WebSocker/src/main/java/ni/edu/uamv/WebSocker/controllers/SeguimientoWebSocker.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../WebSocker/src/main/java/ni/edu/uamv/WebSocker/models/Ubicacion.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/local.properties" beforeDir="false" afterPath="$PROJECT_DIR$/local.properties" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -27,7 +29,7 @@
       <entry key="_C:/Users/ferga/Documents/poo 2/Proyecto Final/Uam Lift" value="3EeDgpWQBLUiL3ZUt4Qd6Q5Acc7" />
     </persistenceIdMap>
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[]" />
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[LocalEmulator::path=C:\Users\ferga\.android\avd\Pixel_9_Pro.avd]" />
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$">
       <ProjectState />
@@ -64,7 +66,6 @@
     "RunOnceActivity.cidr.known.project.marker": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
-    "android.gradle.sync.needed": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "git-widget-placeholder": "Fernando",
