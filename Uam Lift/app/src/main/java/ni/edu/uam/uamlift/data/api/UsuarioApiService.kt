@@ -1,8 +1,8 @@
-package ni.edu.uam.uamlift.api
+package ni.edu.uam.uamlift.data.api
 
-import ni.edu.uam.uamlift.dto.EmailVerificationConfirm
-import ni.edu.uam.uamlift.dto.EmailVerificationRequest
-import ni.edu.uam.uamlift.models.Usuario
+import ni.edu.uam.uamlift.data.dto.EmailVerificationConfirm
+import ni.edu.uam.uamlift.data.dto.EmailVerificationRequest
+import ni.edu.uam.uamlift.data.models.Usuario
 import retrofit2.http.*
 
 interface UsuarioApiService {

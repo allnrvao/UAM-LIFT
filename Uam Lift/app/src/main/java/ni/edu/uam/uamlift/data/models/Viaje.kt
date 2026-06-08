@@ -1,4 +1,4 @@
-package ni.edu.uam.uamlift.models
+package ni.edu.uam.uamlift.data.models
 
 import com.google.gson.annotations.SerializedName
 

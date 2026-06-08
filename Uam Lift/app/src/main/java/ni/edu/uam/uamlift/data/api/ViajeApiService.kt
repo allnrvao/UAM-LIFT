@@ -1,6 +1,6 @@
-package ni.edu.uam.uamlift.api
+package ni.edu.uam.uamlift.data.api
 
-import ni.edu.uam.uamlift.models.Viaje
+import ni.edu.uam.uamlift.data.models.Viaje
 import retrofit2.http.*
 
 interface ViajeApiService {

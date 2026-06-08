@@ -1,4 +1,4 @@
-package ni.edu.uam.uamlift.api
+package ni.edu.uam.uamlift.data.api
 
 import retrofit2.http.*
 
