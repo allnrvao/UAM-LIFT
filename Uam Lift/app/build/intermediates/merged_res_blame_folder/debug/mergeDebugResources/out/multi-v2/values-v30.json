@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "ni.edu.uam.uamlift.app-mergeDebugResources-41:/values-v30/values-v30.xml",
+            "outputFile": "ni.edu.uam.uamlift.app-mergeDebugResources-1:/values-v30/values-v30.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\HP VICTUS\\.gradle\\caches\\9.3.1\\transforms\\c223979f0c28edbfaca82742e9f76daf\\workspace\\transformed\\material3-release\\res\\values-v30\\values-v30.xml",
+                    "source": "C:\\Users\\memoc\\.gradle\\caches\\9.3.1\\transforms\\cfd994fd748482bb160dd1ffc7871d24\\workspace\\transformed\\material3-release\\res\\values-v30\\values-v30.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",
