@@ -101,7 +101,7 @@ fun ProfileScreen(
             horizontalArrangement = Arrangement.SpaceEvenly,
             modifier = Modifier.fillMaxWidth()
         ) {
-            StatItem("Viajes", "34", Icons.Default.Send.Color(UAMColor))
+            StatItem("Viajes", "34", Icons.Default.Send)
             StatItem("Ahorro", "Q850", Icons.Default.Star)
             StatItem("CO₂", "-12kg", Icons.Default.Star)
         }
