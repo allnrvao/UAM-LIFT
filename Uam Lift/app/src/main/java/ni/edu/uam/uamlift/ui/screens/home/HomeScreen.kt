@@ -16,8 +16,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ni.edu.uam.uamlift.ui.components.RideCard
+import ni.edu.uam.uamlift.ui.theme.Degradado1
 import ni.edu.uam.uamlift.ui.theme.Degradado2
 import ni.edu.uam.uamlift.ui.theme.Gray
+import ni.edu.uam.uamlift.ui.theme.UAMColor
 
 
 @Composable
@@ -79,7 +81,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(255.dp)
-                    .background(Degradado2)
+                    .background(UAMColor)
             )
 
             // Contenido que se encima en la Box
