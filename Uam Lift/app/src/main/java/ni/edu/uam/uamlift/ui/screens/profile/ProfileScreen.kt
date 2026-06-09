@@ -42,8 +42,7 @@ fun ProfileScreen(
     var correo by remember { mutableStateOf("") }
     var nombreUsuario by remember { mutableStateOf("") }
     var imagenUrl by remember { mutableStateOf("") }
-    var numeroViajes by remember { mutableStateOf(0) }
-
+    
     //Se crea el objeto
     val usuario = Usuario()
     usuario.cif = cif
