@@ -10,10 +10,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="16e270b6-512a-4d84-891a-44564772a34c" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/../WebSocker/src/main/java/ni/edu/uamv/WebSocker/config/WebSockerConfig.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../WebSocker/src/main/java/ni/edu/uamv/WebSocker/controllers/SeguimientoWebSocker.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../WebSocker/src/main/java/ni/edu/uamv/WebSocker/models/Ubicacion.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/ni/edu/uam/uamlift/ui/screens/profile/ProfileScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/ni/edu/uam/uamlift/ui/screens/profile/ProfileScreen.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -29,7 +26,7 @@
       <entry key="_C:/Users/ferga/Documents/poo 2/Proyecto Final/Uam Lift" value="3EeDgpWQBLUiL3ZUt4Qd6Q5Acc7" />
     </persistenceIdMap>
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[LocalEmulator::path=C:\Users\ferga\.android\avd\Pixel_9_Pro.avd]" />
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[LocalEmulator::path=C:\Users\HP VICTUS\.android\avd\Medium_Phone_3.avd]" />
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$">
       <ProjectState />
@@ -68,7 +65,7 @@
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "Fernando",
+    "git-widget-placeholder": "Alvaro",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "C:/Users/ferga/Documents/poo 2/Proyecto Final/Uam Lift",
     "settings.editor.selected.configurable": "reference.settingsdialog.project.gradle"
@@ -171,12 +168,12 @@
       <map>
         <entry key="ni.edu.uam.uamlift">
           <value>
-            <CheckInfo lastCheckTimestamp="1780353325838" />
+            <CheckInfo lastCheckTimestamp="1781027794800" />
           </value>
         </entry>
         <entry key="ni.edu.uam.uamlift.test">
           <value>
-            <CheckInfo lastCheckTimestamp="1780353325841" />
+            <CheckInfo lastCheckTimestamp="1781027794780" />
           </value>
         </entry>
       </map>
