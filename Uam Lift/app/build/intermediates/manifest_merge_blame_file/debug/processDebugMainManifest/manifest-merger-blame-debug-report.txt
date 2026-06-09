@@ -12,34 +12,34 @@
 9-->INJECTED
 10
 11    <permission
-11-->[androidx.core:core:1.18.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\39eefb8c9ef198b0b181929e5bbf8feb\workspace\transformed\core-1.18.0\AndroidManifest.xml:22:5-24:47
+11-->[androidx.core:core:1.18.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\6679ed036a83c965ca44b624fa9ba8cb\workspace\transformed\core-1.18.0\AndroidManifest.xml:22:5-24:47
 12        android:name="ni.edu.uam.uamlift.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
-12-->[androidx.core:core:1.18.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\39eefb8c9ef198b0b181929e5bbf8feb\workspace\transformed\core-1.18.0\AndroidManifest.xml:23:9-81
+12-->[androidx.core:core:1.18.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\6679ed036a83c965ca44b624fa9ba8cb\workspace\transformed\core-1.18.0\AndroidManifest.xml:23:9-81
 13        android:protectionLevel="signature" />
-13-->[androidx.core:core:1.18.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\39eefb8c9ef198b0b181929e5bbf8feb\workspace\transformed\core-1.18.0\AndroidManifest.xml:24:9-44
+13-->[androidx.core:core:1.18.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\6679ed036a83c965ca44b624fa9ba8cb\workspace\transformed\core-1.18.0\AndroidManifest.xml:24:9-44
 14
 15    <uses-permission android:name="ni.edu.uam.uamlift.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
-15-->[androidx.core:core:1.18.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\39eefb8c9ef198b0b181929e5bbf8feb\workspace\transformed\core-1.18.0\AndroidManifest.xml:26:5-97
-15-->[androidx.core:core:1.18.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\39eefb8c9ef198b0b181929e5bbf8feb\workspace\transformed\core-1.18.0\AndroidManifest.xml:26:22-94
+15-->[androidx.core:core:1.18.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\6679ed036a83c965ca44b624fa9ba8cb\workspace\transformed\core-1.18.0\AndroidManifest.xml:26:5-97
+15-->[androidx.core:core:1.18.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\6679ed036a83c965ca44b624fa9ba8cb\workspace\transformed\core-1.18.0\AndroidManifest.xml:26:22-94
 16    <!--
 17    This is needed to write benchmark report data to an external directory during instrumented
 18    tests to allow the accompanying androidx.benchmark gradle plugin to pull the reports onto host
 19     machine after the tests are done running.
 20    -->
 21    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-21-->[androidx.benchmark:benchmark-common:1.3.3] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\a45a1c25ad5d3ba0cf984e78816de4ce\workspace\transformed\benchmark-common-1.3.3\AndroidManifest.xml:27:5-81
-21-->[androidx.benchmark:benchmark-common:1.3.3] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\a45a1c25ad5d3ba0cf984e78816de4ce\workspace\transformed\benchmark-common-1.3.3\AndroidManifest.xml:27:22-78
+21-->[androidx.benchmark:benchmark-common:1.3.3] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\e7b2d42dc9ae0f6cebf4ad35382daa8f\workspace\transformed\benchmark-common-1.3.3\AndroidManifest.xml:27:5-81
+21-->[androidx.benchmark:benchmark-common:1.3.3] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\e7b2d42dc9ae0f6cebf4ad35382daa8f\workspace\transformed\benchmark-common-1.3.3\AndroidManifest.xml:27:22-78
 22    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 23    <uses-permission android:name="android.permission.INTERNET" />
-23-->[com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\c2ddeb86f51134a494c5b3073d984f63\workspace\transformed\okhttp-release\AndroidManifest.xml:8:5-67
-23-->[com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\c2ddeb86f51134a494c5b3073d984f63\workspace\transformed\okhttp-release\AndroidManifest.xml:8:22-64
+23-->[com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\489283554c5de2f2c4971be3db2a383f\workspace\transformed\okhttp-release\AndroidManifest.xml:8:5-67
+23-->[com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\489283554c5de2f2c4971be3db2a383f\workspace\transformed\okhttp-release\AndroidManifest.xml:8:22-64
 24
 25    <application
 25-->C:\Users\jpnic\OneDrive\Desktop\UAM-LIFT\Uam Lift\app\src\main\AndroidManifest.xml:5:5-25:19
 26        android:allowBackup="true"
 26-->C:\Users\jpnic\OneDrive\Desktop\UAM-LIFT\Uam Lift\app\src\main\AndroidManifest.xml:6:9-35
 27        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
-27-->[androidx.core:core:1.18.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\39eefb8c9ef198b0b181929e5bbf8feb\workspace\transformed\core-1.18.0\AndroidManifest.xml:28:18-86
+27-->[androidx.core:core:1.18.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\6679ed036a83c965ca44b624fa9ba8cb\workspace\transformed\core-1.18.0\AndroidManifest.xml:28:18-86
 28        android:dataExtractionRules="@xml/data_extraction_rules"
 28-->C:\Users\jpnic\OneDrive\Desktop\UAM-LIFT\Uam Lift\app\src\main\AndroidManifest.xml:7:9-65
 29        android:debuggable="true"
@@ -80,112 +80,112 @@
 47            </intent-filter>
 48        </activity>
 49        <activity
-49-->[androidx.compose.ui:ui-tooling-android:1.11.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\8b87af962e1925c3cfb629c8a267e557\workspace\transformed\ui-tooling\AndroidManifest.xml:23:9-25:39
+49-->[androidx.compose.ui:ui-tooling-android:1.11.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\48c92a79f48be438f1d3b49df9aa3b22\workspace\transformed\ui-tooling\AndroidManifest.xml:23:9-25:39
 50            android:name="androidx.compose.ui.tooling.PreviewActivity"
-50-->[androidx.compose.ui:ui-tooling-android:1.11.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\8b87af962e1925c3cfb629c8a267e557\workspace\transformed\ui-tooling\AndroidManifest.xml:24:13-71
+50-->[androidx.compose.ui:ui-tooling-android:1.11.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\48c92a79f48be438f1d3b49df9aa3b22\workspace\transformed\ui-tooling\AndroidManifest.xml:24:13-71
 51            android:exported="true" />
-51-->[androidx.compose.ui:ui-tooling-android:1.11.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\8b87af962e1925c3cfb629c8a267e557\workspace\transformed\ui-tooling\AndroidManifest.xml:25:13-36
+51-->[androidx.compose.ui:ui-tooling-android:1.11.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\48c92a79f48be438f1d3b49df9aa3b22\workspace\transformed\ui-tooling\AndroidManifest.xml:25:13-36
 52
 53        <uses-library
-53-->[androidx.window:window:1.5.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\4ca228164c7006d2ae862ad0cb2d8225\workspace\transformed\window-1.5.0\AndroidManifest.xml:23:9-25:40
+53-->[androidx.window:window:1.5.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\387b263c91039d0c9e82b60e86da8549\workspace\transformed\window-1.5.0\AndroidManifest.xml:23:9-25:40
 54            android:name="androidx.window.extensions"
-54-->[androidx.window:window:1.5.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\4ca228164c7006d2ae862ad0cb2d8225\workspace\transformed\window-1.5.0\AndroidManifest.xml:24:13-54
+54-->[androidx.window:window:1.5.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\387b263c91039d0c9e82b60e86da8549\workspace\transformed\window-1.5.0\AndroidManifest.xml:24:13-54
 55            android:required="false" />
-55-->[androidx.window:window:1.5.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\4ca228164c7006d2ae862ad0cb2d8225\workspace\transformed\window-1.5.0\AndroidManifest.xml:25:13-37
+55-->[androidx.window:window:1.5.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\387b263c91039d0c9e82b60e86da8549\workspace\transformed\window-1.5.0\AndroidManifest.xml:25:13-37
 56        <uses-library
-56-->[androidx.window:window:1.5.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\4ca228164c7006d2ae862ad0cb2d8225\workspace\transformed\window-1.5.0\AndroidManifest.xml:26:9-28:40
+56-->[androidx.window:window:1.5.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\387b263c91039d0c9e82b60e86da8549\workspace\transformed\window-1.5.0\AndroidManifest.xml:26:9-28:40
 57            android:name="androidx.window.sidecar"
-57-->[androidx.window:window:1.5.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\4ca228164c7006d2ae862ad0cb2d8225\workspace\transformed\window-1.5.0\AndroidManifest.xml:27:13-51
+57-->[androidx.window:window:1.5.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\387b263c91039d0c9e82b60e86da8549\workspace\transformed\window-1.5.0\AndroidManifest.xml:27:13-51
 58            android:required="false" />
-58-->[androidx.window:window:1.5.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\4ca228164c7006d2ae862ad0cb2d8225\workspace\transformed\window-1.5.0\AndroidManifest.xml:28:13-37
+58-->[androidx.window:window:1.5.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\387b263c91039d0c9e82b60e86da8549\workspace\transformed\window-1.5.0\AndroidManifest.xml:28:13-37
 59
 60        <provider
-60-->[androidx.emoji2:emoji2:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\3d7cecb34e3d34df00b30f434c07cf28\workspace\transformed\emoji2-1.4.0\AndroidManifest.xml:24:9-32:20
+60-->[androidx.emoji2:emoji2:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\1529c2207536e455663eeffb6f0e192c\workspace\transformed\emoji2-1.4.0\AndroidManifest.xml:24:9-32:20
 61            android:name="androidx.startup.InitializationProvider"
-61-->[androidx.emoji2:emoji2:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\3d7cecb34e3d34df00b30f434c07cf28\workspace\transformed\emoji2-1.4.0\AndroidManifest.xml:25:13-67
+61-->[androidx.emoji2:emoji2:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\1529c2207536e455663eeffb6f0e192c\workspace\transformed\emoji2-1.4.0\AndroidManifest.xml:25:13-67
 62            android:authorities="ni.edu.uam.uamlift.androidx-startup"
-62-->[androidx.emoji2:emoji2:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\3d7cecb34e3d34df00b30f434c07cf28\workspace\transformed\emoji2-1.4.0\AndroidManifest.xml:26:13-68
+62-->[androidx.emoji2:emoji2:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\1529c2207536e455663eeffb6f0e192c\workspace\transformed\emoji2-1.4.0\AndroidManifest.xml:26:13-68
 63            android:exported="false" >
-63-->[androidx.emoji2:emoji2:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\3d7cecb34e3d34df00b30f434c07cf28\workspace\transformed\emoji2-1.4.0\AndroidManifest.xml:27:13-37
+63-->[androidx.emoji2:emoji2:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\1529c2207536e455663eeffb6f0e192c\workspace\transformed\emoji2-1.4.0\AndroidManifest.xml:27:13-37
 64            <meta-data
-64-->[androidx.emoji2:emoji2:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\3d7cecb34e3d34df00b30f434c07cf28\workspace\transformed\emoji2-1.4.0\AndroidManifest.xml:29:13-31:52
+64-->[androidx.emoji2:emoji2:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\1529c2207536e455663eeffb6f0e192c\workspace\transformed\emoji2-1.4.0\AndroidManifest.xml:29:13-31:52
 65                android:name="androidx.emoji2.text.EmojiCompatInitializer"
-65-->[androidx.emoji2:emoji2:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\3d7cecb34e3d34df00b30f434c07cf28\workspace\transformed\emoji2-1.4.0\AndroidManifest.xml:30:17-75
+65-->[androidx.emoji2:emoji2:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\1529c2207536e455663eeffb6f0e192c\workspace\transformed\emoji2-1.4.0\AndroidManifest.xml:30:17-75
 66                android:value="androidx.startup" />
-66-->[androidx.emoji2:emoji2:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\3d7cecb34e3d34df00b30f434c07cf28\workspace\transformed\emoji2-1.4.0\AndroidManifest.xml:31:17-49
+66-->[androidx.emoji2:emoji2:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\1529c2207536e455663eeffb6f0e192c\workspace\transformed\emoji2-1.4.0\AndroidManifest.xml:31:17-49
 67            <meta-data
-67-->[androidx.lifecycle:lifecycle-process:2.10.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\82b35ca1e4a033788042ff9c1735c682\workspace\transformed\lifecycle-process-2.10.0\AndroidManifest.xml:29:13-31:52
+67-->[androidx.lifecycle:lifecycle-process:2.10.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\e63e2b89f7d52b0624ae986e61c98763\workspace\transformed\lifecycle-process-2.10.0\AndroidManifest.xml:29:13-31:52
 68                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
-68-->[androidx.lifecycle:lifecycle-process:2.10.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\82b35ca1e4a033788042ff9c1735c682\workspace\transformed\lifecycle-process-2.10.0\AndroidManifest.xml:30:17-78
+68-->[androidx.lifecycle:lifecycle-process:2.10.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\e63e2b89f7d52b0624ae986e61c98763\workspace\transformed\lifecycle-process-2.10.0\AndroidManifest.xml:30:17-78
 69                android:value="androidx.startup" />
-69-->[androidx.lifecycle:lifecycle-process:2.10.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\82b35ca1e4a033788042ff9c1735c682\workspace\transformed\lifecycle-process-2.10.0\AndroidManifest.xml:31:17-49
+69-->[androidx.lifecycle:lifecycle-process:2.10.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\e63e2b89f7d52b0624ae986e61c98763\workspace\transformed\lifecycle-process-2.10.0\AndroidManifest.xml:31:17-49
 70            <meta-data
-70-->[com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\c2ddeb86f51134a494c5b3073d984f63\workspace\transformed\okhttp-release\AndroidManifest.xml:16:13-18:52
+70-->[com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\489283554c5de2f2c4971be3db2a383f\workspace\transformed\okhttp-release\AndroidManifest.xml:16:13-18:52
 71                android:name="okhttp3.internal.platform.PlatformInitializer"
-71-->[com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\c2ddeb86f51134a494c5b3073d984f63\workspace\transformed\okhttp-release\AndroidManifest.xml:17:17-77
+71-->[com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\489283554c5de2f2c4971be3db2a383f\workspace\transformed\okhttp-release\AndroidManifest.xml:17:17-77
 72                android:value="androidx.startup" />
-72-->[com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\c2ddeb86f51134a494c5b3073d984f63\workspace\transformed\okhttp-release\AndroidManifest.xml:18:17-49
+72-->[com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\489283554c5de2f2c4971be3db2a383f\workspace\transformed\okhttp-release\AndroidManifest.xml:18:17-49
 73            <meta-data
-73-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:29:13-31:52
+73-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:29:13-31:52
 74                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
-74-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:30:17-85
+74-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:30:17-85
 75                android:value="androidx.startup" />
-75-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:31:17-49
+75-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:31:17-49
 76        </provider>
 77
 78        <activity
-78-->[androidx.compose.ui:ui-test-manifest:1.11.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\6a4f91d652be2ce291bce1c0647beb64\workspace\transformed\ui-test-manifest-1.11.2\AndroidManifest.xml:23:9-26:79
+78-->[androidx.compose.ui:ui-test-manifest:1.11.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\9ebad01caf7d1d8b36e031fe1eb01824\workspace\transformed\ui-test-manifest-1.11.2\AndroidManifest.xml:23:9-26:79
 79            android:name="androidx.activity.ComponentActivity"
-79-->[androidx.compose.ui:ui-test-manifest:1.11.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\6a4f91d652be2ce291bce1c0647beb64\workspace\transformed\ui-test-manifest-1.11.2\AndroidManifest.xml:24:13-63
+79-->[androidx.compose.ui:ui-test-manifest:1.11.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\9ebad01caf7d1d8b36e031fe1eb01824\workspace\transformed\ui-test-manifest-1.11.2\AndroidManifest.xml:24:13-63
 80            android:exported="true"
-80-->[androidx.compose.ui:ui-test-manifest:1.11.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\6a4f91d652be2ce291bce1c0647beb64\workspace\transformed\ui-test-manifest-1.11.2\AndroidManifest.xml:25:13-36
+80-->[androidx.compose.ui:ui-test-manifest:1.11.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\9ebad01caf7d1d8b36e031fe1eb01824\workspace\transformed\ui-test-manifest-1.11.2\AndroidManifest.xml:25:13-36
 81            android:theme="@android:style/Theme.Material.Light.NoActionBar" /> <!-- Activity used to block background content while benchmarks are running -->
-81-->[androidx.compose.ui:ui-test-manifest:1.11.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\6a4f91d652be2ce291bce1c0647beb64\workspace\transformed\ui-test-manifest-1.11.2\AndroidManifest.xml:26:13-76
+81-->[androidx.compose.ui:ui-test-manifest:1.11.2] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\9ebad01caf7d1d8b36e031fe1eb01824\workspace\transformed\ui-test-manifest-1.11.2\AndroidManifest.xml:26:13-76
 82        <activity
-82-->[androidx.benchmark:benchmark-common:1.3.3] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\a45a1c25ad5d3ba0cf984e78816de4ce\workspace\transformed\benchmark-common-1.3.3\AndroidManifest.xml:32:9-36:20
+82-->[androidx.benchmark:benchmark-common:1.3.3] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\e7b2d42dc9ae0f6cebf4ad35382daa8f\workspace\transformed\benchmark-common-1.3.3\AndroidManifest.xml:32:9-36:20
 83            android:name="androidx.benchmark.IsolationActivity"
-83-->[androidx.benchmark:benchmark-common:1.3.3] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\a45a1c25ad5d3ba0cf984e78816de4ce\workspace\transformed\benchmark-common-1.3.3\AndroidManifest.xml:33:13-64
+83-->[androidx.benchmark:benchmark-common:1.3.3] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\e7b2d42dc9ae0f6cebf4ad35382daa8f\workspace\transformed\benchmark-common-1.3.3\AndroidManifest.xml:33:13-64
 84            android:exported="true"
-84-->[androidx.benchmark:benchmark-common:1.3.3] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\a45a1c25ad5d3ba0cf984e78816de4ce\workspace\transformed\benchmark-common-1.3.3\AndroidManifest.xml:34:13-36
+84-->[androidx.benchmark:benchmark-common:1.3.3] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\e7b2d42dc9ae0f6cebf4ad35382daa8f\workspace\transformed\benchmark-common-1.3.3\AndroidManifest.xml:34:13-36
 85            android:theme="@android:style/Theme.Light.NoTitleBar.Fullscreen" >
-85-->[androidx.benchmark:benchmark-common:1.3.3] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\a45a1c25ad5d3ba0cf984e78816de4ce\workspace\transformed\benchmark-common-1.3.3\AndroidManifest.xml:35:13-77
+85-->[androidx.benchmark:benchmark-common:1.3.3] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\e7b2d42dc9ae0f6cebf4ad35382daa8f\workspace\transformed\benchmark-common-1.3.3\AndroidManifest.xml:35:13-77
 86        </activity>
 87
 88        <receiver
-88-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:34:9-52:20
+88-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:34:9-52:20
 89            android:name="androidx.profileinstaller.ProfileInstallReceiver"
-89-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:35:13-76
+89-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:35:13-76
 90            android:directBootAware="false"
-90-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:36:13-44
+90-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:36:13-44
 91            android:enabled="true"
-91-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:37:13-35
+91-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:37:13-35
 92            android:exported="true"
-92-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:38:13-36
+92-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:38:13-36
 93            android:permission="android.permission.DUMP" >
-93-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:39:13-57
+93-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:39:13-57
 94            <intent-filter>
-94-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:40:13-42:29
+94-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:40:13-42:29
 95                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
-95-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:41:17-91
-95-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:41:25-88
+95-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:41:17-91
+95-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:41:25-88
 96            </intent-filter>
 97            <intent-filter>
-97-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:43:13-45:29
+97-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:43:13-45:29
 98                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
-98-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:44:17-85
-98-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:44:25-82
+98-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:44:17-85
+98-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:44:25-82
 99            </intent-filter>
 100            <intent-filter>
-100-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:46:13-48:29
+100-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:46:13-48:29
 101                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
-101-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:47:17-88
-101-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:47:25-85
+101-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:47:17-88
+101-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:47:25-85
 102            </intent-filter>
 103            <intent-filter>
-103-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:49:13-51:29
+103-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:49:13-51:29
 104                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
-104-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:50:17-95
-104-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\ff63c3fcdd9198502e4c3b5426743723\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:50:25-92
+104-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:50:17-95
+104-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\jpnic\Downloads\gradle-9.4.0-all\gradle-9.4.0\caches\9.3.1\transforms\fd88b9244e243ccea1578be04a419ad6\workspace\transformed\profileinstaller-1.4.0\AndroidManifest.xml:50:25-92
 105            </intent-filter>
 106        </receiver>
 107    </application>

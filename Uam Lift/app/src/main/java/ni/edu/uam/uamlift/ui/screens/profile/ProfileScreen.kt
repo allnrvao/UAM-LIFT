@@ -1,11 +1,19 @@
 package ni.edu.uam.uamlift.ui.screens.profile
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -13,18 +21,48 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ni.edu.uam.uamlift.data.models.Usuario
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import ni.edu.uam.uamlift.ui.theme.Gray
+import ni.edu.uam.uamlift.ui.theme.UAMColor
+import androidx.navigation.NavController // Importamos NavController
 
 @Composable
-fun ProfileScreen(modifier: Modifier = Modifier) {
+fun ProfileScreen(
+    navController: NavController, // 1. PASAMOS EL NAVCONTROLLER COMO PARÁMETRO AQUÍ
+    modifier: Modifier = Modifier
+) {
+    //variables para el uso de los campos
+    var cif by remember { mutableStateOf("") }
+    var nombre by remember { mutableStateOf("") }
+    var apellido by remember { mutableStateOf("") }
+    var correo by remember { mutableStateOf("") }
+    var nombreUsuario by remember { mutableStateOf("") }
+    var imagenUrl by remember { mutableStateOf("") }
+    var numeroViajes by remember { mutableStateOf(0) }
+
+    //Se crea el objeto
+    val usuario = Usuario()
+    usuario.cif = cif
+    usuario.nombre = nombre
+    usuario.apellido = apellido
+    usuario.correo = correo
+    usuario.nombreUsuario = nombreUsuario
+    usuario.imagenUrl = imagenUrl
+
+    //Interfaz
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(20.dp)
+            .background(Gray).scrollable(rememberScrollState(), Orientation.Vertical),
     ) {
         // Hero Card
         Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-            modifier = Modifier.fillMaxWidth()
+            colors = CardDefaults.cardColors(UAMColor),
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -32,43 +70,55 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
             ) {
                 Surface(
                     shape = MaterialTheme.shapes.extraLarge,
-                    color = Color.White.copy(alpha = 0.2f),
+                    color = Color.Red.copy(alpha = 0.2f),
                     modifier = Modifier.size(80.dp)
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("EA", fontSize = 32.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                    //box que contiene la informacion del perfil
+                    Box(
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = usuario.imagenUrl,
+                            contentDescription = "Foto de perfil",
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("Estudiante UAM", color = Color.White, style = MaterialTheme.typography.titleLarge)
-                Text("est2024@uam.edu.gt", color = Color.White.copy(alpha = 0.8f))
+                Text("$nombreUsuario", color = Color.White, fontSize = 16.sp)
+                Text("$nombre $apellido", color = Color.White, style = MaterialTheme.typography.titleLarge)
+                Text("$correo", color = Color.White.copy(alpha = 0.8f))
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Stats (Asegúrate de tener creado este StatItem en tu proyecto)
+        // Stats
         Row(
             horizontalArrangement = Arrangement.SpaceEvenly,
             modifier = Modifier.fillMaxWidth()
         ) {
-            StatItem("Viajes", "34", Icons.Default.Send)
+            StatItem("Viajes", "34", Icons.Default.Send.Color(UAMColor))
             StatItem("Ahorro", "Q850", Icons.Default.Star)
             StatItem("CO₂", "-12kg", Icons.Default.Star)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Menu Card (Corregido sin usar clases viejas de android.view)
         Card(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(vertical = 8.dp)) {
                 ProfileMenuItem(
-                    title = "Mis vehículos",
-                    subtitle = "Toyota Yaris · Blanco",
-                    icon = Icons.Default.FavoriteBorder,
-                    onClick = { /* Acción */ }
+                    title = "Editar perfil",
+                    icon = Icons.Default.Edit,
+                    onClick = {
+                        // 2. CORREGIDO: Solo llamamos al método navigate con una ruta de texto
+                        navController.navigate("edit_profile")
+                    }
                 )
                 Divider(modifier = Modifier.padding(horizontal = 16.dp))
                 ProfileMenuItem(
@@ -97,7 +147,6 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
 }
 
 // ======================== COMPONENTE: ProfileMenuItem ========================
-// Este componente reemplaza de forma interactiva y nativa al conflictivo android.view.MenuItem
 @Composable
 fun ProfileMenuItem(
     title: String = "",
@@ -134,7 +183,7 @@ fun ProfileMenuItem(
             }
         }
         Icon(
-            imageVector = Icons.Default.Face,
+            imageVector = Icons.Default.KeyboardArrowRight, // Cambié Face por una flecha para que se vea mejor como menú
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -150,5 +199,3 @@ fun StatItem(label: String, value: String, icon: ImageVector) {
         Text(label, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
     }
 }
-
-//allan 

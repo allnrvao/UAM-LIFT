@@ -33,5 +33,7 @@ public class Usuario {
     private boolean estado = true;
     @Column(nullable = false)
     private boolean correoVerificado = false;
+    @Column(nullable = false)
+    private int numeroViajes = 0;
 
 }

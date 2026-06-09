@@ -26,6 +26,7 @@ import ni.edu.uam.uamlift.ui.theme.UAMColor
 fun HomeScreen(modifier: Modifier = Modifier) {
     val backgroundColor = Gray
 
+
     Column(
         modifier = modifier
             .fillMaxSize()
