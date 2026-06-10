@@ -6,21 +6,22 @@ data class Usuario(
     @SerializedName("id")
     val id: Long? = null,
     @SerializedName("cif")
-    val cif: String? = null,
+    var cif: String? = null,
     @SerializedName("nombreUsuario")
-    val nombreUsuario: String? = null,
+    var nombreUsuario: String? = null,
     @SerializedName("nombre")
-    val nombre: String? = null,
+    var nombre: String? = null,
     @SerializedName("apellido")
-    val apellido: String? = null,
+    var apellido: String? = null,
     @SerializedName("correo")
-    val correo: String? = null,
+    var correo: String? = null,
     @SerializedName("contraseña")
     val contrasenia: String? = null,
     @SerializedName("imagenUrl")
-    val imagenUrl: String? = null,
+    var imagenUrl: String? = null,
     @SerializedName("estado")
     val estado: Boolean = true,
     @SerializedName("correoVerificado")
     val correoVerificado: Boolean = false
+
 )

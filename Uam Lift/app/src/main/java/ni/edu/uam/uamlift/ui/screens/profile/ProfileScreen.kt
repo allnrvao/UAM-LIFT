@@ -1,7 +1,12 @@
 package ni.edu.uam.uamlift.ui.screens.profile
 
+import android.R
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -13,41 +18,91 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.layout.AlignmentLine
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import ni.edu.uam.uamlift.ui.theme.Gray
+import ni.edu.uam.uamlift.ui.theme.UAMColor
+import androidx.navigation.NavController
+import ni.edu.uam.uamlift.ui.theme.UAMColorLight
+import ni.edu.uam.uamlift.viewmodel.UsuarioViewModel
 
 @Composable
-fun ProfileScreen(modifier: Modifier = Modifier) {
+fun ProfileScreen(
+    navController: NavController,
+    usuarioViewModel: UsuarioViewModel,
+    modifier: Modifier = Modifier
+){
+    //Interfaz
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(20.dp)
+            .background(Gray).scrollable(rememberScrollState(), Orientation.Vertical),
     ) {
-        // Hero Card
+        // Perfil card
         Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-            modifier = Modifier.fillMaxWidth()
+            colors = CardDefaults.cardColors(UAMColor),
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth().padding(24.dp)
+                modifier = Modifier.fillMaxWidth().padding(15.dp)
             ) {
+                Button(
+                    onClick = {
+                        navController.navigate("edit_profile")
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = UAMColorLight
+                    ),
+                    modifier = Modifier
+                        .padding(bottom = 2.dp)
+                        .align(Alignment.End),
+                    shape = CircleShape
+                ) {
+                    // El contenido va aquí adentro
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Editar Perfil",
+                        tint = Color.White // Asegúrate de darle un color que contraste
+                    )
+                }
                 Surface(
                     shape = MaterialTheme.shapes.extraLarge,
-                    color = Color.White.copy(alpha = 0.2f),
+                    color = Color.Red.copy(alpha = 0.2f),
                     modifier = Modifier.size(80.dp)
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("EA", fontSize = 32.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                    //box que contiene la informacion del perfil
+                    Box(
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = usuarioViewModel.usuario.imagenUrl,
+                            contentDescription = "Foto de perfil",
+                            modifier = Modifier
+                                .size(200.dp, 200.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
                     }
+                    //
+                    //
+                    //
+                    //
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("Estudiante UAM", color = Color.White, style = MaterialTheme.typography.titleLarge)
-                Text("est2024@uam.edu.gt", color = Color.White.copy(alpha = 0.8f))
+                Text("${usuarioViewModel.usuario.nombreUsuario}", color = Color.White, fontSize = 16.sp)
+                Text(text = "${usuarioViewModel.usuario.nombre + " " + usuarioViewModel.usuario.apellido}", color = Color.White, style = MaterialTheme.typography.titleLarge)
+                Text("${usuarioViewModel.usuario.correo}", color = Color.White.copy(alpha = 0.8f))
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Stats (Asegúrate de tener creado este StatItem en tu proyecto)
+        // Stats
         Row(
             horizontalArrangement = Arrangement.SpaceEvenly,
             modifier = Modifier.fillMaxWidth()
@@ -59,18 +114,11 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Menu Card (Corregido sin usar clases viejas de android.view)
         Card(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                ProfileMenuItem(
-                    title = "Mis vehículos",
-                    subtitle = "Toyota Yaris · Blanco",
-                    icon = Icons.Default.FavoriteBorder,
-                    onClick = { /* Acción */ }
-                )
-                Divider(modifier = Modifier.padding(horizontal = 16.dp))
+
                 ProfileMenuItem(
                     title = "Reseñas",
                     subtitle = "4.9 promedio",
@@ -96,8 +144,6 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
     }
 }
 
-// ======================== COMPONENTE: ProfileMenuItem ========================
-// Este componente reemplaza de forma interactiva y nativa al conflictivo android.view.MenuItem
 @Composable
 fun ProfileMenuItem(
     title: String = "",
@@ -134,7 +180,7 @@ fun ProfileMenuItem(
             }
         }
         Icon(
-            imageVector = Icons.Default.Face,
+            imageVector = Icons.Default.KeyboardArrowRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )

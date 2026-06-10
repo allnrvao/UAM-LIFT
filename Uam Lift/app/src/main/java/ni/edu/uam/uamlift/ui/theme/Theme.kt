@@ -11,26 +11,30 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.ui.graphics.Color
+
+// --- PALETA MODO CLARO ---
+val LightColors = lightColorScheme(
+    primary = Color(0xFF019AA8),
+    secondary = Color(0xFF76D0DA),
+    background = Color(0xFFFFFFFF), // Tu 'white'
+    surface = Color(0xFFF3F5F7),    // Tu 'Gray'
+    onPrimary = Color(0xFFFFFFFF),
+    onBackground = Color(0xFF1C1B1F),
+    onSurface = Color(0xFF1C1B1F)
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+// --- PALETA MODO OSCURO ---
+val DarkColors = darkColorScheme(
+    primary = Color(0xFF4DB6C1),       // Versión desaturada
+    secondary = Color(0xFFB2EBF2),
+    background = Color(0xFF121212),    // Fondo oscuro
+    surface = Color(0xFF1E1E1E),       // Superficies/Tarjetas oscuras
+    onPrimary = Color(0xFF121212),
+    onBackground = Color(0xFFF3F5F7),  // Texto claro sobre fondo oscuro
+    onSurface = Color(0xFFF3F5F7)
 )
 
 @Composable
@@ -46,8 +50,8 @@ fun UamLiftTheme(
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        darkTheme -> DarkColors
+        else -> LightColors
     }
 
     MaterialTheme(
