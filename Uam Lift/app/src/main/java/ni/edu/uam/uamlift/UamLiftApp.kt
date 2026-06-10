@@ -1,5 +1,6 @@
 package ni.edu.uam.uamlift
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -18,9 +19,12 @@ import ni.edu.uam.uamlift.ui.screens.create.createRide.CreateRideScreen
 import ni.edu.uam.uamlift.ui.screens.home.HomeScreen
 import ni.edu.uam.uamlift.ui.screens.profile.EditProfileScreen
 import ni.edu.uam.uamlift.ui.screens.profile.ProfileScreen
+import ni.edu.uam.uamlift.viewmodel.UsuarioViewModel
+
 // Asegúrate de importar tu pantalla de edición si ya existe:
 // import ni.edu.uam.uamlift.ui.screens.profile.EditProfileScreen
 
+@SuppressLint("ViewModelConstructorInComposable")
 @Composable
 fun UamLiftApp() {
     var currentTab by remember { mutableStateOf("home") }
@@ -50,8 +54,12 @@ fun UamLiftApp() {
             composable("search") { SearchScreen() }
             composable("create") { CreateRideScreen() }
             composable("messages") { MessagesScreen() }
-            composable("profile") { ProfileScreen(navController = navController) }
-            composable("edit_profile") { EditProfileScreen() }
+            composable("profile") { ProfileScreen(
+                navController = navController,
+                usuarioViewModel = UsuarioViewModel(),
+                modifier = Modifier
+            ) }
+            composable("edit_profile") { EditProfileScreen( usuarioViewModel = UsuarioViewModel()) }
         }
     }
 }
