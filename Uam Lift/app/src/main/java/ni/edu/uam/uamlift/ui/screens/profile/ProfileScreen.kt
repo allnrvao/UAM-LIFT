@@ -91,6 +91,7 @@ fun ProfileScreen(
                     //
                     //
                     //
+                    //
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Text("${usuarioViewModel.usuario.nombreUsuario}", color = Color.White, fontSize = 16.sp)
