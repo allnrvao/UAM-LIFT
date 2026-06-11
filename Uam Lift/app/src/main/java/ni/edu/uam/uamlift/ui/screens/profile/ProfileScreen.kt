@@ -1,10 +1,7 @@
 package ni.edu.uam.uamlift.ui.screens.profile
 
-import android.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
@@ -19,14 +16,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import ni.edu.uam.uamlift.ui.theme.Gray
 import ni.edu.uam.uamlift.ui.theme.UAMColor
 import androidx.navigation.NavController
+import ni.edu.uam.uamlift.ui.components.WhyCard
 import ni.edu.uam.uamlift.ui.theme.UAMColorLight
 import ni.edu.uam.uamlift.viewmodel.UsuarioViewModel
 
@@ -35,12 +33,15 @@ fun ProfileScreen(
     navController: NavController,
     usuarioViewModel: UsuarioViewModel,
     modifier: Modifier = Modifier
-){
-    //Interfaz
+) {
+    val scrollState = rememberScrollState()
+
+    // Interfaz
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Gray).scrollable(rememberScrollState(), Orientation.Vertical),
+            .background(Gray)
+            .verticalScroll(scrollState)
     ) {
         // Perfil card
         Card(
@@ -51,6 +52,7 @@ fun ProfileScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.fillMaxWidth().padding(15.dp)
             ) {
+                // Boton editar perfil
                 Button(
                     onClick = {
                         navController.navigate("edit_profile")
@@ -63,11 +65,10 @@ fun ProfileScreen(
                         .align(Alignment.End),
                     shape = CircleShape
                 ) {
-                    // El contenido va aquí adentro
                     Icon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = "Editar Perfil",
-                        tint = Color.White // Asegúrate de darle un color que contraste
+                        tint = Color.White
                     )
                 }
                 Surface(
@@ -75,7 +76,6 @@ fun ProfileScreen(
                     color = Color.Red.copy(alpha = 0.2f),
                     modifier = Modifier.size(80.dp)
                 ) {
-                    //box que contiene la informacion del perfil
                     Box(
                         contentAlignment = Alignment.Center
                     ) {
@@ -88,34 +88,105 @@ fun ProfileScreen(
                             contentScale = ContentScale.Crop
                         )
                     }
-                    //
-                    //
-                    //
-                    //
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("${usuarioViewModel.usuario.nombreUsuario}", color = Color.White, fontSize = 16.sp)
-                Text(text = "${usuarioViewModel.usuario.nombre + " " + usuarioViewModel.usuario.apellido}", color = Color.White, style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "${usuarioViewModel.usuario.nombreUsuario}",
+                    color = Color.White,
+                    fontSize = 16.sp
+                )
+                Text(
+                    text = usuarioViewModel.usuario.nombre + " " + usuarioViewModel.usuario.apellido,
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleLarge
+                )
                 Text("${usuarioViewModel.usuario.correo}", color = Color.White.copy(alpha = 0.8f))
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Stats
+        // Insignias
         Row(
             horizontalArrangement = Arrangement.SpaceEvenly,
             modifier = Modifier.fillMaxWidth()
         ) {
             StatItem("Viajes", "34", Icons.Default.Send)
-            StatItem("Ahorro", "Q850", Icons.Default.Star)
+            StatItem("Ahorro", "C$ 850", Icons.Default.Star)
             StatItem("CO₂", "-12kg", Icons.Default.Star)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // Card de estado verificado
         Card(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(Color(0xFFECFDF5), shape = CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Verificado",
+                        tint = Color(0xFF10B981),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "Estudiante verificado",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Black
+                    )
+                    Text(
+                        text = "Correo UAM confirmado",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Surface(
+                    color = Color(0xFFECFDF5),
+                    shape = RoundedCornerShape(50.dp),
+                    modifier = Modifier.wrapContentSize()
+                ) {
+                    Text(
+                        text = "Activo",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF059669),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Card del menú de opciones
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(modifier = Modifier.padding(vertical = 8.dp)) {
 
@@ -123,32 +194,116 @@ fun ProfileScreen(
                     title = "Reseñas",
                     subtitle = "4.9 promedio",
                     icon = Icons.Default.Star,
+                    iconTint = Color(0xFFFFB300), // Estrella Dorada
+                    titleColor = Color.Black,     // Texto oscuro para el fondo blanco
+                    arrowTint = Color(0xFF888888),
                     onClick = { /* Acción */ }
                 )
-                Divider(modifier = Modifier.padding(horizontal = 16.dp))
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    thickness = 1.dp,
+                    color = Color(0xFFE0E0E0)
+                )
+
                 ProfileMenuItem(
                     title = "Rutas favoritas",
                     subtitle = "3 guardadas",
                     icon = Icons.Default.Check,
+                    iconTint = MaterialTheme.colorScheme.primary,
+                    titleColor = Color.Black,
+                    arrowTint = Color(0xFF888888),
                     onClick = { /* Acción */ }
                 )
-                Divider(modifier = Modifier.padding(horizontal = 16.dp))
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    thickness = 1.dp,
+                    color = Color(0xFFE0E0E0)
+                )
+
                 ProfileMenuItem(
                     title = "Notificaciones",
                     subtitle = "Activas",
                     icon = Icons.Default.Notifications,
+                    iconTint = MaterialTheme.colorScheme.primary,
+                    titleColor = Color.Black,
+                    arrowTint = Color(0xFF888888),
                     onClick = { /* Acción */ }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row {
+            Text(
+                text = "¿Por qué UAM LIFT?",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp),
+                color = Color.Black
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Primera Fila
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                WhyCard(
+                    emoji = "💰",
+                    title = "Ahorra dinero",
+                    subtitle = "Comparte combustible",
+                    modifier = Modifier.weight(1f)
+                )
+                WhyCard(
+                    emoji = "🌱",
+                    title = "Eco-friendly",
+                    subtitle = "Menos huella de carbono",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Segunda Fila
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                WhyCard(
+                    emoji = "🤝",
+                    title = "Comunidad",
+                    subtitle = "Conoce compañeros",
+                    modifier = Modifier.weight(1f)
+                )
+                WhyCard(
+                    emoji = "🔒",
+                    title = "Seguro",
+                    subtitle = "Solo personas de UAM",
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
     }
 }
 
+// ======================== COMPONENTE COMPLEMENTARIO: ProfileMenuItem ========================
 @Composable
 fun ProfileMenuItem(
     title: String = "",
     subtitle: String = "",
     icon: ImageVector = Icons.Default.Face,
+    iconTint: Color = MaterialTheme.colorScheme.primary,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    arrowTint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     onClick: () -> Unit
 ) {
     Row(
@@ -161,7 +316,7 @@ fun ProfileMenuItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = iconTint,
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
@@ -169,7 +324,8 @@ fun ProfileMenuItem(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                color = titleColor
             )
             if (subtitle.isNotEmpty()) {
                 Text(
@@ -182,7 +338,7 @@ fun ProfileMenuItem(
         Icon(
             imageVector = Icons.Default.KeyboardArrowRight,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            tint = arrowTint
         )
     }
 }
