@@ -10,44 +10,73 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/usuarios")
 public class UsuarioController {
-    private UsuarioServicio usuarioServicio;
+
+    private final UsuarioServicio usuarioServicio;
+
     public UsuarioController(UsuarioServicio usuarioServicio) {
         this.usuarioServicio = usuarioServicio;
     }
+
     @PostMapping
     public boolean registrarUsuario(@RequestBody Usuario usuario) {
         return usuarioServicio.AddUsuario(usuario);
     }
 
+    @GetMapping("/cif/{cif}")
+    public Usuario obtenerPorCif(@PathVariable String cif) {
+        return usuarioServicio.findByCif(cif);
+    }
+
+    @GetMapping("/correo/{correo}")
+    public Usuario obtenerPorCorreo(@PathVariable String correo) {
+        return usuarioServicio.findByCorreo(correo);
+    }
+
+    @GetMapping("/nombreUsuario/{nombreUsuario}")
+    public Usuario obtenerPorNombreUsuario(
+            @PathVariable String nombreUsuario) {
+
+        return usuarioServicio.findByNombreUsuario(nombreUsuario);
+    }
+
     @PutMapping("/{cif}")
-    public boolean actualizarUsuario(@PathVariable String cif, @RequestBody Usuario usuario) {
+    public boolean actualizarUsuario(
+            @PathVariable String cif,
+            @RequestBody Usuario usuario) {
+
         Usuario usuarioExistente = usuarioServicio.findByCif(cif);
-        if (usuarioExistente == null) {
-            return false;
-        }
+
         usuarioExistente.setNombre(usuario.getNombre());
+        usuarioExistente.setApellido(usuario.getApellido());
         usuarioExistente.setCorreo(usuario.getCorreo());
         usuarioExistente.setNombreUsuario(usuario.getNombreUsuario());
+        usuarioExistente.setImagenUrl(usuario.getImagenUrl());
+
         return usuarioServicio.UpdateUsuario(usuarioExistente);
     }
 
     @DeleteMapping("/{cif}")
     public boolean eliminarUsuario(@PathVariable String cif) {
+
         Usuario usuarioExistente = usuarioServicio.findByCif(cif);
-        if (usuarioExistente == null) {
-            return false;
-        }
+
         return usuarioServicio.DeleteUsuario(usuarioExistente);
     }
 
     @PostMapping("/verificacion/solicitar")
-    public boolean solicitarVerificacion(@Valid @RequestBody EmailVerificationRequest request) {
-        return usuarioServicio.solicitarVerificacionCorreo(request.getCorreo());
+    public boolean solicitarVerificacion(
+            @Valid @RequestBody EmailVerificationRequest request) {
+
+        return usuarioServicio.solicitarVerificacionCorreo(
+                request.getCorreo());
     }
 
     @PostMapping("/verificacion/confirmar")
-    public boolean confirmarVerificacion(@Valid @RequestBody EmailVerificationConfirm request) {
-        return usuarioServicio.confirmarVerificacionCorreo(request.getCorreo(), request.getCode());
-    }
+    public boolean confirmarVerificacion(
+            @Valid @RequestBody EmailVerificationConfirm request) {
 
+        return usuarioServicio.confirmarVerificacionCorreo(
+                request.getCorreo(),
+                request.getCode());
+    }
 }

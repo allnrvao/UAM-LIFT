@@ -6,8 +6,26 @@ import ni.edu.uam.uamlift.data.models.Usuario
 import retrofit2.http.*
 
 interface UsuarioApiService {
+
     @POST("api/usuarios")
-    suspend fun registrarUsuario(@Body usuario: Usuario): Boolean
+    suspend fun registrarUsuario(
+        @Body usuario: Usuario
+    ): Boolean
+
+    @GET("api/usuarios/cif/{cif}")
+    suspend fun obtenerPorCif(
+        @Path("cif") cif: String
+    ): Usuario
+
+    @GET("api/usuarios/correo/{correo}")
+    suspend fun obtenerPorCorreo(
+        @Path("correo") correo: String
+    ): Usuario
+
+    @GET("api/usuarios/nombreUsuario/{nombreUsuario}")
+    suspend fun obtenerPorNombreUsuario(
+        @Path("nombreUsuario") nombreUsuario: String
+    ): Usuario
 
     @PUT("api/usuarios/{cif}")
     suspend fun actualizarUsuario(
@@ -16,11 +34,17 @@ interface UsuarioApiService {
     ): Boolean
 
     @DELETE("api/usuarios/{cif}")
-    suspend fun eliminarUsuario(@Path("cif") cif: String): Boolean
+    suspend fun eliminarUsuario(
+        @Path("cif") cif: String
+    ): Boolean
 
     @POST("api/usuarios/verificacion/solicitar")
-    suspend fun solicitarVerificacion(@Body request: EmailVerificationRequest): Boolean
+    suspend fun solicitarVerificacion(
+        @Body request: EmailVerificationRequest
+    ): Boolean
 
     @POST("api/usuarios/verificacion/confirmar")
-    suspend fun confirmarVerificacion(@Body request: EmailVerificationConfirm): Boolean
+    suspend fun confirmarVerificacion(
+        @Body request: EmailVerificationConfirm
+    ): Boolean
 }

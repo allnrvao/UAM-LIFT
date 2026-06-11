@@ -15,20 +15,26 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.VerticalAlignmentLine
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import ni.edu.uam.uamlift.ui.theme.UAMColorLight
+import ni.edu.uam.uamlift.viewmodel.UsuarioViewModel
 
 private val PrimaryColor = Color(0xFF019AA8)
 
 @Composable
 fun LogIn(
+    navController: NavController,
     modifier: Modifier = Modifier,
+    usuarioViewModel: UsuarioViewModel,
     onLogin: () -> Unit
-) {
+){
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
@@ -89,9 +95,10 @@ fun LogIn(
 
             Spacer(modifier = Modifier.height(40.dp))
 
+            //Card de inicio de sesión donde se ingresan los datos
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier.size(width = 900.dp, height = 234.dp),
+                shape = RoundedCornerShape(25.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = Color.White
                 )
@@ -105,7 +112,7 @@ fun LogIn(
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = { Text("Correo UAM") },
+                        label = { Text("Correo") },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Mail,
@@ -168,12 +175,17 @@ fun LogIn(
                     )
 
                     TextButton(
-                        onClick = {},
+                        onClick = {
+                            //Abrir el formulario para cambiar la contraseña
+
+
+                        },
                         modifier = Modifier.align(Alignment.End)
                     ) {
                         Text(
                             text = "¿Olvidaste tu contraseña?",
-                            color = PrimaryColor
+                            color = PrimaryColor,
+                            fontSize = 12.sp
                         )
                     }
                 }
@@ -199,6 +211,39 @@ fun LogIn(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
+
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "¿No tienes una cuenta?",
+                    color = Color.White.copy(alpha = 0.6f)
+                )
+                Spacer(modifier = Modifier.width(1.dp))
+
+                TextButton(onClick = {
+                    //Abrir el formulario para crear una cuenta
+                    navController.navigate("createAccount")
+                },
+                    modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryColor,
+                            contentColor = Color.White
+                        )) {
+                        Text(
+                            text = "Regístrate",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                        )
+                    }
+                }
+
+            Spacer(modifier = Modifier.height(115.dp))
 
             Text(
                 text = "Solo para estudiantes UAM verificados",
