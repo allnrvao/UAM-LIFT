@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
@@ -15,15 +16,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.VerticalAlignmentLine
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import ni.edu.uam.uamlift.ui.theme.UAMColorLight
 import ni.edu.uam.uamlift.viewmodel.UsuarioViewModel
 
 private val PrimaryColor = Color(0xFF019AA8)
@@ -39,6 +40,9 @@ fun LogIn(
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
 
+    var errorMessage by remember { mutableStateOf("") }
+    var showError by remember { mutableStateOf(false) }
+
     val scrollState = rememberScrollState()
 
     Box(
@@ -46,7 +50,6 @@ fun LogIn(
             .fillMaxSize()
             .background(PrimaryColor)
     ) {
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -57,6 +60,7 @@ fun LogIn(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Logo
             Card(
                 modifier = Modifier.size(80.dp),
                 shape = RoundedCornerShape(24.dp),
@@ -93,25 +97,45 @@ fun LogIn(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            //Card de inicio de sesión donde se ingresan los datos
+            // ALERTA VISUAL: Se activa si 'showError' cambia a verdadero
+            if (showError) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEE2E2)), // Rojo suave
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                ) {
+                    Text(
+                        text = errorMessage,
+                        color = Color(0xFFDC2626), // Texto rojo de alerta
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(12.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
             Card(
-                modifier = Modifier.size(width = 900.dp, height = 234.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
                 shape = RoundedCornerShape(25.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White
-                )
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
-
                 Column(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-
                     OutlinedTextField(
                         value = email,
-                        onValueChange = { email = it },
+                        onValueChange = {
+                            email = it
+                            if (showError) showError = false // Oculta el error al empezar a escribir de nuevo
+                        },
                         label = { Text("Correo") },
                         leadingIcon = {
                             Icon(
@@ -128,12 +152,21 @@ fun LogIn(
                             unfocusedTextColor = Color.Black,
                             focusedContainerColor = Color(0xFFF6F8FA),
                             unfocusedContainerColor = Color(0xFFF6F8FA)
+
+                        ),
+                        //Para que cuando se autorellene lo tome como valido y no vacio
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email, // Configura el teclado optimizado para emails
+                            imeAction = ImeAction.Next         // Cambia el botón del teclado para pasar al siguiente campo
                         )
                     )
 
                     OutlinedTextField(
                         value = password,
-                        onValueChange = { password = it },
+                        onValueChange = {
+                            password = it
+                            if (showError) showError = false
+                        },
                         label = { Text("Contraseña") },
                         leadingIcon = {
                             Icon(
@@ -143,26 +176,14 @@ fun LogIn(
                             )
                         },
                         trailingIcon = {
-                            IconButton(
-                                onClick = {
-                                    showPassword = !showPassword
-                                }
-                            ) {
+                            IconButton(onClick = { showPassword = !showPassword }) {
                                 Icon(
-                                    imageVector =
-                                        if (showPassword)
-                                            Icons.Default.VisibilityOff
-                                        else
-                                            Icons.Default.Visibility,
+                                    imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                     contentDescription = null
                                 )
                             }
                         },
-                        visualTransformation =
-                            if (showPassword)
-                                VisualTransformation.None
-                            else
-                                PasswordVisualTransformation(),
+                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp),
@@ -171,15 +192,15 @@ fun LogIn(
                             unfocusedTextColor = Color.Black,
                             focusedContainerColor = Color(0xFFF6F8FA),
                             unfocusedContainerColor = Color(0xFFF6F8FA)
+                        ),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password, // Configura el teclado optimizado para emails
+                                imeAction = ImeAction.Next         // Cambia el botón del teclado para pasar al siguiente campo
                         )
                     )
 
                     TextButton(
-                        onClick = {
-                            //Abrir el formulario para cambiar la contraseña
-
-
-                        },
+                        onClick = { /* Abrir formulario recuperar contraseña */ },
                         modifier = Modifier.align(Alignment.End)
                     ) {
                         Text(
@@ -193,8 +214,31 @@ fun LogIn(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Boton principal de inicio de sesión
             Button(
-                onClick = onLogin,
+                onClick = {
+                    // Validación 1: Campos en blanco o vacíos
+                    if (email.isBlank() || password.isBlank()) {
+                        errorMessage = "Por favor, completa todos los campos para continuar."
+                        showError = true
+                    }
+                    // Validación 2: Comprobar el formato básico del correo electrónico
+                    else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                        errorMessage = "El formato del correo electrónico ingresado no es válido."
+                        showError = true
+                    }
+                    // Validación 3: CORREGIDA con el operador || (OR)
+                    else if (email.trim() != usuarioViewModel.usuario.correo?.trim() ||
+                        password.trim() != usuarioViewModel.usuario.contrasenia?.trim()) {
+                        errorMessage = "El correo o la contraseña son incorrectos."
+                        showError = true
+                    }
+                    // Todo correcto: Entra aquí SOLO si el correo coincide Y la contraseña coincide
+                    else {
+                        showError = false
+                        onLogin()
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
@@ -212,7 +256,7 @@ fun LogIn(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-
+            // Sección Registro
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -221,29 +265,30 @@ fun LogIn(
                     text = "¿No tienes una cuenta?",
                     color = Color.White.copy(alpha = 0.6f)
                 )
-                Spacer(modifier = Modifier.width(1.dp))
 
-                TextButton(onClick = {
-                    //Abrir el formulario para crear una cuenta
-                    navController.navigate("createAccount")
-                },
+                Spacer(modifier = Modifier.height(8.dp))
+
+                TextButton(
+                    onClick = { navController.navigate("createAccount") },
                     modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryColor,
-                            contentColor = Color.White
-                        )) {
-                        Text(
-                            text = "Regístrate",
-                            color = Color.White,
-                            fontSize = 20.sp,
-                        )
-                    }
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryColor,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        text = "Regístrate",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
+            }
 
-            Spacer(modifier = Modifier.height(115.dp))
+            Spacer(modifier = Modifier.height(60.dp))
 
             Text(
                 text = "Solo para estudiantes UAM verificados",

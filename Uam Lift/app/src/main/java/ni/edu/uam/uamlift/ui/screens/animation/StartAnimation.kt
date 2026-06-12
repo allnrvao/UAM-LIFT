@@ -49,10 +49,10 @@ fun SplashScreen(onDone: () -> Unit) {
 
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
 
-    // Phase 1: Control de los tiempos de los estados
+
     LaunchedEffect(Unit) {
         // Reducimos los tiempos para que la navegación a login sea más rápida
-        delay(200)
+        delay(150)
         phase = SplashPhase.LOADING
     }
 
@@ -61,10 +61,10 @@ fun SplashScreen(onDone: () -> Unit) {
         if (phase == SplashPhase.LOADING) {
             progress.animateTo(
                 targetValue = 1f,
-                animationSpec = tween(durationMillis = 800, easing = LinearEasing)
+                animationSpec = tween(durationMillis = 700, easing = LinearEasing)
             )
             // Pequeña espera al llegar al 100%
-            delay(100)
+            delay(1500)
             phase = SplashPhase.EXIT
             // Duración de la animación de salida antes de llamar al onDone
             onDone()

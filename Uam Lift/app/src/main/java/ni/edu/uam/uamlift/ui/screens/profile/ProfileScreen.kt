@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight // Corregido: Ubicación oficial en Material 3
+import androidx.compose.material.icons.automirrored.filled.Send               // Corregido: Ubicación oficial en Material 3
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -20,13 +22,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import ni.edu.uam.uamlift.ui.components.WhyCard
 import ni.edu.uam.uamlift.ui.theme.Gray
 import ni.edu.uam.uamlift.ui.theme.UAMColor
-import androidx.navigation.NavController
-import ni.edu.uam.uamlift.ui.components.WhyCard
 import ni.edu.uam.uamlift.ui.theme.UAMColorLight
 import ni.edu.uam.uamlift.viewmodel.UsuarioViewModel
+import java.io.File
 
 @Composable
 fun ProfileScreen(
@@ -34,93 +37,139 @@ fun ProfileScreen(
     usuarioViewModel: UsuarioViewModel,
     modifier: Modifier = Modifier
 ) {
+    val estudiante = usuarioViewModel.usuario
     val scrollState = rememberScrollState()
 
-    // Interfaz
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(Gray)
             .verticalScroll(scrollState)
     ) {
-        // Perfil card
+        // Tarjeta del Perfil Principal
         Card(
-            colors = CardDefaults.cardColors(UAMColor),
-            modifier = Modifier.fillMaxWidth().padding(16.dp)
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(310.dp) // Mantenemos tus 400.dp fijos
+                .padding(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth().padding(15.dp)
-            ) {
-                // Boton editar perfil
-                Button(
-                    onClick = {
-                        navController.navigate("edit_profile")
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = UAMColorLight
-                    ),
+            // Usamos un Box principal para poder encimar el avatar y el botón sobre los fondos
+            Box(modifier = Modifier.fillMaxSize()) {
+
+                // 1. CAPA DE FONDOS: Dividida exactamente 50% y 50%
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Mitad Superior: UAMColor (168.dp netos aproximados del espacio interno)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(0.5f)
+                            .background(UAMColor)
+                    )
+                    // Mitad Inferior: Blanco
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(0.5f)
+                            .background(Color.White)
+                    )
+                }
+
+                // 2. CAPA DE CONTENIDO: Aquí distribuimos el Avatar y los Textos sin usar offsets problemáticos
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Espacio flexible superior para empujar el Avatar exactamente al centro de la tarjeta
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // El Avatar de 180.dp (quedará con 90.dp en la zona turquesa y 90.dp en la zona blanca)
+                    Box(
+                        modifier = Modifier
+                            .size(180.dp)
+                            .clip(CircleShape)
+                            .background(Color.White) // Anillo de contraste exterior
+                            .padding(6.dp) // Grosor del borde blanco
+                            .clip(CircleShape)
+                    ) {
+                        AsyncImage(
+                            model = File(estudiante.imagenUrl),
+                            contentDescription = "Foto de perfil",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+
+                    // Espacio controlado entre el Avatar y los textos
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Bloque de Textos perfectamente centrados en la sección inferior blanca
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    ) {
+                        Text(
+                            text = "${estudiante.nombre} ${estudiante.apellido}",
+                            color = Color(0xFF1E293B),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 24.sp // Un poco más grande para balancear la tarjeta de 400.dp
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            text = "@${estudiante.nombreUsuario}",
+                            color = UAMColor,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // Espacio flexible inferior para asegurar que los textos queden bien distribuidos y equilibrados
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+
+                // 3. CAPA DEL BOTÓN DE EDICIÓN: Flota en la esquina superior sin interferir con la simetría central
+                IconButton(
+                    onClick = { navController.navigate("edit_profile") },
                     modifier = Modifier
-                        .padding(bottom = 2.dp)
-                        .align(Alignment.End),
-                    shape = CircleShape
+                        .padding(16.dp)
+                        .align(Alignment.TopEnd)
+                        .background(Color.White.copy(alpha = 0.25f), shape = CircleShape)
+                        .size(48.dp) // Ajustado a 48.dp para mantener proporciones elegantes en M3
                 ) {
                     Icon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = "Editar Perfil",
-                        tint = Color.White
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
-                Surface(
-                    shape = MaterialTheme.shapes.extraLarge,
-                    color = Color.Red.copy(alpha = 0.2f),
-                    modifier = Modifier.size(80.dp)
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AsyncImage(
-                            model = usuarioViewModel.usuario.imagenUrl,
-                            contentDescription = "Foto de perfil",
-                            modifier = Modifier
-                                .size(200.dp, 200.dp)
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    "${usuarioViewModel.usuario.nombreUsuario}",
-                    color = Color.White,
-                    fontSize = 16.sp
-                )
-                Text(
-                    text = usuarioViewModel.usuario.nombre + " " + usuarioViewModel.usuario.apellido,
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Text("${usuarioViewModel.usuario.correo}", color = Color.White.copy(alpha = 0.8f))
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // Insignias
+        // Sección de Insignias / Métricas
         Row(
             horizontalArrangement = Arrangement.SpaceEvenly,
             modifier = Modifier.fillMaxWidth()
         ) {
-            StatItem("Viajes", "34", Icons.Default.Send)
+            StatItem("Viajes", "34", Icons.AutoMirrored.Filled.Send) // Corregido
             StatItem("Ahorro", "C$ 850", Icons.Default.Star)
-            StatItem("CO₂", "-12kg", Icons.Default.Star)
+            StatItem("CO₂", "-12kg", Icons.Default.Eco) // Cambiado por un ícono representativo verde ecológico
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Card de estado verificado
+        // Tarjeta de Estado Verificado (Estudiante UAM)
         Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
@@ -146,9 +195,7 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Estudiante verificado",
                         fontSize = 14.sp,
@@ -182,21 +229,20 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Card del menú de opciones
+        // Menú de opciones del perfil
         Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(modifier = Modifier.padding(vertical = 8.dp)) {
-
                 ProfileMenuItem(
                     title = "Reseñas",
                     subtitle = "4.9 promedio",
                     icon = Icons.Default.Star,
-                    iconTint = Color(0xFFFFB300), // Estrella Dorada
-                    titleColor = Color.Black,     // Texto oscuro para el fondo blanco
-                    arrowTint = Color(0xFF888888),
+                    iconTint = Color(0xFFFFB300),
                     onClick = { /* Acción */ }
                 )
 
@@ -209,10 +255,8 @@ fun ProfileScreen(
                 ProfileMenuItem(
                     title = "Rutas favoritas",
                     subtitle = "3 guardadas",
-                    icon = Icons.Default.Check,
-                    iconTint = MaterialTheme.colorScheme.primary,
-                    titleColor = Color.Black,
-                    arrowTint = Color(0xFF888888),
+                    icon = Icons.Default.Place, // Cambiado por un ícono de ubicación coherente
+                    iconTint = UAMColor,
                     onClick = { /* Acción */ }
                 )
 
@@ -226,9 +270,7 @@ fun ProfileScreen(
                     title = "Notificaciones",
                     subtitle = "Activas",
                     icon = Icons.Default.Notifications,
-                    iconTint = MaterialTheme.colorScheme.primary,
-                    titleColor = Color.Black,
-                    arrowTint = Color(0xFF888888),
+                    iconTint = UAMColor,
                     onClick = { /* Acción */ }
                 )
             }
@@ -236,17 +278,17 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Row {
-            Text(
-                text = "¿Por qué UAM LIFT?",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 16.dp),
-                color = Color.Black
-            )
-        }
+        Text(
+            text = "¿Por qué UAM LIFT?",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 16.dp),
+            color = Color.Black,
+            fontWeight = FontWeight.Bold
+        )
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Bloque informativo del valor de la App
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -254,7 +296,6 @@ fun ProfileScreen(
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Primera Fila
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -273,7 +314,6 @@ fun ProfileScreen(
                 )
             }
 
-            // Segunda Fila
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -295,19 +335,17 @@ fun ProfileScreen(
     }
 }
 
-// ======================== COMPONENTE COMPLEMENTARIO: ProfileMenuItem ========================
 @Composable
 fun ProfileMenuItem(
-    title: String = "",
+    title: String,
+    modifier: Modifier = Modifier,
     subtitle: String = "",
     icon: ImageVector = Icons.Default.Face,
-    iconTint: Color = MaterialTheme.colorScheme.primary,
-    titleColor: Color = MaterialTheme.colorScheme.onSurface,
-    arrowTint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    iconTint: Color = UAMColor,
     onClick: () -> Unit
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -325,20 +363,20 @@ fun ProfileMenuItem(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = titleColor
+                color = Color.Black
             )
             if (subtitle.isNotEmpty()) {
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = Color.Gray
                 )
             }
         }
         Icon(
-            imageVector = Icons.Default.KeyboardArrowRight,
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, // Corregido el paquete Material 3
             contentDescription = null,
-            tint = arrowTint
+            tint = Color(0xFF888888)
         )
     }
 }
@@ -346,9 +384,9 @@ fun ProfileMenuItem(
 @Composable
 fun StatItem(label: String, value: String, icon: ImageVector) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        Icon(icon, contentDescription = null, tint = UAMColor)
         Spacer(modifier = Modifier.height(4.dp))
-        Text(value, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+      //  Text(value, java.lang.String.valueOf(value), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, color = Color.Black)
         Text(label, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
     }
 }

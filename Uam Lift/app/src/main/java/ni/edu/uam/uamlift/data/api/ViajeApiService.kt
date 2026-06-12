@@ -4,6 +4,10 @@ import ni.edu.uam.uamlift.data.models.Viaje
 import retrofit2.http.*
 
 interface ViajeApiService {
+    // 1. AGREGA ESTA FUNCIÓN AL INICIO O AL FINAL
+    @GET("api/viajes")
+    suspend fun obtenerTodosLosViajes(): List<Viaje>
+
     @POST("api/viajes/{conductorCif}")
     suspend fun crearViaje(
         @Path("conductorCif") conductorCif: String,

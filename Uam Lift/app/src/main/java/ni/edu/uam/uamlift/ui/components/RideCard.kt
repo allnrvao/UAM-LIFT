@@ -8,7 +8,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,31 +21,36 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import ni.edu.uam.uamlift.ui.theme.Gray
+import ni.edu.uam.uamlift.data.models.Viaje // Corregido: Enlazado a tu modelo de Spring Boot
 import ni.edu.uam.uamlift.ui.theme.UAMColor
 
 @Composable
 fun RideCard(
-    initials: String,
-    name: String,
-    rating: String,
-    trips: Int,
-    from: String,
-    to: String,
-    time: String,
-    price: String, // Ejemplo: "Q25"
-    seats: Int
+    viaje: Viaje, // Corregido: Cambiado 'ride: Ride' por tu objeto real 'Viaje'
+    onClick: () -> Unit
 ) {
-    // Paleta de colores basada en la imagen
-    val lightTealBg = Color(0xFFE0F7FA) // Fondo del avatar de iniciales
-    val lightTealSeat = Color(0xFFB2EBF2) // Color de los círculos de asientos
-    val grayText = Color(0xFF757575) // Color para textos secundarios
+    val lightTealBg = Color(0xFFE0F7FA)
+    val lightTealSeat = Color(0xFFB2EBF2)
+    val grayText = Color(0xFF757575)
+
+    // Extracción y formateo seguro de propiedades (Null-safety)
+    val nombreConductor = viaje.conductor?.nombre ?: "Conductor"
+    val initials = nombreConductor.trim().split(" ")
+        .mapNotNull { it.firstOrNull()?.toString() }
+        .take(2)
+        .joinToString("")
+        .uppercase()
+
+    val origenTexto = viaje.origen?.nombre ?: "UAM"         // Reemplaza por la propiedad de tu clase Destino
+    val destinoTexto = viaje.destino?.nombre ?: "Destino"   // Reemplaza por la propiedad de tu clase Destino
+    val horaTexto = viaje.fechaHoraSalida?.substringAfter("T")?.take(5) ?: "00:00"
 
     Card(
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp),
-        shape = RoundedCornerShape(28.dp), // Esquinas bien redondeadas como la imagen
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -80,7 +84,7 @@ fun RideCard(
                     // Nombre y Calificación
                     Column {
                         Text(
-                            text = name,
+                            text = nombreConductor,
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
                             color = Color.Black
@@ -90,12 +94,12 @@ fun RideCard(
                             Icon(
                                 imageVector = Icons.Filled.Star,
                                 contentDescription = "Rating",
-                                tint = Color(0xFFFBC02D), // Color dorado de la estrella
+                                tint = Color(0xFFFBC02D),
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "$rating · $trips viajes",
+                                text = "4.8 · 15 viajes", // Hardcoded temporal hasta que tu Usuario devuelva estos campos
                                 fontSize = 14.sp,
                                 color = grayText
                             )
@@ -106,7 +110,7 @@ fun RideCard(
                 // Precio
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = price,
+                        text = "C$ ${viaje.precioPorPersona.toInt()}",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = UAMColor
@@ -127,7 +131,6 @@ fun RideCard(
                     .fillMaxWidth()
                     .padding(start = 8.dp)
             ) {
-                // Canvas personalizado para recrear la línea del tiempo/ruta exacta
                 Canvas(
                     modifier = Modifier
                         .width(16.dp)
@@ -138,53 +141,24 @@ fun RideCard(
                     val center2 = Offset(size.width / 2, size.height - radius - 2.dp.toPx())
                     val strokeWidth = 2.dp.toPx()
 
-                    // Línea conectora
-                    drawLine(
-                        color = UAMColor,
-                        start = center1,
-                        end = center2,
-                        strokeWidth = strokeWidth
-                    )
-                    // Punto de Origen (Relleno)
-                    drawCircle(
-                        color = UAMColor,
-                        radius = radius,
-                        center = center1
-                    )
-                    // Punto de Destino (Solo borde / Outline)
-                    drawCircle(
-                        color = UAMColor,
-                        radius = radius - (strokeWidth / 2),
-                        center = center2,
-                        style = Stroke(width = strokeWidth)
-                    )
+                    drawLine(color = UAMColor, start = center1, end = center2, strokeWidth = strokeWidth)
+                    drawCircle(color = UAMColor, radius = radius, center = center1)
+                    drawCircle(color = UAMColor, radius = radius - (strokeWidth / 2), center = center2, style = Stroke(width = strokeWidth))
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // Textos de las direcciones (Mapeados verticalmente con el Canvas)
                 Column(
                     modifier = Modifier.height(60.dp),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = from,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Black
-                    )
-                    Text(
-                        text = to,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Black
-                    )
+                    Text(text = origenTexto, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color.Black)
+                    Text(text = destinoTexto, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color.Black)
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Separador sutil antes del footer
             HorizontalDivider(color = Color(0xFFF5F5F5), thickness = 1.dp)
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -196,17 +170,15 @@ fun RideCard(
             ) {
                 // Hora
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Puedes usar un Icon de reloj estándar. Si usas Material3 de manera extendida,
-                    // puedes cambiar de DateRange a un icono de reloj real, por ahora mantengo uno de tiempo.
                     Icon(
-                        painter = painterResource(id = R.drawable.ic_menu_recent_history), // Reemplaza por tu icono de reloj preferido
+                        painter = painterResource(id = R.drawable.ic_menu_recent_history),
                         contentDescription = "Hora",
                         tint = grayText,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = time,
+                        text = horaTexto,
                         fontSize = 14.sp,
                         color = grayText,
                         fontWeight = FontWeight.Medium
@@ -215,20 +187,18 @@ fun RideCard(
 
                 // Indicador de Espacios/Asientos Libres
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Tres círculos solapados (Efecto visual de la imagen)
                     Box(
                         modifier = Modifier
-                            .padding(start = 10.dp) // Adjusted to start where the overlap begins
+                            .padding(start = 10.dp)
                             .size(16.dp)
                             .clip(CircleShape)
                             .background(lightTealSeat)
-                            .zIndex(1f) // Ensure this stays on top of the first
+                            .zIndex(1f)
                     )
 
-                    // Third circle (overlaps the second)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "$seats espacios",
+                        text = "${viaje.numeroAsientosDisponibles} espacios",
                         fontSize = 14.sp,
                         color = grayText,
                         fontWeight = FontWeight.Medium

@@ -78,6 +78,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     implementation(libs.androidx.ui)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.compose.foundation)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
