@@ -27,8 +27,10 @@ fun RidesListScreen(
             items(viajesList) { viaje ->
                 RideCard(
                     viaje = viaje,
-                    onClick = {
-                        selectedViaje = viaje
+                    onConfirmarClick = { idDelViaje ->
+                        // Cuando el usuario confirma dentro del diálogo nativo,
+                        // este callback se dispara automáticamente hacia arriba.
+                        onReservarClick(idDelViaje)
                     }
                 )
             }

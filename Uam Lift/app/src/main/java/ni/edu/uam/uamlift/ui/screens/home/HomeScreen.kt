@@ -3,17 +3,14 @@ package ni.edu.uam.uamlift.ui.screens.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items // IMPORTANTE: Este resuelve el error del 'items' de enteros
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue // RESUELVE: Property delegate must have a 'getValue'
-import androidx.compose.runtime.setValue // Requerido para mutaciones de estados con 'by'
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,7 +18,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import ni.edu.uam.uamlift.data.models.Viaje
 import ni.edu.uam.uamlift.ui.components.RideCard
 import ni.edu.uam.uamlift.ui.theme.Degradado2
 import ni.edu.uam.uamlift.ui.theme.Gray
@@ -37,11 +33,11 @@ fun HomeScreen(
 ) {
     val backgroundColor = Gray
 
-    // Ahora que agregamos las propiedades al ViewModel, estas referencias funcionan perfectamente:
+    // Observadores del estado del Backend de Spring Boot
     val viajesDisponibles by viajeViewModel.viajes.collectAsState()
     val cargando by viajeViewModel.isLoading.collectAsState()
 
-    var selectedViaje by remember { mutableStateOf<Viaje?>(null) }
+    // ✂️ SE ELIMINÓ: var selectedViaje ya no es necesario aquí
 
     Box(modifier = modifier.fillMaxSize().background(backgroundColor)) {
         LazyColumn(
@@ -50,7 +46,7 @@ fun HomeScreen(
         ) {
             item {
                 Column {
-                    // Cabeza de pagina
+                    // Cabeza de página
                     Surface(
                         color = Color.White,
                         modifier = Modifier.fillMaxWidth().height(100.dp)
@@ -142,7 +138,7 @@ fun HomeScreen(
                 }
             }
 
-            // LISTADO DINÁMICO RECIÉN CORREGIDO
+            // LISTADO DINÁMICO
             if (cargando) {
                 item {
                     Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
@@ -150,45 +146,22 @@ fun HomeScreen(
                     }
                 }
             } else {
-                // Al importar androidx.compose.foundation.lazy.items, 'viaje' se infiere correctamente como objeto Viaje
                 items(viajesDisponibles) { viaje ->
                     Box(modifier = Modifier.padding(horizontal = 20.dp)) {
+                        // El callback ejecuta directamente la acción de reserva delegada del mapa
                         RideCard(
                             viaje = viaje,
-                            onClick = { selectedViaje = viaje }
+                            onConfirmarClick = { idViaje ->
+                                viajeViewModel.unirseAlViaje(
+                                    viajeId = idViaje,
+                                    usuarioCif = usuarioViewModel.usuario.cif ?: ""// Cif dinámico configurado
+                                )
+                            }
                         )
                     }
                 }
             }
         }
 
-        // Corregido el Typo: Diálogo ÚNICO dinámico para la pantalla
-        selectedViaje?.let { viaje ->
-            AlertDialog(
-                onDismissRequest = { selectedViaje = null },
-                confirmButton = {
-                    TextButton(onClick = {
-                        viaje.id?.let { viajeId ->
-                            // Ya no dará error gracias a la función agregada en el Paso 1
-                            viajeViewModel.unirseAlViaje(viajeId, "CIF_ESTUDIANTE")
-                        }
-                        selectedViaje = null
-                    }) {
-                        Text("Reservar Asiento")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { selectedViaje = null }) {
-                        Text("Cancelar")
-                    }
-                },
-                title = { Text(text = "Detalles del viaje de ${viaje.conductor?.nombre ?: "Conductor UAM"}") },
-                text = {
-                    Text(text = "Ruta: ${viaje.origen?.nombre ?: "Origen"} -> ${viaje.destino?.nombre ?: "Destino"}\n" +
-                            "Precio: C$ ${viaje.precioPorPersona.toInt()}\n" +
-                            "Asientos disponibles: ${viaje.numeroAsientosDisponibles}")
-                }
-            )
-        }
     }
 }

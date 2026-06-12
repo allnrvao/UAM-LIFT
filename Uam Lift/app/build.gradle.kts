@@ -79,6 +79,9 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.foundation)
+    implementation(libs.play.services.maps)
+    implementation(libs.play.services.maps)
+    implementation("com.google.maps.android:maps-compose:4.4.1")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

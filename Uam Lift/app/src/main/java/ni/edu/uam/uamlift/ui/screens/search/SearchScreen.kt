@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel // Agregado para usar tu ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import ni.edu.uam.uamlift.data.models.Viaje
 import ni.edu.uam.uamlift.ui.components.RideCard
 import ni.edu.uam.uamlift.ui.theme.Gray
@@ -25,7 +25,6 @@ import ni.edu.uam.uamlift.viewmodel.ViajeViewModel
 @Composable
 fun SearchScreen(
     modifier: Modifier = Modifier,
-    // 1. Inyectamos tu ViewModel real para buscar en la base de datos
     viajeViewModel: ViajeViewModel = viewModel()
 ) {
     val chips = listOf("Todos", "Mañana", "Tarde", "Económicos")
@@ -38,28 +37,25 @@ fun SearchScreen(
     val viajesBackend by viajeViewModel.viajes.collectAsState()
     val cargando by viajeViewModel.isLoading.collectAsState()
 
-    // Estado para abrir detalles del viaje al seleccionarlo
-    var selectedViaje by remember { mutableStateOf<Viaje?>(null) }
+    // cada RideCard se encarga por completo de levantar su propio TakeRideDialog con mapa.
 
-    // 2. Lógica de filtrado en tiempo real (Filtra por query escrito y por los Chips)
+    // Lógica de filtrado en tiempo real
     val viajesFiltrados = remember(viajesBackend, searchQuery, activeChip) {
         viajesBackend.filter { viaje ->
             val nombreConductor = viaje.conductor?.nombre.orEmpty()
             val origen = viaje.origen?.nombre.orEmpty()
             val destino = viaje.destino?.nombre.orEmpty()
 
-            // Coincidencia de texto básico
             val matchesQuery = nombreConductor.contains(searchQuery, ignoreCase = true) ||
                     origen.contains(searchQuery, ignoreCase = true) ||
                     destino.contains(searchQuery, ignoreCase = true)
 
-            // Lógica para los chips de filtro
-            val horaSalida = viaje.fechaHoraSalida?.substringAfter("T")?.take(5).orEmpty() // "HH:mm"
+            val horaSalida = viaje.fechaHoraSalida?.substringAfter("T")?.take(5).orEmpty()
             val matchesChip = when (activeChip) {
                 "Mañana" -> horaSalida in "00:00".."11:59"
                 "Tarde" -> horaSalida in "12:00".."18:59"
                 "Económicos" -> viaje.precioPorPersona <= 50.0
-                else -> true // "Todos"
+                else -> true
             }
 
             matchesQuery && matchesChip
@@ -82,7 +78,7 @@ fun SearchScreen(
 
                 OutlinedTextField(
                     value = searchQuery,
-                    onValueChange = { searchQuery = it }, // Actualiza la lista automáticamente al escribir
+                    onValueChange = { searchQuery = it },
                     placeholder = { Text("Origen, destino o conductor...") },
                     leadingIcon = { Icon(Icons.Default.Search, null) },
                     modifier = Modifier.fillMaxWidth(),
@@ -149,42 +145,15 @@ fun SearchScreen(
                     }
                 }
             } else {
-                // CORREGIDO: Ahora itera sobre los objetos Viaje reales y los inyecta correctamente en tu RideCard
                 items(viajesFiltrados) { miViaje ->
                     RideCard(
                         viaje = miViaje,
-                        onClick = { selectedViaje = miViaje } // Abre el modal de confirmación
+                        onConfirmarClick = { idViaje ->
+                            viajeViewModel.unirseAlViaje(idViaje, "CIF_ESTUDIANTE")
+                        }
                     )
                 }
             }
         }
-    }
-
-    // Modal de Confirmación para unirse al viaje seleccionado
-    selectedViaje?.let { viaje ->
-        AlertDialog(
-            onDismissRequest = { selectedViaje = null },
-            confirmButton = {
-                TextButton(onClick = {
-                    viaje.id?.let { id ->
-                        viajeViewModel.unirseAlViaje(id, "CIF_ESTUDIANTE")
-                    }
-                    selectedViaje = null
-                }) {
-                    Text("Reservar Asiento")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { selectedViaje = null }) {
-                    Text("Cancelar")
-                }
-            },
-            title = { Text(text = "Detalles del viaje de ${viaje.conductor?.nombre ?: "Conductor UAM"}") },
-            text = {
-                Text(text = "Ruta: ${viaje.origen?.nombre ?: "Origen"} -> ${viaje.destino?.nombre ?: "Destino"}\n" +
-                        "Precio: C$ ${viaje.precioPorPersona.toInt()}\n" +
-                        "Asientos disponibles: ${viaje.numeroAsientosDisponibles}")
-            }
-        )
     }
 }
