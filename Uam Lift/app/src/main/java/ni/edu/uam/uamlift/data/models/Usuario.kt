@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName
 
 data class Usuario(
     @SerializedName("id")
-    val id: String? = null,
+    val id: Long? = null,
     @SerializedName("cif")
     var cif: String? = null,
     @SerializedName("nombreUsuario")
@@ -15,13 +15,14 @@ data class Usuario(
     var apellido: String? = null,
     @SerializedName("correo")
     var correo: String? = null,
-    @SerializedName("contraseña")
-    val contrasenia: String? = null,
+    @SerializedName("contrasenia")
+    var contrasenia: String? = null,
     @SerializedName("imagenUrl")
     var imagenUrl: String? = null,
     @SerializedName("estado")
-    val estado: Boolean = true,
+    var estado: Boolean = true,
     @SerializedName("correoVerificado")
-    val correoVerificado: Boolean = false
-
+    var correoVerificado: Boolean = false,
+    @SerializedName("numeroViajes")
+    var numeroViajes: Int = 0
 )

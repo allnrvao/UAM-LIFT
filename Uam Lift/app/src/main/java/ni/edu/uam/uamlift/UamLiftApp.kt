@@ -106,6 +106,7 @@ fun UamLiftApp() {
             // Create Account
             composable("createAccount") {
                 CreateAccountScreen(
+                    usuarioViewModel = usuarioViewModel,
                     onAccountCreated = {
                         navController.navigate("home") {
                             popUpTo("createAccount") {
