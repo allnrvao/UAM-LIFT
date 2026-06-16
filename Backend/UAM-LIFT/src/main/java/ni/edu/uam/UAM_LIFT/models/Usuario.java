@@ -26,8 +26,8 @@ public class Usuario {
     @Column(nullable = false, length = 50, unique = true)
     private String correo;
     @Column(nullable = false, length = 100, unique = true)
-    private String contraseña;
-    @Column(nullable = false, length = 100)
+    private String contrasenia;
+    @Column( length = 100)
     private String imagenUrl;
     @Column(nullable = false)
     private boolean estado = true;
