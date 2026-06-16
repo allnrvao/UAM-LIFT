@@ -43,7 +43,36 @@ fun LogIn(
     var errorMessage by remember { mutableStateOf("") }
     var showError by remember { mutableStateOf(false) }
 
+    // Controla si el usuario presionó activamente el botón de login
+    var intentandoLogin by remember { mutableStateOf(false) }
+
     val scrollState = rememberScrollState()
+
+    // EFECTO DE ESCUCHA: Monitorea las respuestas que trae Retrofit al ViewModel
+    LaunchedEffect(
+        usuarioViewModel.usuario,
+        usuarioViewModel.cargando,
+        intentandoLogin
+    ) {
+        if (intentandoLogin && !usuarioViewModel.cargando) {
+            val correoServidor = usuarioViewModel.usuario.correo ?: ""
+            val contraseniaServidor = usuarioViewModel.usuario.contrasenia ?: ""
+
+            // Verifica si el usuario retornado es válido y coincide con la contraseña escrita
+            if (
+                correoServidor.isNotBlank() &&
+                contraseniaServidor == password.trim()
+            ) {
+                showError = false
+                intentandoLogin = false
+                onLogin()
+            } else {
+                errorMessage = "El correo o la contraseña son incorrectos."
+                showError = true
+                intentandoLogin = false
+            }
+        }
+    }
 
     Box(
         modifier = modifier
@@ -99,18 +128,19 @@ fun LogIn(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // ALERTA VISUAL: Se activa si 'showError' cambia a verdadero
-            if (showError) {
+            // ALERTA VISUAL: Se activa si 'showError' o el error global de la API cambian
+            val errorAMostrar = usuarioViewModel.mensajeError ?: errorMessage
+            if (showError || usuarioViewModel.mensajeError != null) {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEE2E2)), // Rojo suave
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEE2E2)),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp)
                 ) {
                     Text(
-                        text = errorMessage,
-                        color = Color(0xFFDC2626), // Texto rojo de alerta
+                        text = errorAMostrar,
+                        color = Color(0xFFDC2626),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(12.dp),
@@ -134,9 +164,9 @@ fun LogIn(
                         value = email,
                         onValueChange = {
                             email = it
-                            if (showError) showError = false // Oculta el error al empezar a escribir de nuevo
+                            if (showError) showError = false
                         },
-                        label = { Text("Correo") },
+                        label = { Text("Correo o CIF") }, // Actualizado el label explicativo
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Mail,
@@ -152,12 +182,10 @@ fun LogIn(
                             unfocusedTextColor = Color.Black,
                             focusedContainerColor = Color(0xFFF6F8FA),
                             unfocusedContainerColor = Color(0xFFF6F8FA)
-
                         ),
-                        //Para que cuando se autorellene lo tome como valido y no vacio
                         keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Email, // Configura el teclado optimizado para emails
-                            imeAction = ImeAction.Next         // Cambia el botón del teclado para pasar al siguiente campo
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Next
                         )
                     )
 
@@ -193,9 +221,9 @@ fun LogIn(
                             focusedContainerColor = Color(0xFFF6F8FA),
                             unfocusedContainerColor = Color(0xFFF6F8FA)
                         ),
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Password, // Configura el teclado optimizado para emails
-                                imeAction = ImeAction.Next         // Cambia el botón del teclado para pasar al siguiente campo
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done
                         )
                     )
 
@@ -214,44 +242,45 @@ fun LogIn(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Boton principal de inicio de sesión
+            // Botón principal de inicio de sesión con barra de carga integrada
             Button(
                 onClick = {
-                    // Validación 1: Campos en blanco o vacíos
                     if (email.isBlank() || password.isBlank()) {
                         errorMessage = "Por favor, completa todos los campos para continuar."
                         showError = true
-                    }
-                    // Validación 2: Comprobar el formato básico del correo electrónico
-                    else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                        errorMessage = "El formato del correo electrónico ingresado no es válido."
-                        showError = true
-                    }
-                    // Validación 3: CORREGIDA con el operador || (OR)
-                    else if (email.trim() != usuarioViewModel.usuario.correo?.trim() ||
-                        password.trim() != usuarioViewModel.usuario.contrasenia?.trim()) {
-                        errorMessage = "El correo o la contraseña son incorrectos."
-                        showError = true
-                    }
-                    // Todo correcto: Entra aquí SOLO si el correo coincide Y la contraseña coincide
-                    else {
+                    } else {
                         showError = false
-                        onLogin()
+                        intentandoLogin = true
+
+                        if (email.contains("@")) {
+                            usuarioViewModel.obtenerUsuarioPorCorreo(email.trim())
+                        } else {
+                            usuarioViewModel.obtenerUsuarioPorCif(email.trim())
+                        }
                     }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
                 shape = RoundedCornerShape(16.dp),
+                enabled = !usuarioViewModel.cargando, // Bloquea clics duplicados mientras se procesa la red
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
                     contentColor = PrimaryColor
                 )
             ) {
-                Text(
-                    text = "Iniciar sesión",
-                    fontWeight = FontWeight.Bold
-                )
+                if (usuarioViewModel.cargando) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        strokeWidth = 2.dp,
+                        color = PrimaryColor
+                    )
+                } else {
+                    Text(
+                        text = "Iniciar sesión",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))

@@ -29,13 +29,13 @@ interface UsuarioApiService {
 
     @PUT("api/usuarios/{cif}")
     suspend fun actualizarUsuario(
-        @Path("cif") cif: String,
+        @Path("cif") cif: String?,
         @Body usuario: Usuario
     ): Boolean
 
     @DELETE("api/usuarios/{cif}")
     suspend fun eliminarUsuario(
-        @Path("cif") cif: String
+        @Path("cif") cif: String?
     ): Boolean
 
     @POST("api/usuarios/verificacion/solicitar")
