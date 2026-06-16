@@ -72,6 +72,8 @@ dependencies {
     implementation(libs.androidx.ink.brush)
     implementation(libs.firebase.annotations)
     implementation(libs.okhttp)
+    implementation("com.google.android.libraries.places:places:4.1.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:5.3.2")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("com.github.NaikSoftware:StompProtocolAndroid:1.6.6")
     implementation("org.java-websocket:Java-WebSocket:1.5.3")

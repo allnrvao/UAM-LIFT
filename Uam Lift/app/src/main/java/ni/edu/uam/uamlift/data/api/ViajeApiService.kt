@@ -12,7 +12,7 @@ interface ViajeApiService {
     suspend fun crearViaje(
         @Path("conductorCif") conductorCif: String,
         @Body viaje: Viaje
-    ): Boolean
+    ): Viaje
 
     @PUT("api/viajes/{viajeId}/pasajeros/{usuarioCif}")
     suspend fun agregarPasajero(

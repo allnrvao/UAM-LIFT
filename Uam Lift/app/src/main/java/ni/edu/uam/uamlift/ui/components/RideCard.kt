@@ -45,7 +45,10 @@ fun RideCard(
 
     val origenTexto = viaje.origen?.nombre ?: "UAM Central"
     val destinoTexto = viaje.destino?.nombre ?: "UAM Central"
-    val horaTexto = viaje.fechaHoraSalida?.substringAfter("T")?.take(5) ?: "00:00"
+    val horaTexto = viaje.fechaHoraSalida
+        ?.split(" ", "T")
+        ?.getOrNull(1)
+        ?.take(5) ?: "00:00"
 
     // 🌟 Línea 41: El diálogo ya está esperando a que cambie la variable
     if (mostrarDialogo) {

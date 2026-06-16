@@ -9,12 +9,20 @@ import ni.edu.uam.UAM_LIFT.repositories.*;
 import ni.edu.uam.UAM_LIFT.repositories.ValidacionViaje;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class ViajeServicio implements InterfazViaje {
     private final RepoViaje repoViaje;
     private final RepoUsuario repoUsuario;
     private final RepoViajeUsuario repoViajeUsuario;
     private final ValidacionViaje validacionViaje;
+
+
+    @Override
+    public List<Viaje> obtenerTodosLosViajes() {
+        return repoViaje.findAll();
+    }
 
     public ViajeServicio(RepoViaje repoViaje, RepoUsuario repoUsuario, RepoViajeUsuario repoViajeUsuario, ValidacionViaje validacionViaje) {
         this.repoViaje = repoViaje;
@@ -37,8 +45,10 @@ public class ViajeServicio implements InterfazViaje {
     @Override
     public void agregarPasajero(Long viajeId, String usuarioCif) {
         Viaje viaje = repoViaje.findById(viajeId).orElseThrow(() -> new RuntimeException("Viaje no encontrado con ID: " + viajeId));
+
+        // 💡 CAMBIADO: Ahora permite agregar pasajeros si el viaje está PROGRAMADO
         if(viaje.getEstadoViaje() != EstadoViaje.PROPUESTO) {
-            throw new RuntimeException("No se pueden agregar pasajeros a un viaje que no está en estado PROPUESTO");
+            throw new RuntimeException("No se pueden agregar pasajeros a un viaje que no está en estado PROGRAMADO");
         }
 
         if (!validacionViaje.validarAsientoDisponible(viajeId)) {

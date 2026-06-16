@@ -17,7 +17,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import ni.edu.uam.uamlift.ui.components.RideCard
 import ni.edu.uam.uamlift.ui.theme.Degradado2
 import ni.edu.uam.uamlift.ui.theme.Gray
@@ -28,7 +27,7 @@ import ni.edu.uam.uamlift.viewmodel.ViajeViewModel
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    viajeViewModel: ViajeViewModel = viewModel(),
+    viajeViewModel: ViajeViewModel,
     usuarioViewModel: UsuarioViewModel
 ) {
     val backgroundColor = Gray
@@ -36,8 +35,6 @@ fun HomeScreen(
     // Observadores del estado del Backend de Spring Boot
     val viajesDisponibles by viajeViewModel.viajes.collectAsState()
     val cargando by viajeViewModel.isLoading.collectAsState()
-
-    // ✂️ SE ELIMINÓ: var selectedViaje ya no es necesario aquí
 
     Box(modifier = modifier.fillMaxSize().background(backgroundColor)) {
         LazyColumn(
@@ -143,6 +140,23 @@ fun HomeScreen(
                 item {
                     Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = UAMColor)
+                    }
+                }
+            } else if (viajesDisponibles.isEmpty()) {
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(text = "No hay viajes disponibles", fontSize = 16.sp, color = Color.Gray)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = { viajeViewModel.cargarViajesDesdeBackend() },
+                            colors = ButtonDefaults.buttonColors(containerColor = UAMColor)
+                        ) {
+                            Text("Recargar", color = Color.White)
+                        }
                     }
                 }
             } else {

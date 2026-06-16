@@ -59,22 +59,46 @@ fun LogIn(
     // Estado para saber si el correo ya fue verificado con Google
     var googleVerificado by remember { mutableStateOf(false) }
 
+    // Controla si el usuario disparó activamente la acción de validar accesos
+    var intentandoLogin by remember { mutableStateOf(false) }
+
     val scrollState = rememberScrollState()
+
+    // ESCUCHA ASÍNCRONA CORREGIDA
+    LaunchedEffect(usuarioViewModel.usuario, usuarioViewModel.cargando) {
+        // Solo actuamos si la API ya terminó de cargar
+        if (!usuarioViewModel.cargando) {
+            val correoServidor = usuarioViewModel.usuario.correo ?: ""
+            val contraseniaServidor = usuarioViewModel.usuario.contrasenia ?: ""
+
+            // Comprobamos si el usuario traído del servidor tiene datos y si se disparó la acción
+            if (intentandoLogin && correoServidor.isNotBlank()) {
+                if (contraseniaServidor == password.trim()) {
+                    showError = false
+                    intentandoLogin = false // Apagamos la bandera de intento exitoso
+                    usuarioViewModel.guardarSesionLocal(context)
+                    onLogin() // 🟢 Ejecuta la navegación hacia la pantalla principal
+                } else {
+                    errorMessage = "La contraseña es incorrecta."
+                    showError = true
+                    intentandoLogin = false
+                }
+            } else if (intentandoLogin && correoServidor.isBlank() && usuarioViewModel.mensajeError == null) {
+                // Si terminó de cargar, el intento sigue activo, pero el correo vino vacío
+                errorMessage = "El usuario o CIF ingresado no está registrado."
+                showError = true
+                intentandoLogin = false
+            }
+        }
+    }
 
     fun manejarLoginGoogle() {
         sesionGoogle.iniciarSesion(context) { correo ->
             if (correo != null) {
-                email = correo
-                usuarioViewModel.obtenerUsuarioPorCorreo(correo) { existe ->
-                    if (existe) {
-                        googleVerificado = true
-                        showError = false
-                    } else {
-                        // Si no existe, lo mandamos a registrarse con el correo ya puesto
-                        usuarioViewModel.actualizarCorreo(correo)
-                        navController.navigate("createAccount")
-                    }
-                }
+                val correoLimpio = correo.trim().lowercase()
+                email = correoLimpio
+                intentandoLogin = true
+                usuarioViewModel.obtenerUsuarioPorCorreo(correoLimpio)
             } else {
                 errorMessage = "Error en la autenticación con Google o dominio no permitido."
                 showError = true
@@ -136,6 +160,8 @@ fun LogIn(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // Cartelera de errores consolidados (Locales y de red de la API)
+            val errorAMostrar = usuarioViewModel.mensajeError ?: errorMessage
             if (showError || usuarioViewModel.mensajeError != null) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFFEE2E2)),
@@ -145,7 +171,7 @@ fun LogIn(
                         .padding(bottom = 16.dp)
                 ) {
                     Text(
-                        text = usuarioViewModel.mensajeError ?: errorMessage,
+                        text = errorAMostrar,
                         color = Color(0xFFDC2626),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
@@ -182,7 +208,6 @@ fun LogIn(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                // Aquí podrías poner un icono de Google
                                 Text(
                                     text = "Continuar con Google",
                                     fontWeight = FontWeight.Medium,
@@ -190,7 +215,7 @@ fun LogIn(
                                 )
                             }
                         }
-                        
+
                         Text(
                             text = "o usa tu CIF si ya tienes cuenta",
                             modifier = Modifier.fillMaxWidth(),
@@ -230,7 +255,7 @@ fun LogIn(
                     } else {
                         // Mostrar el correo verificado
                         Text(
-                            text = "Hola, ${usuarioViewModel.usuario.nombre}",
+                            text = "Hola, ${usuarioViewModel.usuario.nombre ?: "Estudiante"}",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
                             color = PrimaryColor
@@ -242,7 +267,6 @@ fun LogIn(
                         )
                     }
 
-                    // El campo de contraseña siempre se muestra o aparece tras verificar
                     OutlinedTextField(
                         value = password,
                         onValueChange = {
@@ -298,37 +322,22 @@ fun LogIn(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Botón de acción asíncrona principal
             Button(
                 onClick = {
                     if (email.isBlank() || password.isBlank()) {
                         errorMessage = "Completa todos los campos."
                         showError = true
                     } else {
-                        // Si ya buscamos por Google, ya tenemos el objeto usuario en el ViewModel
-                        if (googleVerificado || email.contains("@")) {
-                            usuarioViewModel.obtenerUsuarioPorCorreo(email.trim()) { existe ->
-                                if (existe && usuarioViewModel.usuario.contrasenia == password) {
-                                    scope.launch {
-                                        usuarioViewModel.guardarSesionLocal(context)
-                                        onLogin()
-                                    }
-                                } else {
-                                    errorMessage = "Contraseña incorrecta."
-                                    showError = true
-                                }
-                            }
+                        showError = false
+                        intentandoLogin = true
+                        val entradaLimpia = email.trim().lowercase()
+
+                        // Llama a la API sin callbacks anidados de validación inmediata
+                        if (googleVerificado || entradaLimpia.contains("@")) {
+                            usuarioViewModel.obtenerUsuarioPorCorreo(entradaLimpia)
                         } else {
-                            usuarioViewModel.obtenerUsuarioPorCif(email.trim()) { existe ->
-                                if (existe && usuarioViewModel.usuario.contrasenia == password) {
-                                    scope.launch {
-                                        usuarioViewModel.guardarSesionLocal(context)
-                                        onLogin()
-                                    }
-                                } else {
-                                    errorMessage = "Datos incorrectos."
-                                    showError = true
-                                }
-                            }
+                            usuarioViewModel.obtenerUsuarioPorCif(entradaLimpia)
                         }
                     }
                 },
@@ -343,7 +352,11 @@ fun LogIn(
                 )
             ) {
                 if (usuarioViewModel.cargando) {
-                    CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp, color = PrimaryColor)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        strokeWidth = 2.dp,
+                        color = PrimaryColor
+                    )
                 } else {
                     Text(text = "Iniciar sesión", fontWeight = FontWeight.Bold)
                 }

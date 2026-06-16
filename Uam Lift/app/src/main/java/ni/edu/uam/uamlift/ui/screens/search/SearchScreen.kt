@@ -1,4 +1,4 @@
-package ni.edu.uam.UAM_LIFT.screens.search
+package ni.edu.uam.uamlift.ui.screens.search
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,37 +20,43 @@ import ni.edu.uam.uamlift.data.models.Viaje
 import ni.edu.uam.uamlift.ui.components.RideCard
 import ni.edu.uam.uamlift.ui.theme.Gray
 import ni.edu.uam.uamlift.ui.theme.UAMColor
+import ni.edu.uam.uamlift.viewmodel.UsuarioViewModel
 import ni.edu.uam.uamlift.viewmodel.ViajeViewModel
 
 @Composable
 fun SearchScreen(
     modifier: Modifier = Modifier,
-    viajeViewModel: ViajeViewModel = viewModel()
+    viajeViewModel: ViajeViewModel = viewModel(),
+    usuarioViewModel: UsuarioViewModel = viewModel() // Agregado para obtener el CIF real
 ) {
     val chips = listOf("Todos", "Mañana", "Tarde", "Económicos")
     var activeChip by remember { mutableStateOf("Todos") }
-
-    // Estado para capturar lo que el estudiante escribe
     var searchQuery by remember { mutableStateOf("") }
 
-    // Observamos los viajes reales y el estado de carga que vienen de Spring Boot
+    // Clonado exacto de los observadores del Backend de Spring Boot de tu HomeScreen
     val viajesBackend by viajeViewModel.viajes.collectAsState()
     val cargando by viajeViewModel.isLoading.collectAsState()
 
-    // cada RideCard se encarga por completo de levantar su propio TakeRideDialog con mapa.
-
-    // Lógica de filtrado en tiempo real
+    // Lógica de filtrado reactiva y segura sobre la data real
     val viajesFiltrados = remember(viajesBackend, searchQuery, activeChip) {
         viajesBackend.filter { viaje ->
-            val nombreConductor = viaje.conductor?.nombre.orEmpty()
-            val origen = viaje.origen?.nombre.orEmpty()
-            val destino = viaje.destino?.nombre.orEmpty()
+            // Filtro por texto (Buscador)
+            val matchesQuery = if (searchQuery.isBlank()) {
+                true
+            } else {
+                val nombreConductor = viaje.conductor?.nombre.orEmpty()
+                val origen = viaje.origen?.nombre.orEmpty()
+                val destino = viaje.destino?.nombre.orEmpty()
 
-            val matchesQuery = nombreConductor.contains(searchQuery, ignoreCase = true) ||
-                    origen.contains(searchQuery, ignoreCase = true) ||
-                    destino.contains(searchQuery, ignoreCase = true)
+                nombreConductor.contains(searchQuery, ignoreCase = true) ||
+                        origen.contains(searchQuery, ignoreCase = true) ||
+                        destino.contains(searchQuery, ignoreCase = true)
+            }
 
-            val horaSalida = viaje.fechaHoraSalida?.substringAfter("T")?.take(5).orEmpty()
+            // Filtro por franja horaria / precio (Chips)
+            val fechaRaw = viaje.fechaHoraSalida.orEmpty()
+            val horaSalida = if (fechaRaw.contains("T")) fechaRaw.substringAfter("T").take(5) else fechaRaw.take(5)
+
             val matchesChip = when (activeChip) {
                 "Mañana" -> horaSalida in "00:00".."11:59"
                 "Tarde" -> horaSalida in "12:00".."18:59"
@@ -116,7 +122,7 @@ fun SearchScreen(
             }
         }
 
-        // Listado Dinámico Conectado a la Base de Datos
+        // LISTADO DINÁMICO CORREGIDO SEGÚN TU HOME
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -140,16 +146,31 @@ fun SearchScreen(
                 }
             } else if (viajesFiltrados.isEmpty()) {
                 item {
-                    Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                        Text("No se encontraron viajes", color = Color.Gray, fontSize = 16.sp)
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(top = 40.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(text = "No se encontraron viajes", fontSize = 16.sp, color = Color.Gray)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        // Replicamos el botón salvavidas de tu HomeScreen por si la lista está en caché vacía
+                        Button(
+                            onClick = { viajeViewModel.cargarViajesDesdeBackend() },
+                            colors = ButtonDefaults.buttonColors(containerColor = UAMColor)
+                        ) {
+                            Text("Recargar datos", color = Color.White)
+                        }
                     }
                 }
             } else {
-                items(viajesFiltrados) { miViaje ->
+                items(viajesFiltrados) { viaje ->
                     RideCard(
-                        viaje = miViaje,
+                        viaje = viaje,
                         onConfirmarClick = { idViaje ->
-                            viajeViewModel.unirseAlViaje(idViaje, "CIF_ESTUDIANTE")
+                            viajeViewModel.unirseAlViaje(
+                                viajeId = idViaje,
+                                usuarioCif = usuarioViewModel.usuario.cif ?: ""
+                            )
                         }
                     )
                 }
