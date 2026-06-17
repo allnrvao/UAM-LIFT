@@ -6,6 +6,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.Person
@@ -26,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import ni.edu.uam.uamlift.viewmodel.UsuarioViewModel
 
 private val PrimaryColor = Color(0xFF019AA8)
+private val SuccessGreen = Color(0xFF4CAF50) // Verde para los checks
 
 @Composable
 fun CreateAccountScreen(
@@ -39,6 +42,25 @@ fun CreateAccountScreen(
     var showPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
     var mostrarDialogo by remember { mutableStateOf(false) }
+
+    // Estados para manejar errores
+    var errorNombre by remember { mutableStateOf<String?>(null) }
+    var errorApellido by remember { mutableStateOf<String?>(null) }
+    var errorUsuario by remember { mutableStateOf<String?>(null) }
+    var errorCorreo by remember { mutableStateOf<String?>(null) }
+    var errorCif by remember { mutableStateOf<String?>(null) }
+    var errorContrasenia by remember { mutableStateOf<String?>(null) }
+    var errorConfirmacion by remember { mutableStateOf<String?>(null) }
+
+    // Validaciones en tiempo real para la contraseña
+    val passwordActual = usuarioViewModel.usuario.contrasenia ?: ""
+    val tieneLongitud = passwordActual.length >= 8
+    val tieneMayuscula = passwordActual.any { it.isUpperCase() }
+    val tieneMinuscula = passwordActual.any { it.isLowerCase() }
+    val tieneNumero = passwordActual.any { it.isDigit() }
+    val tieneEspecial = passwordActual.any { !it.isLetterOrDigit() }
+
+    val contraseniaEsSegura = tieneLongitud && tieneMayuscula && tieneMinuscula && tieneNumero && tieneEspecial
 
     val scrollState = rememberScrollState()
 
@@ -74,7 +96,7 @@ fun CreateAccountScreen(
             Spacer(modifier = Modifier.height(40.dp))
 
             if (usuarioViewModel.mensajeError != null) {
-                Text(text = usuarioViewModel.mensajeError!!, color = Color.Red, modifier = Modifier.padding(8.dp))
+                Text(text = usuarioViewModel.mensajeError!!, color = Color(0xFFFFCDD2), fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
             }
 
             Card(
@@ -88,53 +110,86 @@ fun CreateAccountScreen(
                 ) {
                     OutlinedTextField(
                         value = usuarioViewModel.usuario.nombre ?: "",
-                        onValueChange = { usuarioViewModel.actualizarNombre(it) },
+                        onValueChange = {
+                            errorNombre = null
+                            usuarioViewModel.actualizarNombre(it)
+                        },
                         label = { Text("Nombre") },
                         leadingIcon = { Icon(Icons.Default.Person, null, tint = PrimaryColor) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        isError = errorNombre != null,
+                        supportingText = { if (errorNombre != null) Text(errorNombre!!, color = MaterialTheme.colorScheme.error) }
                     )
 
                     OutlinedTextField(
                         value = usuarioViewModel.usuario.apellido ?: "",
-                        onValueChange = { usuarioViewModel.actualizarApellido(it) },
+                        onValueChange = {
+                            errorApellido = null
+                            usuarioViewModel.actualizarApellido(it)
+                        },
                         label = { Text("Apellido") },
                         leadingIcon = { Icon(Icons.Default.Person, null, tint = PrimaryColor) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        isError = errorApellido != null,
+                        supportingText = { if (errorApellido != null) Text(errorApellido!!, color = MaterialTheme.colorScheme.error) }
                     )
 
                     OutlinedTextField(
                         value = usuarioViewModel.usuario.nombreUsuario ?: "",
-                        onValueChange = { usuarioViewModel.actualizarNombreUsuario(it) },
+                        onValueChange = {
+                            errorUsuario = null
+                            usuarioViewModel.actualizarNombreUsuario(it)
+                        },
                         label = { Text("Nombre de Usuario") },
                         leadingIcon = { Icon(Icons.Default.Person, null, tint = PrimaryColor) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        isError = errorUsuario != null,
+                        supportingText = { if (errorUsuario != null) Text(errorUsuario!!, color = MaterialTheme.colorScheme.error) }
                     )
 
                     OutlinedTextField(
                         value = usuarioViewModel.usuario.correo ?: "",
-                        onValueChange = { usuarioViewModel.actualizarCorreo(it) },
+                        onValueChange = {
+                            errorCorreo = null
+                            usuarioViewModel.actualizarCorreo(it)
+                        },
                         label = { Text("Correo UAM") },
                         leadingIcon = { Icon(Icons.Default.Mail, null, tint = PrimaryColor) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        enabled = usuarioViewModel.usuario.correo.isNullOrEmpty() // Bloquear si viene de Google
+                        singleLine = true,
+                        // ¡AQUÍ ESTABA EL BUG! Se eliminó el "enabled" que bloqueaba el campo
+                        isError = errorCorreo != null,
+                        supportingText = { if (errorCorreo != null) Text(errorCorreo!!, color = MaterialTheme.colorScheme.error) }
                     )
 
                     OutlinedTextField(
                         value = usuarioViewModel.usuario.cif ?: "",
-                        onValueChange = { usuarioViewModel.actualizarCif(it) },
+                        onValueChange = {
+                            errorCif = null
+                            usuarioViewModel.actualizarCif(it)
+                        },
                         label = { Text("CIF") },
                         leadingIcon = { Icon(Icons.Default.Person, null, tint = PrimaryColor) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        isError = errorCif != null,
+                        supportingText = { if (errorCif != null) Text(errorCif!!, color = MaterialTheme.colorScheme.error) }
                     )
 
                     OutlinedTextField(
-                        value = usuarioViewModel.usuario.contrasenia ?: "",
-                        onValueChange = { usuarioViewModel.actualizarContrasenia(it) },
+                        value = passwordActual,
+                        onValueChange = {
+                            errorContrasenia = null
+                            usuarioViewModel.actualizarContrasenia(it)
+                        },
                         label = { Text("Contraseña") },
                         leadingIcon = { Icon(Icons.Default.Lock, null, tint = PrimaryColor) },
                         trailingIcon = {
@@ -144,12 +199,34 @@ fun CreateAccountScreen(
                         },
                         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        // Pinta rojo si hay error (vacío) o si empezó a escribir y aún no es segura
+                        isError = errorContrasenia != null || (passwordActual.isNotEmpty() && !contraseniaEsSegura),
+                        supportingText = { if (errorContrasenia != null) Text(errorContrasenia!!, color = MaterialTheme.colorScheme.error) }
                     )
+
+                    // LISTA DINÁMICA DE REQUISITOS (¡Ahora siempre visible!)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 12.dp, top = 2.dp, bottom = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(text = "Tu contraseña debe tener:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                        RequisitoContrasenia("Mínimo 8 caracteres", tieneLongitud)
+                        RequisitoContrasenia("Una letra mayúscula", tieneMayuscula)
+                        RequisitoContrasenia("Una letra minúscula", tieneMinuscula)
+                        RequisitoContrasenia("Un número", tieneNumero)
+                        RequisitoContrasenia("Un símbolo especial (@#\$%^&+=!_...)", tieneEspecial)
+                    }
 
                     OutlinedTextField(
                         value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
+                        onValueChange = {
+                            errorConfirmacion = null
+                            confirmPassword = it
+                        },
                         label = { Text("Confirmar Contraseña") },
                         leadingIcon = { Icon(Icons.Default.Lock, null, tint = PrimaryColor) },
                         trailingIcon = {
@@ -159,7 +236,10 @@ fun CreateAccountScreen(
                         },
                         visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        isError = errorConfirmacion != null,
+                        supportingText = { if (errorConfirmacion != null) Text(errorConfirmacion!!, color = MaterialTheme.colorScheme.error) }
                     )
                 }
             }
@@ -167,9 +247,56 @@ fun CreateAccountScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { 
-                    if (usuarioViewModel.usuario.contrasenia == confirmPassword) {
-                        mostrarDialogo = true 
+                onClick = {
+                    val u = usuarioViewModel.usuario
+                    val dominio = "@uamv.edu.ni"
+                    var esValido = true
+
+                    // VALIDACIONES
+                    if (u.nombre.isNullOrBlank()) {
+                        errorNombre = "El nombre no puede estar vacío"
+                        esValido = false
+                    }
+                    if (u.apellido.isNullOrBlank()) {
+                        errorApellido = "El apellido no puede estar vacío"
+                        esValido = false
+                    }
+                    if (u.nombreUsuario.isNullOrBlank()) {
+                        errorUsuario = "Ingresa un nombre de usuario"
+                        esValido = false
+                    }
+                    if (u.correo.isNullOrBlank()) {
+                        errorCorreo = "El correo es obligatorio"
+                        esValido = false
+                    } else if (!u.correo!!.lowercase().endsWith(dominio)) {
+                        errorCorreo = "Debes usar tu correo $dominio"
+                        esValido = false
+                    }
+                    if (u.cif.isNullOrBlank()) {
+                        errorCif = "El CIF es obligatorio"
+                        esValido = false
+                    }
+
+                    // Validación si la contraseña está vacía o si no cumple todos los checks
+                    if (u.contrasenia.isNullOrBlank()) {
+                        errorContrasenia = "La contraseña no puede estar vacía"
+                        esValido = false
+                    } else if (!contraseniaEsSegura) {
+                        errorContrasenia = "Aún faltan requisitos en tu contraseña"
+                        esValido = false
+                    }
+
+                    if (confirmPassword.isBlank()) {
+                        errorConfirmacion = "Confirma tu contraseña"
+                        esValido = false
+                    } else if (u.contrasenia != confirmPassword) {
+                        errorConfirmacion = "Las contraseñas no coinciden"
+                        esValido = false
+                    }
+
+                    // Verifica que todo el formulario esté perfecto
+                    if (esValido && contraseniaEsSegura) {
+                        mostrarDialogo = true
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -189,7 +316,7 @@ fun CreateAccountScreen(
 
     if (mostrarDialogo) {
         AlertDialog(
-            onDismissRequest = { mostrarDialogo = false },
+            onDismissRequest = { if (!usuarioViewModel.cargando) mostrarDialogo = false },
             title = { Text("Confirmar registro") },
             text = { Text("¿Deseas registrarte con estos datos?") },
             confirmButton = {
@@ -201,15 +328,42 @@ fun CreateAccountScreen(
                                 onAccountCreated()
                             }
                         }
-                    }
+                    },
+                    enabled = !usuarioViewModel.cargando
                 ) {
-                    if (usuarioViewModel.cargando) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
-                    else Text("Confirmar")
+                    if (usuarioViewModel.cargando) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                    } else {
+                        Text("Confirmar")
+                    }
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { mostrarDialogo = false }) { Text("Cancelar") }
+                OutlinedButton(
+                    onClick = { mostrarDialogo = false },
+                    enabled = !usuarioViewModel.cargando
+                ) { Text("Cancelar") }
             }
+        )
+    }
+}
+
+// COMPONENTE EXTRA PARA PINTAR LOS CHECKS VERDES O GRISES
+@Composable
+fun RequisitoContrasenia(texto: String, cumplido: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = if (cumplido) Icons.Default.Check else Icons.Default.Clear,
+            contentDescription = null,
+            tint = if (cumplido) SuccessGreen else Color.LightGray,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = texto,
+            color = if (cumplido) SuccessGreen else Color.Gray,
+            fontSize = 12.sp,
+            fontWeight = if (cumplido) FontWeight.Medium else FontWeight.Normal
         )
     }
 }
