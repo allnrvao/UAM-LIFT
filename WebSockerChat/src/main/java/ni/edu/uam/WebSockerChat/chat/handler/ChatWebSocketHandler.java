@@ -1,9 +1,8 @@
 package ni.edu.uam.WebSockerChat.chat.handler;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import ni.edu.uam.WebSockerChat.chat.dto.MensajeRequest;
 import ni.edu.uam.WebSockerChat.chat.dto.MensajeResponse;
 import ni.edu.uam.WebSockerChat.chat.service.ChatService;
@@ -13,67 +12,62 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     private final ChatService chatService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private final Map<Long, Set<WebSocketSession>> salasViajes = new ConcurrentHashMap<>();
+    // IMPORTANTE: JavaTimeModule es necesario para que Jackson entienda el LocalDateTime de tu Response
+    private final ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
-    @Override
-    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        Long viajeId = extraerViajeId(session);
-        salasViajes.computeIfAbsent(viajeId, k -> ConcurrentHashMap.newKeySet()).add(session);
-        log.info("Nueva conexión establecida en el viaje ID: {}", viajeId);
-    }
+    // Memoria RAM para las salas de chat
+    private final ConcurrentHashMap<Long, CopyOnWriteArrayList<WebSocketSession>> salasDeChat = new ConcurrentHashMap<>();
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        Long viajeId = extraerViajeId(session);
-
         try {
-            MensajeRequest request = objectMapper.readValue(message.getPayload(), MensajeRequest.class);
-            MensajeResponse response = chatService.procesarYGuardarMensaje(request);
-            TextMessage mensajeSalida = new TextMessage(objectMapper.writeValueAsString(response));
+            // 1. Recibimos el DTO (MensajeRequest) desde Android
+            MensajeRequest request = mapper.readValue(message.getPayload(), MensajeRequest.class);
+            Long viajeId = request.viajeId();
 
-            Set<WebSocketSession> sala = salasViajes.getOrDefault(viajeId, Collections.emptySet());
-            for (WebSocketSession s : sala) {
+            // Guardamos al usuario en la "sala" si no estaba
+            session.getAttributes().put("viajeId", viajeId);
+            salasDeChat.computeIfAbsent(viajeId, k -> new CopyOnWriteArrayList<>()).addIfAbsent(session);
+
+            // 2. Usamos tu Servicio para guardar en la BD y obtener la respuesta armada
+            MensajeResponse response = chatService.procesarYGuardarMensaje(request);
+
+            // 3. Convertimos la respuesta a JSON
+            String jsonRespuesta = mapper.writeValueAsString(response);
+            TextMessage mensajeDeSalida = new TextMessage(jsonRespuesta);
+
+            // 4. Se lo mandamos a TODOS en la sala de ese viaje
+            for (WebSocketSession s : salasDeChat.get(viajeId)) {
                 if (s.isOpen()) {
-                    s.sendMessage(mensajeSalida);
+                    s.sendMessage(mensajeDeSalida);
                 }
             }
-        } catch (JsonProcessingException e) {
-            log.error("Error procesando JSON: {}", e.getMessage());
-            session.sendMessage(new TextMessage("{\"error\": \"JSON inválido. Asegúrate de enviar remitenteNombre.\"}"));
+
         } catch (Exception e) {
-            log.error("Error inesperado: {}", e.getMessage());
+            System.err.println("❌ Error procesando el mensaje de chat: " + e.getMessage());
         }
     }
+
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        Long viajeId = extraerViajeId(session);
-        Set<WebSocketSession> sala = salasViajes.get(viajeId);
-        if (sala != null) {
-            sala.remove(session);
-            if (sala.isEmpty()) {
-                salasViajes.remove(viajeId);
+        Long viajeId = (Long) session.getAttributes().get("viajeId");
+        if (viajeId != null && salasDeChat.containsKey(viajeId)) {
+            salasDeChat.get(viajeId).remove(session);
+
+            // Limpiamos la sala si ya no hay nadie chateando
+            if (salasDeChat.get(viajeId).isEmpty()) {
+                salasDeChat.remove(viajeId);
             }
         }
-        log.info("Conexión cerrada en el viaje ID: {}", viajeId);
-    }
-
-    private Long extraerViajeId(WebSocketSession session) {
-        String uri = session.getUri().getPath();
-        String[] segmentos = uri.split("/");
-        return Long.parseLong(segmentos[segmentos.length - 1]);
     }
 }

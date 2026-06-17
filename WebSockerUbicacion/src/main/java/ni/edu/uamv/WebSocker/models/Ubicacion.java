@@ -5,13 +5,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter @Setter
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Ubicacion {
-
     private Long idViaje;
     private double lat;
     private double lon;
-    private String tipo;
+    private String tipo; // "SUSCRIBIR" o "ACTUALIZAR"
 }

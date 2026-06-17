@@ -86,7 +86,8 @@ dependencies {
     implementation(libs.play.services.maps)
     implementation(libs.play.services.maps)
     implementation("com.google.maps.android:maps-compose:4.4.1")
-
+    implementation("org.maplibre.gl:android-sdk:11.5.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -94,5 +95,7 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+
 
 }
