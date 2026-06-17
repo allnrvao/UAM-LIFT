@@ -25,7 +25,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ni.edu.uam.uamlift.viewmodel.UsuarioViewModel
+import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
+
 
 private val PrimaryColor = Color(0xFF019AA8)
 private val SuccessGreen = Color(0xFF4CAF50) // Verde para los checks
