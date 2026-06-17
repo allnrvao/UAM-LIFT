@@ -20,8 +20,8 @@ import ni.edu.uam.uamlift.ui.screens.home.HomeScreen
 import ni.edu.uam.uamlift.ui.screens.profile.EditProfileScreen
 import ni.edu.uam.uamlift.ui.screens.profile.ProfileScreen
 import ni.edu.uam.uamlift.data.RetrofitClient
+import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.ui.screens.search.SearchScreen
-import ni.edu.uam.uamlift.viewmodel.UsuarioViewModel
 import ni.edu.uam.uamlift.viewmodel.ViajeViewModel
 import ni.edu.uam.uamlift.viewmodel.ViajeViewModelFactory
 

@@ -33,8 +33,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import ni.edu.uam.uamlift.R
+import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.validator.SesionGoogle
-import ni.edu.uam.uamlift.viewmodel.UsuarioViewModel
 
 private val PrimaryColor = Color(0xFF019AA8)
 

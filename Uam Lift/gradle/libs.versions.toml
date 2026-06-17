@@ -27,6 +27,7 @@ google-identity = "1.1.1"
 datastore = "1.1.1"
 
 [libraries]
+maplibre-compose = { module = "org.maplibre.compose:maplibre-compose", version = "0.13.0" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
