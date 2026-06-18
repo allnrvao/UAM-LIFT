@@ -22,7 +22,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         var wsUrl = project.findProperty("WEBSOCKET_URL") as String? ?: ""
-            buildConfigField("String", "WEBSOCKET_URL", "\"$wsUrl\"")    }
+        buildConfigField("String", "WEBSOCKET_URL", "\"$wsUrl\"")    }
 
     buildTypes {
         release {
@@ -72,6 +72,8 @@ dependencies {
     implementation(libs.androidx.ink.brush)
     implementation(libs.firebase.annotations)
     implementation(libs.okhttp)
+    implementation("com.google.android.libraries.places:places:4.1.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:5.3.2")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("com.github.NaikSoftware:StompProtocolAndroid:1.6.6")
     implementation("org.java-websocket:Java-WebSocket:1.5.3")
@@ -85,9 +87,7 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.play.services.maps)
     implementation(libs.play.services.maps)
-    implementation("com.google.maps.android:maps-compose:4.4.1")
-    implementation("org.maplibre.gl:android-sdk:11.5.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -95,7 +95,5 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-
-
 
 }

@@ -9,6 +9,12 @@ data class Destino(
     @SerializedName("nombre")
     val nombre: String,
 
+    @SerializedName("latitud")
+    val latitud: Double? = null,
+
+    @SerializedName("longitud")
+    val longitud: Double? = null,
+
     @SerializedName("universidad")
     val universidad: Boolean = false,
 

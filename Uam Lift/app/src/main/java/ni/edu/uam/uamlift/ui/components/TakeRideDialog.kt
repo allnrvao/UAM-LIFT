@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -12,12 +11,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
-import com.google.maps.android.compose.rememberCameraPositionState
 import ni.edu.uam.uamlift.data.models.Viaje
 
 private val PrimaryColor = Color(0xFF019AA8)
@@ -28,33 +21,18 @@ fun TakeRideDialog(
     onDismissRequest: () -> Unit,
     onConfirmarViaje: () -> Unit
 ) {
-    // 🗺️ Coordenadas quemadas de prueba según el conductor para mitigar que tu modelo Destino no tenga lat/long.
-    val ubicacionOrigen = when (viaje.conductor?.nombre) {
-        "Luis Casco" -> LatLng(12.128, -86.265)    // Coordenadas aproximadas de Metrocentro
-        "Fernando Gomez" -> LatLng(11.930, -85.955) // Coordenadas aproximadas de Granada
-        else -> LatLng(12.112, -86.243)             // UAM por defecto
-    }
+    // Coordenadas reales del objeto Viaje
+    val originLat = viaje.origen?.latitud
+    val originLng = viaje.origen?.longitud
+    val destLat = viaje.destino?.latitud
+    val destLng = viaje.destino?.longitud
 
-    val cameraPositionState = rememberCameraPositionState {
-        // ✨ Corregido: Sin el import erróneo de SnapPosition, ahora toma la propiedad nativa del mapa.
-        position = CameraPosition.fromLatLngZoom(ubicacionOrigen, 14f)
-    }
-
-    // Actualiza la cámara del mapa si el viaje cambia dinámicamente.
-    LaunchedEffect(viaje) {
-        cameraPositionState.position = CameraPosition.fromLatLngZoom(ubicacionOrigen, 14f)
-    }
-
-    // 🕒 Formatear la hora de salida de manera limpia.
+    //🕒 Formatear la hora de salida
     val horaFormateada = try {
         val s = viaje.fechaHoraSalida ?: ""
-        if (s.contains("T")) {
-            s.split("T")[1].substring(0, 5)
-        } else {
-            s
-        }
+        if (s.contains("T")) s.split("T")[1].substring(0, 5) else s
     } catch (_: Exception) {
-        viaje.fechaHoraSalida ?: "Hora no disponible"
+        "Hora no disponible"
     }
 
     Dialog(onDismissRequest = onDismissRequest) {
@@ -65,7 +43,7 @@ fun TakeRideDialog(
                 .padding(16.dp),
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
-            border = androidx.compose.foundation.BorderStroke(8.dp, PrimaryColor)
+            border = androidx.compose.foundation.BorderStroke(2.dp, PrimaryColor)
         ) {
             Column(
                 modifier = Modifier
@@ -74,28 +52,26 @@ fun TakeRideDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 🗺️ MAPA RENDERIZADO CORRECTAMENTE
+                Text(
+                    text = "Detalles del Viaje",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryColor
+                )
+
+                // 🗺️ MAPA CON OSMDROID
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(220.dp),
+                        .height(200.dp),
                     shape = RoundedCornerShape(20.dp)
                 ) {
-                    GoogleMap(
-                        modifier = Modifier.fillMaxSize(),
-                        cameraPositionState = cameraPositionState,
-                        uiSettings = com.google.maps.android.compose.MapUiSettings(
-                            zoomControlsEnabled = false,
-                            scrollGesturesEnabled = false,
-                            zoomGesturesEnabled = false
-                        )
-                    ) {
-                        Marker(
-                            state = MarkerState(position = ubicacionOrigen),
-                            title = "Origen: ${viaje.origen?.nombre}",
-                            snippet = "Destino: ${viaje.destino?.nombre}"
-                        )
-                    }
+                    MapLibreView(
+                        originLat = originLat,
+                        originLng = originLng,
+                        destLat = destLat,
+                        destLng = destLng
+                    )
                 }
 
                 // 💵 INFORMACIÓN DE VIAJE
@@ -106,44 +82,56 @@ fun TakeRideDialog(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = viaje.conductor?.nombre ?: "Conductor Desconocido",
-                            fontSize = 20.sp,
+                            text = viaje.conductor?.nombre ?: "Conductor",
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
                         )
                         Text(
+                            text = "Hacia: ${viaje.destino?.nombre ?: "UAM"}",
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                        Text(
                             text = "Salida: $horaFormateada",
-                            fontSize = 16.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
-                            color = Color.Black.copy(alpha = 0.7f)
+                            color = PrimaryColor
                         )
                     }
 
-                    Text(
-                        text = "C$ ${viaje.precioPorPersona.toInt()}",
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.Black
-                    )
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = "C$ ${viaje.precioPorPersona.toInt()}",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.Black
+                        )
+                        Text(text = "por persona", fontSize = 10.sp, color = Color.Gray)
+                    }
                 }
 
-                // 🔘 BOTÓN "TOMAR VIAJE"
-                Button(
-                    onClick = onConfirmarViaje,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryColor,
-                        contentColor = Color.White
-                    )
+                // 🔘 BOTONES
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = "Tomar Viaje",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    OutlinedButton(
+                        onClick = onDismissRequest,
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        Text("Cerrar")
+                    }
+
+                    Button(
+                        onClick = onConfirmarViaje,
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                    ) {
+                        Text("Tomar Viaje", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
