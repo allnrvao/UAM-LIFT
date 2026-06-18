@@ -15,13 +15,24 @@ import org.hibernate.annotations.SQLDelete;
 @Table(name = "destinos")
 @SQLDelete(sql = "UPDATE destinos SET estado = false WHERE id = ?")
 public class Destino {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     @Column(nullable = false, length = 100)
     private String nombre;
+
+    // ✅ CORRECCIÓN: Se agregan coordenadas para recibir los datos desde el mapa de Android
+    @Column(nullable = true)
+    private Double latitud;
+
+    @Column(nullable = true)
+    private Double longitud;
+
     @Column(nullable = false)
     private boolean universidad = true;
+
     @Column(nullable = false)
     private boolean estado = true;
 }

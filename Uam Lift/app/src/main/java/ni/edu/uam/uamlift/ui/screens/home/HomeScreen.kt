@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -33,12 +34,13 @@ fun HomeScreen(
     usuarioViewModel: UsuarioViewModel
 ) {
     val backgroundColor = Gray
-
-    // Observadores del estado del Backend de Spring Boot
     val viajesDisponibles by viajeViewModel.viajes.collectAsState()
     val cargando by viajeViewModel.isLoading.collectAsState()
 
-    // ✂️ SE ELIMINÓ: var selectedViaje ya no es necesario aquí
+    // CARGA DE DATOS AL INICIAR
+    LaunchedEffect(Unit) {
+        viajeViewModel.cargarViajesDesdeBackend()
+    }
 
     Box(modifier = modifier.fillMaxSize().background(backgroundColor)) {
         LazyColumn(
@@ -47,7 +49,6 @@ fun HomeScreen(
         ) {
             item {
                 Column {
-                    // Cabeza de página
                     Surface(
                         color = Color.White,
                         modifier = Modifier.fillMaxWidth().height(100.dp)
@@ -67,7 +68,6 @@ fun HomeScreen(
                         }
                     }
 
-                    // Saludo al estudiante con fondo Verde Azulado y caja flotante
                     Box(modifier = Modifier.fillMaxWidth().wrapContentHeight()) {
                         Box(modifier = Modifier.fillMaxWidth().height(255.dp).background(UAMColor))
 
@@ -80,7 +80,6 @@ fun HomeScreen(
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            // Caja blanca flotante de búsqueda
                             Card(
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                                 shape = RoundedCornerShape(28.dp),
@@ -125,44 +124,42 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Encabezado "Viajes disponibles"
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(text = "Viajes disponibles", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.Black)
-                        TextButton(onClick = { /* Navegar a ver todos */ }, contentPadding = PaddingValues(0.dp)) {
-                            Text(text = "Ver todos", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF019AA8))
-                        }
                     }
                 }
             }
 
-            // LISTADO DINÁMICO
             if (cargando) {
                 item {
                     Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = UAMColor)
                     }
                 }
+            } else if (viajesDisponibles.isEmpty()) {
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                        Text("No hay viajes disponibles", color = Color.Gray)
+                    }
+                }
             } else {
                 items(viajesDisponibles) { viaje ->
                     Box(modifier = Modifier.padding(horizontal = 20.dp)) {
-                        // El callback ejecuta directamente la acción de reserva delegada del mapa
                         RideCard(
                             viaje = viaje,
+                            esConductor = viaje.conductor?.cif == usuarioViewModel.usuario.cif,
                             onConfirmarClick = { idViaje ->
-                                viajeViewModel.unirseAlViaje(
-                                    viajeId = idViaje,
-                                    usuarioCif = usuarioViewModel.usuario.cif ?: ""// Cif dinámico configurado
-                                )
+                                viajeViewModel.unirseAlViaje(idViaje, usuarioViewModel.usuario.cif ?: "")
                             }
                         )
                     }
                 }
             }
+            item { Spacer(modifier = Modifier.height(80.dp)) }
         }
-
     }
 }

@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import ni.edu.uam.uamlift.data.api.ViajeApiService
 import ni.edu.uam.uamlift.data.models.*
 import ni.edu.uam.uamlift.data.RetrofitClient
+import ni.edu.uam.uamlift.data.enums.EstadoViaje
 
 class ViajeViewModel(
     private val apiService: ViajeApiService? = RetrofitClient.viajeApi
@@ -47,14 +48,29 @@ class ViajeViewModel(
 
     fun publicarViaje(conductorCif: String, onExito: () -> Unit) {
         viewModelScope.launch {
+            _isLoading.value = true
             try {
-                // Aseguramos que el estado del viaje sea PROGRAMADO al crear
-                viaje = viaje.copy(estadoViaje = EstadoViaje.PROGRAMADO)
+                viaje = viaje.copy(estadoViaje = EstadoViaje.PROPUESTO)
                 val exito = apiService?.crearViaje(conductorCif, viaje) ?: false
                 if (exito) {
                     cargarViajesDesdeBackend()
                     onExito()
                     viaje = Viaje() 
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun iniciarViaje(viajeId: Long) {
+        viewModelScope.launch {
+            try {
+                val exito = apiService?.iniciarViaje(viajeId) ?: false
+                if (exito) {
+                    cargarViajesDesdeBackend()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -75,15 +91,16 @@ class ViajeViewModel(
         }
     }
 
-    fun actualizarOrigen(nombre: String, lat: Double?, lng: Double?) {
-        viaje = viaje.copy(origen = Destino(nombre = nombre, latitud = lat, longitud = lng))
+    fun actualizarOrigen(nombre: String, lat: Double?, lng: Double?, esUam: Boolean = false) {
+        viaje = viaje.copy(origen = Destino(nombre = nombre, latitud = lat, longitud = lng, universidad = esUam))
     }
 
-    fun actualizarDestino(nombre: String, lat: Double?, lng: Double?) {
-        viaje = viaje.copy(destino = Destino(nombre = nombre, latitud = lat, longitud = lng))
+    fun actualizarDestino(nombre: String, lat: Double?, lng: Double?, esUam: Boolean = false) {
+        viaje = viaje.copy(destino = Destino(nombre = nombre, latitud = lat, longitud = lng, universidad = esUam))
     }
 
     fun actualizarFechaHoraSalida(fecha: String) { viaje = viaje.copy(fechaHoraSalida = fecha) }
+    fun actualizarFechaHoraLlegada(fecha: String) { viaje = viaje.copy(fechaHoraLlegada = fecha) }
     fun actualizarNumeroAsientos(numero: Int) { viaje = viaje.copy(numeroAsientosDisponibles = numero) }
     fun actualizarPrecio(precio: Double) { viaje = viaje.copy(precioPorPersona = precio) }
 }

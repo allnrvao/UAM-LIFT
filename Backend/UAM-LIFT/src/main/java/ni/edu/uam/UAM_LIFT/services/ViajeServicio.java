@@ -9,6 +9,8 @@ import ni.edu.uam.UAM_LIFT.repositories.*;
 import ni.edu.uam.UAM_LIFT.repositories.ValidacionViaje;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public class ViajeServicio implements InterfazViaje {
     private final RepoViaje repoViaje;
@@ -33,7 +35,23 @@ public class ViajeServicio implements InterfazViaje {
         viaje.setEstadoViaje(EstadoViaje.PROPUESTO);
         return repoViaje.save(viaje);
     }
+    public boolean iniciarViajeReal(Long viajeId, String conductorCif) {
+        // Cambiamos viajeRepository por repoViaje
+        Optional<Viaje> viajeOpt = repoViaje.findById(viajeId);
 
+        if (viajeOpt.isPresent()) {
+            Viaje viaje = viajeOpt.get();
+
+            // 🔒 VALIDACIÓN: Solo el conductor creador puede iniciar el viaje
+            if (viaje.getConductor().getCif().equals(conductorCif)) {
+                viaje.setEstadoViaje(EstadoViaje.EN_CURSO);
+                // Cambiamos viajeRepository por repoViaje
+                repoViaje.save(viaje);
+                return true;
+            }
+        }
+        return false;
+    }
     @Override
     public void agregarPasajero(Long viajeId, String usuarioCif) {
         Viaje viaje = repoViaje.findById(viajeId).orElseThrow(() -> new RuntimeException("Viaje no encontrado con ID: " + viajeId));

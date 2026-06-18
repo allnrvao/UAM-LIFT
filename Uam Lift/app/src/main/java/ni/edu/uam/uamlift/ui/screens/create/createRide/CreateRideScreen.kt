@@ -2,10 +2,15 @@ package ni.edu.uam.uamlift.ui.screens.create.createRide
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -18,10 +23,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
-import ni.edu.uam.uamlift.data.models.Destino
 import ni.edu.uam.uamlift.sesion.ControlSesion
 import ni.edu.uam.uamlift.ui.components.MapLibreView
 import ni.edu.uam.uamlift.ui.theme.Degradado2
@@ -41,13 +48,12 @@ fun CreateRideScreen(
     val userCif by session.obtenerCif.collectAsState(initial = "")
 
     var step by remember { mutableIntStateOf(1) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
-    // Ubicación Estática UAM (Salida por defecto)
     val uamLat = 12.1126
     val uamLng = -86.2435
     val uamAddress = "UAM Campus Central"
 
-    // Por defecto: "Desde UAM" (isGoingToUam = false) como pidió el usuario
     var isGoingToUam by remember { mutableStateOf(false) }
 
     var selectedLat by remember { mutableStateOf<Double?>(null) }
@@ -59,8 +65,14 @@ fun CreateRideScreen(
     var seats by remember { mutableIntStateOf(3) }
     var price by remember { mutableStateOf("") }
 
+    if (showSuccessDialog) {
+        SuccessRideDialog {
+            showSuccessDialog = false
+            onViajeCreado()
+        }
+    }
+
     Column(modifier = modifier.fillMaxSize().background(Gray)) {
-        // Header
         Surface(modifier = Modifier.fillMaxWidth(), shadowElevation = 4.dp) {
             Column(modifier = Modifier.background(Degradado2).padding(20.dp)) {
                 Text("Publicar viaje", style = MaterialTheme.typography.headlineLarge, color = Color.White, fontWeight = FontWeight.Bold)
@@ -112,8 +124,6 @@ fun CreateRideScreen(
                 onPriceChange = { price = it },
                 onBack = { step = 2 },
                 onPublish = {
-                    // --- CORRECCIÓN AQUÍ ---
-                    // Determinamos nombres y coordenadas según la dirección
                     val origenNombre = if (isGoingToUam) selectedAddressText else uamAddress
                     val origenLat = if (isGoingToUam) selectedLat else uamLat
                     val origenLng = if (isGoingToUam) selectedLng else uamLng
@@ -122,19 +132,105 @@ fun CreateRideScreen(
                     val destinoLat = if (isGoingToUam) uamLat else selectedLat
                     val destinoLng = if (isGoingToUam) uamLng else selectedLng
 
-                    // Llamamos a las funciones pasando los 3 parámetros correctos
-                    viajeViewModel.actualizarOrigen(nombre = origenNombre, lat = origenLat, lng = origenLng)
-                    viajeViewModel.actualizarDestino(nombre = destinoNombre, lat = destinoLat, lng = destinoLng)
+                    viajeViewModel.actualizarOrigen(nombre = origenNombre, lat = origenLat, lng = origenLng, esUam = !isGoingToUam)
+                    viajeViewModel.actualizarDestino(nombre = destinoNombre, lat = destinoLat, lng = destinoLng, esUam = isGoingToUam)
 
                     viajeViewModel.actualizarFechaHoraSalida("${date}T${time}:00")
+
+                    try {
+                        val parts = time.split(":")
+                        val hour = parts[0].toInt()
+                        val min = parts[1].toInt()
+                        val arrivalHour = (hour + 1) % 24
+                        val arrivalTime = String.format("%02d:%02d", arrivalHour, min)
+                        viajeViewModel.actualizarFechaHoraLlegada("${date}T${arrivalTime}:00")
+                    } catch (e: Exception) {
+                        viajeViewModel.actualizarFechaHoraLlegada("${date}T23:59:00")
+                    }
+
                     viajeViewModel.actualizarNumeroAsientos(seats)
                     viajeViewModel.actualizarPrecio(price.toDoubleOrNull() ?: 0.0)
 
                     viajeViewModel.publicarViaje(userCif) {
-                        onViajeCreado()
+                        showSuccessDialog = true
                     }
                 }
             )
+        }
+    }
+}
+
+@Composable
+fun SuccessRideDialog(onDismiss: () -> Unit) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .padding(16.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .background(UAMColor.copy(alpha = 0.1f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(50.dp),
+                            tint = UAMColor
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Text(
+                        "¡Viaje Publicado!",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = UAMColor,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        "Tu ruta ha sido creada con éxito. Los estudiantes ahora pueden ver tu oferta.",
+                        fontSize = 14.sp,
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 20.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = UAMColor)
+                    ) {
+                        Text("Ver mis viajes", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
         }
     }
 }

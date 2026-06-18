@@ -1,6 +1,7 @@
 package ni.edu.uam.uamlift.data.models
 
 import com.google.gson.annotations.SerializedName
+import ni.edu.uam.uamlift.data.enums.EstadoViajeUsuario
 
 data class ViajeUsuario(
     @SerializedName("id")
@@ -15,10 +16,3 @@ data class ViajeUsuario(
     @SerializedName("estado")
     val estado: EstadoViajeUsuario? = null
 )
-
-enum class EstadoViajeUsuario {
-    @SerializedName("PENDIENTE") PENDIENTE,
-    @SerializedName("ACEPTADO") ACEPTADO,
-    @SerializedName("RECHAZADO") RECHAZADO,
-    @SerializedName("CANCELADO") CANCELADO
-}
