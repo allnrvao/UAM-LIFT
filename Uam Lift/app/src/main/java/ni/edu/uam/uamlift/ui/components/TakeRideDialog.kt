@@ -28,6 +28,7 @@ fun TakeRideDialog(
     onDismissRequest: () -> Unit,
     onConfirmarViaje: () -> Unit
 ) {
+<<<<<<< Updated upstream
     // 🗺️ Coordenadas quemadas de prueba según el conductor para mitigar que tu modelo Destino no tenga lat/long.
     val ubicacionOrigen = when (viaje.conductor?.nombre) {
         "Luis Casco" -> LatLng(12.128, -86.265)    // Coordenadas aproximadas de Metrocentro
@@ -46,6 +47,15 @@ fun TakeRideDialog(
     }
 
     // 🕒 Formatear la hora de salida de manera limpia.
+=======
+    // 📍 1. Obtener las coordenadas reales del viaje (con respaldos seguros por si vienen nulos)
+    val originLat = viaje.origen?.latitud ?: 12.108038
+    val originLng = viaje.origen?.longitud ?: -86.257292
+    val destLat = viaje.destino?.latitud ?: 12.1150
+    val destLng = viaje.destino?.longitud ?: -86.2500
+
+    // 🕒 Formatear la hora de salida de manera limpia
+>>>>>>> Stashed changes
     val horaFormateada = try {
         val s = viaje.fechaHoraSalida ?: ""
         if (s.contains("T")) {
@@ -65,7 +75,11 @@ fun TakeRideDialog(
                 .padding(16.dp),
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
+<<<<<<< Updated upstream
             border = androidx.compose.foundation.BorderStroke(8.dp, PrimaryColor)
+=======
+            border = androidx.compose.foundation.BorderStroke(2.dp, PrimaryColor) // 👈 Reducido de 8.dp a 2.dp para evitar overlapping visual
+>>>>>>> Stashed changes
         ) {
             Column(
                 modifier = Modifier
@@ -74,13 +88,18 @@ fun TakeRideDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+<<<<<<< Updated upstream
                 // 🗺️ MAPA RENDERIZADO CORRECTAMENTE
+=======
+                // 🗺️ CORRECCIÓN: MAPA CON PARÁMETROS REALES ASIGNADOS
+>>>>>>> Stashed changes
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(220.dp),
                     shape = RoundedCornerShape(20.dp)
                 ) {
+<<<<<<< Updated upstream
                     GoogleMap(
                         modifier = Modifier.fillMaxSize(),
                         cameraPositionState = cameraPositionState,
@@ -96,6 +115,17 @@ fun TakeRideDialog(
                             snippet = "Destino: ${viaje.destino?.nombre}"
                         )
                     }
+=======
+                    MapLibreView(
+                        modifier = Modifier.fillMaxSize(),
+                        originLat = originLat,
+                        originLng = originLng,
+                        destLat = destLat,
+                        destLng = destLng,
+                        isSelectionEnabled = false,
+                        isGesturesEnabled = false // Evita interferir con el comportamiento del Dialog
+                    )
+>>>>>>> Stashed changes
                 }
 
                 // 💵 INFORMACIÓN DE VIAJE

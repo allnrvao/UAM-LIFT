@@ -15,22 +15,42 @@ import ni.edu.uam.uamlift.R
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+<<<<<<< Updated upstream
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+=======
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.SubcomposeAsyncImage
+>>>>>>> Stashed changes
 import ni.edu.uam.uamlift.data.models.Viaje
+import ni.edu.uam.uamlift.data.models.Usuario
+import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.ui.theme.UAMColor
 
 @Composable
 fun RideCard(
     viaje: Viaje,
+<<<<<<< Updated upstream
     onConfirmarClick: (Long) -> Unit
+=======
+    usuarioViewModel: UsuarioViewModel, // 🌟 1. Pasamos el ViewModel para buscar datos
+    esConductor: Boolean = false,
+    onConfirmarClick: (Long) -> Unit = {},
+    onIniciarViaje: (Long) -> Unit = {}
+>>>>>>> Stashed changes
 ) {
     // 🌟 Línea 27: Aquí tienes guardada tu variable de control
     var mostrarDialogo by remember { mutableStateOf(false) }
+
+    // 🌟 2. Estado local para guardar el usuario fresco obtenido de la API
+    var conductorActualizado by remember { mutableStateOf<Usuario?>(null) }
 
     val lightTealBg = Color(0xFFE0F7FA)
     val lightTealSeat = Color(0xFFB2EBF2)
@@ -50,8 +70,49 @@ fun RideCard(
         ?.getOrNull(1)
         ?.take(5) ?: "00:00"
 
+<<<<<<< Updated upstream
     // 🌟 Línea 41: El diálogo ya está esperando a que cambie la variable
     if (mostrarDialogo) {
+=======
+    // 🌟 3. Efecto para buscar al usuario en la API cuando se monta la Card
+    LaunchedEffect(viaje.conductor?.correo, viaje.conductor?.cif) {
+        val correo = viaje.conductor?.correo
+        val cif = viaje.conductor?.cif
+
+        if (!correo.isNullOrBlank()) {
+            usuarioViewModel.obtenerUsuarioPorCorreo(correo) { exito ->
+                if (exito) {
+                    // Almacenamos el usuario que el ViewModel cargó en su estado global
+                    conductorActualizado = usuarioViewModel.usuario
+                }
+            }
+        } else if (!cif.isNullOrBlank()) {
+            usuarioViewModel.obtenerUsuarioPorCif(cif) { exito ->
+                if (exito) {
+                    conductorActualizado = usuarioViewModel.usuario
+                }
+            }
+        }
+    }
+
+    // Lógica para habilitar "Iniciar viaje"
+    val puedeIniciar = remember(viaje.fechaHoraSalida) {
+        try {
+            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+            val dateSalida = sdf.parse(viaje.fechaHoraSalida ?: "")
+            val now = Calendar.getInstance().time
+            val fifteenMinsBefore = Calendar.getInstance().apply {
+                time = dateSalida ?: now
+                add(Calendar.MINUTE, -15)
+            }.time
+            now.after(fifteenMinsBefore)
+        } catch (e: Exception) {
+            true
+        }
+    }
+
+    if (mostrarDialogo && !esConductor) {
+>>>>>>> Stashed changes
         TakeRideDialog(
             viaje = viaje,
             onDismissRequest = { mostrarDialogo = false },
@@ -145,6 +206,7 @@ fun RideCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+<<<<<<< Updated upstream
                     Icon(
                         imageVector = Icons.Default.DateRange,
                         contentDescription = "Hora",
@@ -153,6 +215,47 @@ fun RideCard(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(text = horaTexto, fontSize = 14.sp, color = grayText, fontWeight = FontWeight.Medium)
+=======
+
+                    // 🌟 4. Círculo de Avatar que lee del objeto recién buscado de la API
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.size(48.dp).clip(CircleShape).background(lightTealBg)
+                    ) {
+                        // Obtenemos el campo imagenUrl del usuario que consultamos dinámicamente
+                        val fotoUrl = conductorActualizado?.imagenUrl ?: viaje.conductor?.imagenUrl
+
+                        if (!fotoUrl.isNullOrEmpty()) {
+                            SubcomposeAsyncImage(
+                                model = fotoUrl,
+                                contentDescription = "Foto de $nombreConductor",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                                loading = {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.padding(14.dp),
+                                        color = UAMColor,
+                                        strokeWidth = 2.dp
+                                    )
+                                },
+                                error = {
+                                    Text(text = initials.uppercase(), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = UAMColor)
+                                }
+                            )
+                        } else {
+                            Text(text = initials.uppercase(), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = UAMColor)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(text = nombreConductor, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
+                        Text(
+                            text = if (esConductor) "Tú eres el conductor" else "Conductor verificado",
+                            fontSize = 12.sp, color = if (esConductor) UAMColor else Color(0xFF4CAF50)
+                        )
+                    }
+>>>>>>> Stashed changes
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {

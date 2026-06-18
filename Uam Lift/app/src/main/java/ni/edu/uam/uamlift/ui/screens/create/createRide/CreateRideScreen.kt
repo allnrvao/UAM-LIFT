@@ -1,9 +1,15 @@
 package ni.edu.uam.uamlift.ui.screens.create.createRide
 
+<<<<<<< Updated upstream
 import android.app.Activity
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+=======
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import androidx.compose.animation.AnimatedVisibility
+>>>>>>> Stashed changes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -43,6 +50,7 @@ import ni.edu.uam.uamlift.ui.theme.Degradado2
 import ni.edu.uam.uamlift.ui.theme.Gray
 import ni.edu.uam.uamlift.ui.theme.UAMColor
 
+<<<<<<< Updated upstream
 @Composable
 fun CreateRideScreen(modifier: Modifier = Modifier) {
     // Optimización: mutableIntStateOf para evitar autoboxing
@@ -53,6 +61,32 @@ fun CreateRideScreen(modifier: Modifier = Modifier) {
 
     var toLocation by remember { mutableStateOf<LatLng?>(null) }
     var toAddressText by remember { mutableStateOf("") }
+=======
+    @Composable
+    fun CreateRideScreen(
+        modifier: Modifier = Modifier,
+        viajeViewModel: ViajeViewModel = viewModel(),
+        onViajeCreado: () -> Unit = {}
+    ) {
+        val context = LocalContext.current
+        val session = remember { ControlSesion(context) }
+        val userCif by session.obtenerCif.collectAsState(initial = "")
+
+        var step by remember { mutableIntStateOf(1) }
+        var showSuccessDialog by remember { mutableStateOf(false) }
+
+        // ¡ACTUALIZADO! Coordenadas oficiales de la Universidad Americana (UAM) Managua solicitadas
+        val uamLat = 12.108038
+        val uamLng = -86.257292
+        val uamAddress = "Universidad Americana (UAM), Sector Suroeste Camino De Oriente"
+
+        var isGoingToUam by remember { mutableStateOf(false) }
+
+    // Estas variables representarán el punto dinámico que el usuario marca en el mapa
+    var selectedLat by remember { mutableStateOf<Double?>(null) }
+    var selectedLng by remember { mutableStateOf<Double?>(null) }
+    var selectedAddressText by remember { mutableStateOf("") }
+>>>>>>> Stashed changes
 
     var date by remember { mutableStateOf("") }
     var time by remember { mutableStateOf("") }
@@ -122,6 +156,7 @@ fun CreateRideScreen(modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(8.dp))
 
         when (step) {
+<<<<<<< Updated upstream
             1 -> Step1Route(
                 onContinue = { step = 2 },
                 fromLocation = fromLocation,
@@ -134,6 +169,24 @@ fun CreateRideScreen(modifier: Modifier = Modifier) {
                     toLocation = toLoc
                     toAddressText = toText
                 }
+=======
+            1 -> Step1Map(
+                isToUam = isGoingToUam,
+                onToggleDirection = {
+                    isGoingToUam = !isGoingToUam
+                    selectedLat = null // Reseteamos selección para forzar nueva marca limpia en mapa
+                    selectedLng = null
+                    selectedAddressText = ""
+                },
+                uamLat = uamLat, uamLng = uamLng,
+                selLat = selectedLat, selLng = selectedLng,
+                onLocationSelected = { lat, lng ->
+                    selectedLat = lat
+                    selectedLng = lng
+                    selectedAddressText = if (isGoingToUam) "Punto de salida seleccionado" else "Punto de destino seleccionado"
+                },
+                onContinue = { step = 2 }
+>>>>>>> Stashed changes
             )
             2 -> Step2Schedule(
                 date = date,
@@ -146,6 +199,7 @@ fun CreateRideScreen(modifier: Modifier = Modifier) {
                 onContinue = { step = 3 }
             )
             3 -> Step3Price(
+<<<<<<< Updated upstream
                 onBack = { step = 2 },
                 onPublish = { /* TODO: Lógica API */ },
                 from = fromAddressText.ifEmpty { "No seleccionada" },
@@ -155,6 +209,53 @@ fun CreateRideScreen(modifier: Modifier = Modifier) {
                 seats = seats,
                 price = price,
                 onPriceChange = { price = it }
+=======
+                from = if (isGoingToUam) (if (selectedAddressText.isEmpty()) "Ubicación en mapa" else selectedAddressText) else uamAddress,
+                to = if (isGoingToUam) uamAddress else (if (selectedAddressText.isEmpty()) "Ubicación en mapa" else selectedAddressText),
+                date = date, time = time, seats = seats, price = price,
+                onPriceChange = { price = it },
+                onBack = { step = 2 },
+                onPublish = {
+                    val origenNombre = if (isGoingToUam) selectedAddressText else uamAddress
+                    val origenLat = if (isGoingToUam) selectedLat else uamLat
+                    val origenLng = if (isGoingToUam) selectedLng else uamLng
+
+                    val destinoNombre = if (isGoingToUam) uamAddress else selectedAddressText
+                    val destinoLat = if (isGoingToUam) uamLat else selectedLat
+                    val destinoLng = if (isGoingToUam) uamLng else selectedLng
+
+                    viajeViewModel.actualizarOrigen(nombre = origenNombre, lat = origenLat, lng = origenLng, esUam = !isGoingToUam)
+                    viajeViewModel.actualizarDestino(nombre = destinoNombre, lat = destinoLat, lng = destinoLng, esUam = isGoingToUam)
+
+                    viajeViewModel.actualizarFechaHoraSalida("${date}T${time}:00")
+
+                    try {
+                        val parts = time.split(":")
+                        val hour = parts[0].toInt()
+                        val min = parts[1].toInt()
+                        val arrivalHour = (hour + 1) % 24
+                        val arrivalTime = String.format("%02d:%02d", arrivalHour, min)
+                        viajeViewModel.actualizarFechaHoraLlegada("${date}T${arrivalTime}:00")
+                    } catch (e: Exception) {
+                        viajeViewModel.actualizarFechaHoraLlegada("${date}T23:59:00")
+                    }
+
+                    viajeViewModel.actualizarNumeroAsientos(seats)
+                    viajeViewModel.actualizarPrecio(price.toDoubleOrNull() ?: 0.0)
+
+                    viajeViewModel.publicarViaje(
+                        conductorCif = userCif,
+                        onExito = {
+                            showSuccessDialog = true
+                        },
+                        onError = {
+                            android.widget.Toast
+                                .makeText(context, it, android.widget.Toast.LENGTH_LONG)
+                                .show()
+                        }
+                    )
+                }
+>>>>>>> Stashed changes
             )
         }
     }
@@ -216,6 +317,7 @@ fun Step1Route(
         }
     }
 
+<<<<<<< Updated upstream
     val launchGooglePlaces = { target: String ->
         targetFieldSelection = target
         val fields = listOf(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG, Place.Field.ADDRESS)
@@ -224,6 +326,52 @@ fun Step1Route(
             .build(context)
         startAutocomplete.launch(intent)
     }
+=======
+@Composable
+fun Step1Map(
+    isToUam: Boolean,
+    onToggleDirection: () -> Unit,
+    uamLat: Double, uamLng: Double,
+    selLat: Double?, selLng: Double?,
+    onLocationSelected: (Double, Double) -> Unit,
+    onContinue: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("¿Hacia dónde vas?", fontWeight = FontWeight.Bold, color = UAMColor, fontSize = 18.sp)
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White, RoundedCornerShape(12.dp))
+                .padding(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val buttonModifier = Modifier.weight(1f).height(40.dp)
+            Button(
+                onClick = { if (!isToUam) onToggleDirection() },
+                modifier = buttonModifier,
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isToUam) UAMColor else Color.Transparent,
+                    contentColor = if (isToUam) Color.White else Color.Gray
+                )
+            ) { Text("Hacia UAM") }
+            Button(
+                onClick = { if (isToUam) onToggleDirection() },
+                modifier = buttonModifier,
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (!isToUam) UAMColor else Color.Transparent,
+                    contentColor = if (!isToUam) Color.White else Color.Gray
+                )
+            ) { Text("Desde UAM") }
+        }
+>>>>>>> Stashed changes
 
     Column(
         modifier = Modifier
@@ -238,6 +386,7 @@ fun Step1Route(
             fontWeight = FontWeight.SemiBold
         )
 
+<<<<<<< Updated upstream
         OutlinedTextField(
             value = fromAddressText,
             onValueChange = {},
@@ -312,10 +461,89 @@ fun Step1Route(
                         width = 8f,
                         geodesic = true
                     )
+=======
+        // Contenedor visual del mapa encapsulado y delimitado
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(340.dp)
+                .clip(RoundedCornerShape(16.dp)) // Hace que el mapa respete las esquinas redondeadas sin salirse
+                .border(1.dp, Color.LightGray, RoundedCornerShape(16.dp))
+                .background(Color.White)
+        ) {
+            MapLibreView(
+                originLat = if (isToUam) selLat else uamLat,
+                originLng = if (isToUam) selLng else uamLng,
+                destLat = if (isToUam) uamLat else selLat,
+                destLng = if (isToUam) uamLng else selLng,
+                isSelectionEnabled = true,
+                onLocationSelected = onLocationSelected,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // Cajas flotantes informativas dentro de los límites del mapa
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Caja indicadora de Origen
+                Card(
+                    modifier = Modifier.fillMaxWidth(0.85f),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Origen:", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = UAMColor)
+                        Text(
+                            text = if (isToUam) {
+                                if (selLat != null) "Ubicación marcada" else "Toca el mapa..."
+                            } else {
+                                "Universidad Americana (UAM)"
+                            },
+                            fontSize = 11.sp,
+                            color = if (isToUam && selLat == null) Color(0xFFD32F2F) else Color.DarkGray,
+                            maxLines = 1
+                        )
+                    }
+                }
+
+                // Caja indicadora de Destino
+                Card(
+                    modifier = Modifier.fillMaxWidth(0.85f),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Destino:", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = UAMColor)
+                        Text(
+                            text = if (isToUam) {
+                                "Universidad Americana (UAM)"
+                            } else {
+                                if (selLat != null) "Ubicación marcada" else "Toca el mapa..."
+                            },
+                            fontSize = 11.sp,
+                            color = if (!isToUam && selLat == null) Color(0xFFD32F2F) else Color.DarkGray,
+                            maxLines = 1
+                        )
+                    }
+>>>>>>> Stashed changes
                 }
             }
         }
 
+<<<<<<< Updated upstream
         val amboPuntosListos = fromLocation != null && toLocation != null
 
         Text(
@@ -343,6 +571,20 @@ fun Step1Route(
             ) {
                 Text("Continuar →", color = Color.White, fontSize = 16.sp)
             }
+=======
+        Spacer(modifier = Modifier.weight(1f))
+
+        Button(
+            onClick = onContinue,
+            enabled = selLat != null && selLng != null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = UAMColor)
+        ) {
+            Text("Siguiente", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+>>>>>>> Stashed changes
         }
     }
 }
@@ -432,6 +674,7 @@ fun Step3Price(
             }
         }
     }
+<<<<<<< Updated upstream
 }
 
 @Composable
@@ -443,4 +686,6 @@ fun SummaryRow(label: String, value: String, isHighlight: Boolean = false) {
         Text(label, color = Color.Gray, modifier = Modifier.weight(0.3f))
         Text(text = value, fontWeight = if (isHighlight) FontWeight.Bold else FontWeight.Normal, color = if (isHighlight) Color(0xFF019AA8) else UAMColor, modifier = Modifier.weight(0.7f))
     }
+=======
+>>>>>>> Stashed changes
 }

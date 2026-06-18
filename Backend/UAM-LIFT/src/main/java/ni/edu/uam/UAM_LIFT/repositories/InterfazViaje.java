@@ -5,6 +5,10 @@ import ni.edu.uam.UAM_LIFT.models.Viaje;
 import java.util.List;
 
 public interface InterfazViaje {
+<<<<<<< Updated upstream
+=======
+    List<Viaje> obtenerTodosLosViajes();
+>>>>>>> Stashed changes
 
     Viaje crearViaje(Viaje viaje, String conductorCif);
 

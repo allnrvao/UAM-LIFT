@@ -1,6 +1,10 @@
 package ni.edu.uam.UAM_LIFT.models;
 
+<<<<<<< Updated upstream
 import com.fasterxml.jackson.annotation.JsonBackReference;
+=======
+import com.fasterxml.jackson.annotation.JsonBackReference; // <-- NUEVA IMPORTACIÓN
+>>>>>>> Stashed changes
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -22,6 +26,7 @@ public class ViajeUsuario {
     @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "viaje_id")
+    @JsonBackReference
     private Viaje viaje;
 
     @ManyToOne(fetch = FetchType.LAZY)

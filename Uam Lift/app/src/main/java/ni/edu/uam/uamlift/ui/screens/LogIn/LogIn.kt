@@ -329,6 +329,7 @@ fun LogIn(
                         errorMessage = "Completa todos los campos."
                         showError = true
                     } else {
+<<<<<<< Updated upstream
                         showError = false
                         intentandoLogin = true
                         val entradaLimpia = email.trim().lowercase()
@@ -338,6 +339,35 @@ fun LogIn(
                             usuarioViewModel.obtenerUsuarioPorCorreo(entradaLimpia)
                         } else {
                             usuarioViewModel.obtenerUsuarioPorCif(entradaLimpia)
+=======
+                        // 🌟 CORRECCIÓN: Todo el flujo de red se lanza en el Scope asíncrono
+                        scope.launch {
+                            if (googleVerificado || email.contains("@")) {
+                                usuarioViewModel.obtenerUsuarioPorCorreo(email.trim()) { existe ->
+                                    if (existe && usuarioViewModel.usuario.contrasenia == password) {
+                                        scope.launch { // Mantiene el guardado y navegación seguro
+                                            usuarioViewModel.guardarSesionLocal(context)
+                                            onLogin()
+                                        }
+                                    } else {
+                                        errorMessage = "Contraseña incorrecta."
+                                        showError = true
+                                    }
+                                }
+                            } else {
+                                usuarioViewModel.obtenerUsuarioPorCif(email.trim()) { existe ->
+                                    if (existe && usuarioViewModel.usuario.contrasenia == password) {
+                                        scope.launch {
+                                            usuarioViewModel.guardarSesionLocal(context)
+                                            onLogin()
+                                        }
+                                    } else {
+                                        errorMessage = "Datos incorrectos."
+                                        showError = true
+                                    }
+                                }
+                            }
+>>>>>>> Stashed changes
                         }
                     }
                 },

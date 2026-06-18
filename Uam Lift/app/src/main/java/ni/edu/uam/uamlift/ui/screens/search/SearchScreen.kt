@@ -1,5 +1,6 @@
 package ni.edu.uam.uamlift.ui.screens.search
 
+<<<<<<< Updated upstream
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,6 +38,49 @@ fun SearchScreen(
     val viajesBackend by viajeViewModel.viajes.collectAsState()
     val cargando by viajeViewModel.isLoading.collectAsState()
 
+=======
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import ni.edu.uam.uamlift.data.models.Viaje
+import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
+import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
+import ni.edu.uam.uamlift.ui.components.RideCard
+import ni.edu.uam.uamlift.ui.theme.Gray
+import ni.edu.uam.uamlift.ui.theme.UAMColor
+
+
+@Composable
+fun SearchScreen(
+    modifier: Modifier = Modifier,
+    viajeViewModel: ViajeViewModel = viewModel(),
+    usuarioViewModel: UsuarioViewModel = viewModel() // Agregado para obtener el CIF real
+) {
+    val chips = listOf("Todos", "Mañana", "Tarde", "Económicos")
+    var activeChip by remember { mutableStateOf("Todos") }
+    var searchQuery by remember { mutableStateOf("") }
+
+
+    // Clonado exacto de los observadores del Backend de Spring Boot de tu HomeScreen
+    val viajesBackend by viajeViewModel.viajes.collectAsState()
+    val cargando by viajeViewModel.isLoading.collectAsState()
+
+
+>>>>>>> Stashed changes
     // Lógica de filtrado reactiva y segura sobre la data real
     val viajesFiltrados = remember(viajesBackend, searchQuery, activeChip) {
         viajesBackend.filter { viaje ->
@@ -48,15 +92,27 @@ fun SearchScreen(
                 val origen = viaje.origen?.nombre.orEmpty()
                 val destino = viaje.destino?.nombre.orEmpty()
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
                 nombreConductor.contains(searchQuery, ignoreCase = true) ||
                         origen.contains(searchQuery, ignoreCase = true) ||
                         destino.contains(searchQuery, ignoreCase = true)
             }
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
             // Filtro por franja horaria / precio (Chips)
             val fechaRaw = viaje.fechaHoraSalida.orEmpty()
             val horaSalida = if (fechaRaw.contains("T")) fechaRaw.substringAfter("T").take(5) else fechaRaw.take(5)
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
             val matchesChip = when (activeChip) {
                 "Mañana" -> horaSalida in "00:00".."11:59"
                 "Tarde" -> horaSalida in "12:00".."18:59"
@@ -64,10 +120,18 @@ fun SearchScreen(
                 else -> true
             }
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
             matchesQuery && matchesChip
         }
     }
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
     Column(modifier = modifier.fillMaxSize().background(Gray)) {
         // Header + Search Bar
         Surface(
@@ -80,8 +144,15 @@ fun SearchScreen(
                     fontWeight = FontWeight.Black, color = UAMColor,
                 )
 
+<<<<<<< Updated upstream
                 Spacer(modifier = Modifier.height(12.dp))
 
+=======
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+
+>>>>>>> Stashed changes
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
@@ -92,14 +163,25 @@ fun SearchScreen(
                     shape = RoundedCornerShape(16.dp),
                 )
 
+<<<<<<< Updated upstream
                 Spacer(modifier = Modifier.height(12.dp))
 
+=======
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+
+>>>>>>> Stashed changes
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     chips.forEach { chip ->
                         val isSelected = activeChip == chip
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
                         FilterChip(
                             selected = isSelected,
                             onClick = { activeChip = chip },
@@ -122,6 +204,10 @@ fun SearchScreen(
             }
         }
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
         // LISTADO DINÁMICO CORREGIDO SEGÚN TU HOME
         LazyColumn(
             modifier = Modifier
@@ -138,6 +224,10 @@ fun SearchScreen(
                 )
             }
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
             if (cargando) {
                 item {
                     Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
@@ -177,4 +267,10 @@ fun SearchScreen(
             }
         }
     }
+<<<<<<< Updated upstream
 }
+=======
+
+
+}
+>>>>>>> Stashed changes

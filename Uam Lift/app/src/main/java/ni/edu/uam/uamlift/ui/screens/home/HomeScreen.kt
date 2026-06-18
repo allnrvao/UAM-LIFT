@@ -1,5 +1,6 @@
 package ni.edu.uam.uamlift.ui.screens.home
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -32,10 +33,18 @@ fun HomeScreen(
 ) {
     val backgroundColor = Gray
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
     // Observadores del estado del Backend de Spring Boot
     val viajesDisponibles by viajeViewModel.viajes.collectAsState()
     val cargando by viajeViewModel.isLoading.collectAsState()
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
     Box(modifier = modifier.fillMaxSize().background(backgroundColor)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -63,9 +72,14 @@ fun HomeScreen(
                         }
                     }
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
                     // Saludo al estudiante con fondo Verde Azulado y caja flotante
                     Box(modifier = Modifier.fillMaxWidth().wrapContentHeight()) {
                         Box(modifier = Modifier.fillMaxWidth().height(255.dp).background(UAMColor))
+
 
                         Column(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 16.dp)) {
                             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
@@ -74,8 +88,13 @@ fun HomeScreen(
                                 Text(text = "Encuentra o comparte un viaje hoy", fontSize = 16.sp, color = Color.White.copy(alpha = 0.85f))
                             }
 
+
                             Spacer(modifier = Modifier.height(16.dp))
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
                             // Caja blanca flotante de búsqueda
                             Card(
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
@@ -94,7 +113,9 @@ fun HomeScreen(
                                         shape = RoundedCornerShape(16.dp)
                                     )
 
+
                                     Spacer(modifier = Modifier.height(10.dp))
+
 
                                     Button(
                                         contentPadding = PaddingValues(vertical = 6.dp),
@@ -119,8 +140,13 @@ fun HomeScreen(
                         }
                     }
 
+
                     Spacer(modifier = Modifier.height(12.dp))
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
                     // Encabezado "Viajes disponibles"
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
@@ -135,6 +161,10 @@ fun HomeScreen(
                 }
             }
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
             // LISTADO DINÁMICO
             if (cargando) {
                 item {
@@ -177,5 +207,9 @@ fun HomeScreen(
             }
         }
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
     }
 }

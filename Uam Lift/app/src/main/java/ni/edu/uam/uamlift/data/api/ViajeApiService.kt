@@ -18,14 +18,25 @@ interface ViajeApiService {
     suspend fun agregarPasajero(
         @Path("viajeId") viajeId: Long,
         @Path("usuarioCif") usuarioCif: String
+<<<<<<< Updated upstream
     ): Boolean
+=======
+    ): Map<String, Boolean> // Ajustado
+>>>>>>> Stashed changes
 
     @PUT("api/viajes/{viajeId}/cancelar/{usuarioCif}")
     suspend fun cancelarParticipacion(
         @Path("viajeId") viajeId: Long,
         @Path("usuarioCif") usuarioCif: String
+<<<<<<< Updated upstream
     ): Boolean
 
     @PUT("api/viajes/{viajeId}/finalizar")
     suspend fun finalizarViaje(@Path("viajeId") viajeId: Long): Boolean
+=======
+    ): Map<String, Boolean> // Ajustado
+
+    @PUT("api/viajes/{viajeId}/finalizar")
+    suspend fun finalizarViaje(@Path("viajeId") viajeId: Long): Map<String, Boolean> // Ajustado
+>>>>>>> Stashed changes
 }
