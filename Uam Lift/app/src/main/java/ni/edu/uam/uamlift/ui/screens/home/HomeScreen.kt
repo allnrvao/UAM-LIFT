@@ -8,8 +8,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,48 +35,29 @@ fun HomeScreen(
     usuarioViewModel: UsuarioViewModel
 ) {
     val backgroundColor = Gray
-    val usuario = usuarioViewModel.usuario
-    val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    // Cargamos los viajes filtrados al iniciar
-    LaunchedEffect(usuario.id) {
-        viajeViewModel.cargarViajesDesdeBackend(usuario.id)
-    }
-
-    val misViajes by viajeViewModel.misViajes.collectAsState()
-    val viajesOtros by viajeViewModel.viajesOtros.collectAsState()
+    val viajesDisponibles by viajeViewModel.viajes.collectAsState()
     val cargando by viajeViewModel.isLoading.collectAsState()
     val pasajerosViaje by viajeViewModel.pasajerosViaje.collectAsState()
 
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Explorar", "Mis Viajes")
-
-    var viajeParaPasajeros by remember { mutableStateOf<Long?>(null) }
-
-    if (viajeParaPasajeros != null) {
-        PassengersDialog(
-            pasajeros = pasajerosViaje,
-            onDismissRequest = { viajeParaPasajeros = null }
-        )
+    // CARGA DE DATOS AL INICIAR
+    LaunchedEffect(Unit) {
+        viajeViewModel.cargarViajesDesdeBackend()
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = backgroundColor,
-        modifier = modifier.fillMaxSize()
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                item {
-                    Column {
-                        // Cabeza de página
-                        Surface(
-                            color = Color.White,
-                            modifier = Modifier.fillMaxWidth().height(100.dp)
+    Box(modifier = modifier.fillMaxSize().background(backgroundColor)) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                Column {
+                    Surface(
+                        color = Color.White,
+                        modifier = Modifier.fillMaxWidth().height(100.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize().padding(20.dp),
+                            verticalArrangement = Arrangement.Center
                         ) {
                             Column(
                                 modifier = Modifier.fillMaxSize().padding(20.dp),
@@ -91,9 +74,8 @@ fun HomeScreen(
                             }
                         }
 
-                        // Saludo al estudiante con fondo Verde Azulado y caja flotante
-                        Box(modifier = Modifier.fillMaxWidth().wrapContentHeight()) {
-                            Box(modifier = Modifier.fillMaxWidth().height(255.dp).background(UAMColor))
+                    Box(modifier = Modifier.fillMaxWidth().wrapContentHeight()) {
+                        Box(modifier = Modifier.fillMaxWidth().height(255.dp).background(UAMColor))
 
                             Column(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 16.dp)) {
                                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
@@ -104,23 +86,22 @@ fun HomeScreen(
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                // Caja blanca flotante de búsqueda
-                                Card(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                                    shape = RoundedCornerShape(28.dp),
-                                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 20.dp)
-                                ) {
-                                    Column(modifier = Modifier.padding(15.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                        OutlinedTextField(
-                                            value = "",
-                                            onValueChange = {},
-                                            placeholder = { Text("¿Desde dónde sales?") },
-                                            leadingIcon = { Icon(Icons.Default.Search, null) },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            singleLine = true,
-                                            shape = RoundedCornerShape(16.dp)
-                                        )
+                            Card(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                                shape = RoundedCornerShape(28.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 20.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(15.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    OutlinedTextField(
+                                        value = "",
+                                        onValueChange = {},
+                                        placeholder = { Text("¿Desde dónde sales?") },
+                                        leadingIcon = { Icon(Icons.Default.Search, null) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
 
                                         Spacer(modifier = Modifier.height(10.dp))
 
@@ -149,49 +130,35 @@ fun HomeScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Tab Selector
-                        TabRow(
-                            selectedTabIndex = selectedTabIndex,
-                            containerColor = Color.White,
-                            contentColor = UAMColor,
-                            indicator = { tabPositions ->
-                                if (selectedTabIndex < tabPositions.size) {
-                                    TabRowDefaults.SecondaryIndicator(
-                                        Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                                        color = UAMColor
-                                    )
-                                }
-                            }
-                        ) {
-                            tabs.forEachIndexed { index, title ->
-                                Tab(
-                                    selected = selectedTabIndex == index,
-                                    onClick = { selectedTabIndex = index },
-                                    text = { Text(text = title, fontWeight = FontWeight.Bold) }
-                                )
-                            }
-                        }
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "Viajes disponibles", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.Black)
                     }
                 }
 
-                // LISTADO DINÁMICO SEGÚN TAB
-                if (cargando) {
-                    item {
-                        Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = UAMColor)
-                        }
+            if (cargando) {
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = UAMColor)
                     }
-                } else {
-                    val listaAMostrar = if (selectedTabIndex == 0) viajesOtros else misViajes
-                    
-                    if (listaAMostrar.isEmpty()) {
-                        item {
-                            Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = if (selectedTabIndex == 0) "No hay viajes disponibles de otros usuarios" else "No has creado ningún viaje aún",
-                                    color = Color.Gray,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                )
+                }
+            } else if (viajesDisponibles.isEmpty()) {
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                        Text("No hay viajes disponibles", color = Color.Gray)
+                    }
+                }
+            } else {
+                items(viajesDisponibles) { viaje ->
+                    Box(modifier = Modifier.padding(horizontal = 20.dp)) {
+                        RideCard(
+                            viaje = viaje,
+                            esConductor = viaje.conductor?.cif == usuarioViewModel.usuario.cif,
+                            onConfirmarClick = { idViaje ->
+                                viajeViewModel.unirseAlViaje(idViaje, usuarioViewModel.usuario.cif ?: "")
                             }
                         }
                     } else {
@@ -253,6 +220,7 @@ fun HomeScreen(
                 }
                 item { Spacer(modifier = Modifier.height(80.dp)) }
             }
+            item { Spacer(modifier = Modifier.height(80.dp)) }
         }
     }
 }

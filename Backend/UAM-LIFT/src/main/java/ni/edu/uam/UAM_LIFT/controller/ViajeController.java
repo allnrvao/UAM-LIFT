@@ -3,6 +3,7 @@ package ni.edu.uam.UAM_LIFT.controller;
 import ni.edu.uam.UAM_LIFT.models.Usuario;
 import ni.edu.uam.UAM_LIFT.models.Viaje;
 import ni.edu.uam.UAM_LIFT.services.ViajeServicio;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,6 +24,13 @@ public class ViajeController {
     @GetMapping
     public List<Viaje> obtenerTodosLosViajes() {
         return viajeServicio.obtenerTodosLosViajes();
+    }
+    @PutMapping("/{id}/iniciar")
+    public ResponseEntity<Boolean> iniciarViaje(
+            @PathVariable Long id,
+            @RequestParam String conductorCif) {
+        boolean exito = viajeServicio.iniciarViajeReal(id, conductorCif);
+        return ResponseEntity.ok(exito);
     }
 
     /**

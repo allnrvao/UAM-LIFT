@@ -25,17 +25,13 @@ fun MyRidesScreen(
     viajeViewModel: ViajeViewModel,
     usuarioViewModel: UsuarioViewModel
 ) {
-    // Obtenemos los datos necesarios del usuario actual
-    val usuarioActual = usuarioViewModel.usuario
-    val userCif = usuarioActual.cif ?: ""
-    val userIdActual = usuarioActual.id ?: 0L // <-- ID numérico recuperado
-
     val viajes by viajeViewModel.viajes.collectAsState()
     val cargando by viajeViewModel.isLoading.collectAsState()
+    val userCif = usuarioViewModel.usuario.cif ?: ""
 
-    // Cargar viajes al entrar pasando el ID del usuario para el filtro del backend si es necesario
+    // Cargar viajes al entrar para asegurar que la lista esté actualizada
     LaunchedEffect(Unit) {
-        viajeViewModel.cargarViajesDesdeBackend(userIdActual)
+        viajeViewModel.cargarViajesDesdeBackend()
     }
 
     val misViajes = remember(viajes) {
@@ -85,11 +81,9 @@ fun MyRidesScreen(
                 items(misViajes) { viaje ->
                     RideCard(
                         viaje = viaje,
-                        usuarioIdActual = userIdActual, // <-- Solución al error 1
                         esConductor = true,
                         onIniciarViaje = { id ->
-                            // Solución al error 2: Se pasa el ID de viaje y el ID de usuario requerido
-                            viajeViewModel.iniciarViaje(viajeId = id, usuarioId = userIdActual)
+                            viajeViewModel.iniciarViaje(id)
                         }
                     )
                 }

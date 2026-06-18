@@ -6,7 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,7 +17,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ni.edu.uam.uamlift.data.enums.EstadoViaje
 import ni.edu.uam.uamlift.data.models.Viaje
 import ni.edu.uam.uamlift.ui.theme.UAMColor
 import java.text.SimpleDateFormat
@@ -25,24 +25,15 @@ import java.util.*
 @Composable
 fun RideCard(
     viaje: Viaje,
-    usuarioIdActual: Long,
     esConductor: Boolean = false,
     onConfirmarClick: (Long) -> Unit = {},
-    onCancelarParticipacion: (Long) -> Unit = {},
-    onIniciarViaje: (Long) -> Unit = {},
-    onFinalizarViaje: (Long) -> Unit = {},
-    onCancelarViaje: (Long) -> Unit = {},
-    onVerPasajeros: (Long) -> Unit = {}
+    onIniciarViaje: (Long) -> Unit = {}
 ) {
     var mostrarDialogo by remember { mutableStateOf(false) }
 
     val lightTealBg = Color(0xFFE0F7FA)
     val lightTealSeat = Color(0xFFB2EBF2)
     val grayText = Color(0xFF757575)
-
-    val esPasajero = remember(viaje.pasajeros) {
-        viaje.pasajeros.any { it.usuario?.id == usuarioIdActual }
-    }
 
     val nombreConductor = "${viaje.conductor?.nombre ?: ""} ${viaje.conductor?.apellido ?: ""}".trim().ifEmpty { "Estudiante UAM" }
     val initials = (viaje.conductor?.nombre?.take(1) ?: "U") + (viaje.conductor?.apellido?.take(1) ?: "")
@@ -51,14 +42,20 @@ fun RideCard(
     val destinoTexto = viaje.destino?.nombre ?: "Destino"
     val horaTexto = viaje.fechaHoraSalida?.substringAfter("T")?.take(5) ?: "00:00"
 
+    // Lógica para habilitar "Iniciar viaje" compatible con API 24
     val puedeIniciar = remember(viaje.fechaHoraSalida) {
         try {
             val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
             val dateSalida = sdf.parse(viaje.fechaHoraSalida ?: "")
             val now = Calendar.getInstance().time
-            now.after(dateSalida) || now.equals(dateSalida)
+            // Habilitar 15 minutos antes
+            val fifteenMinsBefore = Calendar.getInstance().apply {
+                time = dateSalida ?: now
+                add(Calendar.MINUTE, -15)
+            }.time
+            now.after(fifteenMinsBefore)
         } catch (e: Exception) {
-            false
+            true
         }
     }
 
@@ -79,13 +76,7 @@ fun RideCard(
     }
 
     Card(
-        onClick = { 
-            if (esConductor) {
-                onVerPasajeros(viaje.id ?: 0L)
-            } else {
-                mostrarDialogo = true
-            }
-        },
+        onClick = { if (!esConductor) mostrarDialogo = true },
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -107,19 +98,10 @@ fun RideCard(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(text = nombreConductor, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
-                        val statusText = when(viaje.estadoViaje) {
-                            EstadoViaje.EN_CURSO -> "En proceso"
-                            EstadoViaje.FINALIZADO -> "Finalizado"
-                            EstadoViaje.CANCELADO -> "Cancelado"
-                            else -> if (esConductor) "Tú eres el conductor" else if (esPasajero) "Estás unido" else "Conductor verificado"
-                        }
-                        val statusColor = when(viaje.estadoViaje) {
-                            EstadoViaje.EN_CURSO -> Color(0xFFF44336)
-                            EstadoViaje.FINALIZADO -> Color.Gray
-                            EstadoViaje.CANCELADO -> Color.Red
-                            else -> if (esConductor || esPasajero) UAMColor else Color(0xFF4CAF50)
-                        }
-                        Text(text = statusText, fontSize = 12.sp, color = statusColor)
+                        Text(
+                            text = if (esConductor) "Tú eres el conductor" else "Conductor verificado",
+                            fontSize = 12.sp, color = if (esConductor) UAMColor else Color(0xFF4CAF50)
+                        )
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
@@ -155,56 +137,21 @@ fun RideCard(
                 }
 
                 if (esConductor) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (viaje.estadoViaje != EstadoViaje.FINALIZADO && viaje.estadoViaje != EstadoViaje.CANCELADO) {
-                            if (viaje.estadoViaje != EstadoViaje.EN_CURSO) {
-                                TextButton(
-                                    onClick = { onCancelarViaje(viaje.id ?: 0L) },
-                                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
-                                ) {
-                                    Text("Cancelar", fontSize = 12.sp)
-                                }
-                                
-                                Spacer(modifier = Modifier.width(8.dp))
-
-                                Button(
-                                    onClick = { onIniciarViaje(viaje.id ?: 0L) },
-                                    enabled = puedeIniciar,
-                                    colors = ButtonDefaults.buttonColors(containerColor = UAMColor),
-                                    shape = RoundedCornerShape(12.dp),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                                ) {
-                                    Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Iniciar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                }
-                            } else {
-                                Button(
-                                    onClick = { onFinalizarViaje(viaje.id ?: 0L) },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
-                                    shape = RoundedCornerShape(12.dp),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                                ) {
-                                    Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Finalizar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
-                        }
-                        
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        IconButton(
-                            onClick = { onVerPasajeros(viaje.id ?: 0L) },
-                            modifier = Modifier.size(36.dp).background(lightTealBg, CircleShape)
-                        ) {
-                            Icon(Icons.Default.People, contentDescription = "Pasajeros", tint = UAMColor, modifier = Modifier.size(18.dp))
-                        }
+                    Button(
+                        onClick = { onIniciarViaje(viaje.id ?: 0L) },
+                        enabled = puedeIniciar,
+                        colors = ButtonDefaults.buttonColors(containerColor = UAMColor),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Iniciar viaje", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 } else {
-                    Surface(color = if (esPasajero) UAMColor.copy(alpha = 0.1f) else lightTealSeat.copy(alpha = 0.5f), shape = RoundedCornerShape(8.dp)) {
+                    Surface(color = lightTealSeat.copy(alpha = 0.5f), shape = RoundedCornerShape(8.dp)) {
                         Text(
-                            text = if (esPasajero) "Ya estás unido" else "${viaje.numeroAsientosDisponibles} asientos libres",
+                            text = "${viaje.numeroAsientosDisponibles} asientos libres",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             fontSize = 12.sp, fontWeight = FontWeight.Bold, color = UAMColor
                         )

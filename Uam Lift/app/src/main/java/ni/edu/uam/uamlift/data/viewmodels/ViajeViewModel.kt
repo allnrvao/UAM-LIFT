@@ -16,8 +16,8 @@ import kotlinx.coroutines.withContext
 import ni.edu.uam.uamlift.data.RetrofitClient
 import ni.edu.uam.uamlift.data.api.ViajeApiService
 import ni.edu.uam.uamlift.data.models.*
-import java.text.SimpleDateFormat
-import java.util.*
+import ni.edu.uam.uamlift.data.RetrofitClient
+import ni.edu.uam.uamlift.data.enums.EstadoViaje
 
 class ViajeViewModel(
     private val apiService: ViajeApiService? = RetrofitClient.viajeApi
@@ -143,76 +143,10 @@ class ViajeViewModel(
     fun cargarViajesDesdeBackend(usuarioId: Long? = null) {
         val api = apiService ?: return
         viewModelScope.launch {
-            if (usuarioId == null && _viajesOtros.value.isNotEmpty()) return@launch
-
-            val tieneDatos = _viajesOtros.value.isNotEmpty() || _misViajes.value.isNotEmpty()
-            if (!tieneDatos) _isLoading.value = true
-
-            try {
-                fetchViajesInternal(api, usuarioId)
-            } catch (e: Exception) {
-                Log.e("ViajeViewModel", "Error al cargar datos", e)
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    private suspend fun fetchViajesInternal(api: ViajeApiService, usuarioId: Long?) {
-        withContext(Dispatchers.IO) {
-            if (usuarioId != null) {
-                val todosDef = async { api.obtenerTodosLosViajes() }
-                val condDef = async { api.obtenerViajesPorConductor(usuarioId) }
-                val userDef = async { api.obtenerViajesPorUsuario(usuarioId) }
-
-                val todos = todosDef.await()
-                val creados = condDef.await()
-                val unidos = userDef.await()
-
-                val misUnidosFiltrados = unidos.filter { v ->
-                    v.estadoViaje != EstadoViaje.CANCELADO
-                }
-                val misViajesResult = (creados + misUnidosFiltrados).distinctBy { it.id }
-
-                val otrosResult = todos.filter { v ->
-                    val esConductor = v.conductor?.id == usuarioId
-                    val esPasajero = v.pasajeros.any { p -> p.usuario?.id == usuarioId }
-
-                    !esConductor && !esPasajero &&
-                            v.estadoViaje != EstadoViaje.CANCELADO
-                }
-
-                withContext(Dispatchers.Main) {
-                    _viajes.value = todos
-                    _misViajes.value = misViajesResult
-                    _viajesOtros.value = otrosResult
-                }
-            } else {
-                val todos = api.obtenerTodosLosViajes()
-                val otrosResult = todos.filter { v ->
-                    v.estadoViaje != EstadoViaje.CANCELADO
-                }
-                withContext(Dispatchers.Main) {
-                    _viajesOtros.value = otrosResult
-                    _misViajes.value = emptyList()
-                }
-            }
-        }
-    }
-
-    fun cancelarViaje(viajeId: Long, usuarioId: Long, onExito: () -> Unit = {}, onError: (String) -> Unit = {}) {
-        val api = apiService ?: return
-        viewModelScope.launch {
             _isLoading.value = true
             try {
-                val v = _misViajes.value.find { it.id == viajeId }
-                if (v != null && (v.estadoViaje == EstadoViaje.EN_CURSO || v.estadoViaje == EstadoViaje.FINALIZADO)) {
-                    onError("El viaje ya ha iniciado o finalizado y no se puede cancelar.")
-                    return@launch
-                }
-                val exito = withContext(Dispatchers.IO) {
-                    api.cancelarViaje(viajeId)
-                }
+                viaje = viaje.copy(estadoViaje = EstadoViaje.PROPUESTO)
+                val exito = apiService?.crearViaje(conductorCif, viaje) ?: false
                 if (exito) {
                     fetchViajesInternal(api, usuarioId)
                     onExito()
@@ -220,10 +154,22 @@ class ViajeViewModel(
                     onError("No se pudo cancelar el viaje.")
                 }
             } catch (e: Exception) {
-                Log.e("ViajeViewModel", "Error al cancelar", e)
-                onError("Error de conexión.")
+                e.printStackTrace()
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    fun iniciarViaje(viajeId: Long) {
+        viewModelScope.launch {
+            try {
+                val exito = apiService?.iniciarViaje(viajeId) ?: false
+                if (exito) {
+                    cargarViajesDesdeBackend()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
@@ -289,43 +235,12 @@ class ViajeViewModel(
         }
     }
 
-    fun validarNumViajes(usuarioId: Long, onExito: (Boolean) -> Unit = {}) {
-        val api = apiService ?: return
-        viewModelScope.launch {
-            val valido = withContext(Dispatchers.IO) {
-                api.validarNumViajes(usuarioId)
-            }
-            onExito(valido)
-        }
+    fun actualizarOrigen(nombre: String, lat: Double?, lng: Double?, esUam: Boolean = false) {
+        viaje = viaje.copy(origen = Destino(nombre = nombre, latitud = lat, longitud = lng, universidad = esUam))
     }
 
-    fun unirseAlViaje(
-        viajeId: Long,
-        usuarioId: Long,
-        usuarioCif: String,
-        onExito: () -> Unit = {},
-        onError: (String) -> Unit = {}
-    ) {
-        val api = apiService ?: return
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                val exito = withContext(Dispatchers.IO) {
-                    api.agregarPasajero(viajeId, usuarioCif)
-                }
-                if (exito) {
-                    fetchViajesInternal(api, usuarioId)
-                    onExito()
-                } else {
-                    onError("No se pudo unir al viaje.")
-                }
-            } catch (e: Exception) {
-                Log.e("ViajeViewModel", "Error al unirse", e)
-                onError("Error de red.")
-            } finally {
-                _isLoading.value = false
-            }
-        }
+    fun actualizarDestino(nombre: String, lat: Double?, lng: Double?, esUam: Boolean = false) {
+        viaje = viaje.copy(destino = Destino(nombre = nombre, latitud = lat, longitud = lng, universidad = esUam))
     }
 
     fun cancelarParticipacion(viajeId: Long, usuarioId: Long, usuarioCif: String, onExito: () -> Unit = {}) {
@@ -352,7 +267,6 @@ class ViajeViewModel(
     fun actualizarDestino(destino: Destino?) { viaje = viaje.copy(destino = destino) }
     fun actualizarFechaHoraSalida(fecha: String) { viaje = viaje.copy(fechaHoraSalida = fecha) }
     fun actualizarFechaHoraLlegada(fecha: String) { viaje = viaje.copy(fechaHoraLlegada = fecha) }
-    fun actualizarCarro(carro: Carro?) { viaje = viaje.copy(carro = carro) }
-    fun actualizarNumeroAsientos(asientos: Int) { viaje = viaje.copy(numeroAsientosDisponibles = asientos) }
+    fun actualizarNumeroAsientos(numero: Int) { viaje = viaje.copy(numeroAsientosDisponibles = numero) }
     fun actualizarPrecio(precio: Double) { viaje = viaje.copy(precioPorPersona = precio) }
 }

@@ -11,7 +11,7 @@ sealed class BottomNavItem(
 ) {
     data object Home : BottomNavItem("home", Icons.Default.Home, "Inicio")
     data object Search : BottomNavItem("search", Icons.Default.Search, "Buscar")
+    data object MyRides : BottomNavItem("my_rides", Icons.Default.DirectionsCar, "Mis Viajes")
     data object Create : BottomNavItem("create", Icons.Default.Add, "Crear")
-    data object Messages : BottomNavItem("messages", Icons.Default.Send, "Mensajes")
     data object Profile : BottomNavItem("profile", Icons.Default.Person, "Perfil")
 }
