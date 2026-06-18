@@ -35,7 +35,6 @@ public class UsuarioServicio implements InterfazUsuario {
                 return false;
             }
             repoUsuario.save(usuario);
-            emailVerificationService.requestVerification(usuario.getCorreo());
         }catch(Exception e){
             System.out.println("Error al agregar usuario: " + e.getMessage());
             return false;

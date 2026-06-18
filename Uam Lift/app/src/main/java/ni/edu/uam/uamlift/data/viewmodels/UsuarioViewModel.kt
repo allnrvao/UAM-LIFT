@@ -1,13 +1,16 @@
 package ni.edu.uam.uamlift.data.viewmodels
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import ni.edu.uam.uamlift.data.RetrofitClient
 import ni.edu.uam.uamlift.data.models.Usuario
 import ni.edu.uam.uamlift.sesion.ControlSesion
@@ -73,25 +76,84 @@ class UsuarioViewModel : ViewModel() {
         }
     }
 
-    fun registrarUsuarioActual(context: Context, onResultado: (Boolean) -> Unit) {
+    fun comprobarCorreo(correo: String?, onResultado: (Boolean) -> Unit) {
+        if (correo == null) {
+            onResultado(false)
+            return
+        }
+
         viewModelScope.launch {
-            cargando = true
-            mensajeError = null
             try {
-                val exito = RetrofitClient.usuarioApi.registrarUsuario(usuario)
-                if (exito) {
-                    guardarSesionLocal(context)
+                val respuestaCuerpo = RetrofitClient.usuarioApi.verificarCorreo(correo)
+
+                val textoPlano = respuestaCuerpo.string().trim()
+
+                val correoExiste = textoPlano.toBoolean()
+
+                withContext(Dispatchers.Main) {
+                    onResultado(correoExiste)
                 }
-                onResultado(exito)
+
             } catch (e: Exception) {
-                mensajeError = "Error al registrar usuario: ${e.localizedMessage}"
-                onResultado(false)
-            } finally {
-                cargando = false
+                Log.e("RETROFIT_GET", "Error al verificar correo: ${e.localizedMessage}")
+
+                withContext(Dispatchers.Main) {
+                    onResultado(false)
+                }
             }
         }
     }
 
+    fun registrarUsuarioActual(context: Context, onResultado: (Boolean) -> Unit) {
+        Log.d("REGISTRO_FLOW", "Registrando usuario actual...")
+        if (cargando) return
+
+        cargando = true
+        mensajeError = null
+
+        comprobarCorreo(usuario.correo) { correoExiste ->
+
+            if (correoExiste) {
+                Log.d("REGISTRO_FLOW", "Correo ya registrado.")
+                mensajeError = "El correo ya está registrado."
+                cargando = false
+                onResultado(false)
+            } else {
+                viewModelScope.launch {
+                    try {
+                        val respuestaRegistro = RetrofitClient.usuarioApi.registrarUsuario(usuario)
+                        val texto = respuestaRegistro.string().trim()
+                        Log.d("REGISTRO_FLOW", "Respuesta del servidor: $texto")
+                        val registroExitoso = texto.toBoolean()
+                        Log.d("REGISTRO_FLOW", "Registro exitoso: $registroExitoso")
+
+                        if (registroExitoso) {
+                            Log.d("REGISTRO_FLOW", "Registro exitoso. Guardando sesión local...")
+                            guardarSesionLocal(context)
+                            withContext(Dispatchers.Main) {
+                                onResultado(true)
+                            }
+                        } else {
+                            mensajeError = "No se pudo completar el registro. Inténtalo de nuevo."
+                            withContext(Dispatchers.Main) {
+                                onResultado(false)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("REGISTRO_FLOW", "Error al registrar: ${e.localizedMessage}")
+                        mensajeError = "Error de conexión: ${e.localizedMessage}"
+                        withContext(Dispatchers.Main) {
+                            onResultado(false)
+                        }
+                    } finally {
+                        withContext(Dispatchers.Main) {
+                            cargando = false
+                        }
+                    }
+                }
+            }
+        }
+    }
     suspend fun guardarSesionLocal(context: Context) {
         val controlSesion = ControlSesion(context)
         controlSesion.guardarSesion(

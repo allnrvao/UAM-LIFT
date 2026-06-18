@@ -358,7 +358,14 @@ fun LogIn(
                 Text(text = "¿No tienes una cuenta?", color = Color.White.copy(alpha = 0.6f))
                 Spacer(modifier = Modifier.height(8.dp))
                 TextButton(
-                    onClick = { navController.navigate("createAccount") },
+                    onClick = {
+                        if (email.contains("@")) {
+                            usuarioViewModel.actualizarCorreo(email)
+                        } else if (email.isNotEmpty()) {
+                            usuarioViewModel.actualizarCif(email)
+                        }
+                        navController.navigate("createAccount")
+                    },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor, contentColor = Color.White)
