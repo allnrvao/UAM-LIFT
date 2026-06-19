@@ -1,13 +1,16 @@
 package ni.edu.uam.uamlift.data.viewmodels
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import ni.edu.uam.uamlift.data.RetrofitClient
 import ni.edu.uam.uamlift.data.models.Usuario
 import ni.edu.uam.uamlift.sesion.ControlSesion
@@ -39,7 +42,6 @@ class UsuarioViewModel : ViewModel() {
         }
     }
 
-    // 🌟 CORREGIDO: Corre en Dispatchers.IO para no congelar la UI al consultar por correo
     fun obtenerUsuarioPorCorreo(correo: String, onResultado: (Boolean) -> Unit = {}) {
         viewModelScope.launch(Dispatchers.IO) {
             withContext(Dispatchers.Main) {
@@ -65,7 +67,6 @@ class UsuarioViewModel : ViewModel() {
         }
     }
 
-    // 🌟 CORREGIDO: Corre en Dispatchers.IO para no congelar la UI al consultar por CIF
     fun obtenerUsuarioPorCif(cif: String, onResultado: (Boolean) -> Unit = {}) {
         viewModelScope.launch(Dispatchers.IO) {
             withContext(Dispatchers.Main) {
@@ -91,33 +92,25 @@ class UsuarioViewModel : ViewModel() {
         }
     }
 
-<<<<<<< Updated upstream
-    fun registrarUsuarioActual(context: Context, onResultado: (Boolean) -> Unit) {
-        viewModelScope.launch {
-            cargando = true
-            mensajeError = null
-            try {
-                val exito = RetrofitClient.usuarioApi.registrarUsuario(usuario)
-                if (exito) {
-                    guardarSesionLocal(context)
-=======
+    /**
+     * 🌟 CORREGIDO: En lugar de usar un endpoint inexistente, usamos obtenerPorCorreo.
+     * Si el servidor devuelve un usuario válido, significa que el correo ya existe.
+     */
     fun comprobarCorreo(correo: String?, onResultado: (Boolean) -> Unit) {
-        if (correo == null) {
+        if (correo.isNullOrEmpty()) {
             onResultado(false)
             return
         }
 
-        viewModelScope.launch(Dispatchers.IO) { // 👈 Forzado a canal de Entrada/Salida
+        viewModelScope.launch(Dispatchers.IO) {
             try {
-                val respuestaCuerpo = RetrofitClient.usuarioApi.verificarCorreo(correo)
-                val textoPlano = respuestaCuerpo.string().trim()
-                val correoExiste = textoPlano.toBoolean()
-
+                val usuarioExistente = RetrofitClient.usuarioApi.obtenerPorCorreo(correo)
                 withContext(Dispatchers.Main) {
-                    onResultado(correoExiste)
+                    // Si el objeto no es nulo y tiene datos reales, el correo ya está registrado
+                    onResultado(usuarioExistente.correo != null)
                 }
             } catch (e: Exception) {
-                Log.e("RETROFIT_GET", "Error al verificar correo: ${e.localizedMessage}")
+                Log.d("RETROFIT_GET", "El correo no existe en el sistema (comportamiento esperado)")
                 withContext(Dispatchers.Main) {
                     onResultado(false)
                 }
@@ -125,6 +118,9 @@ class UsuarioViewModel : ViewModel() {
         }
     }
 
+    /**
+     * 🌟 CORREGIDO: Adaptado para leer el Boolean directo que devuelve registrarUsuario()
+     */
     fun registrarUsuarioActual(context: Context, onResultado: (Boolean) -> Unit) {
         Log.d("REGISTRO_FLOW", "Registrando usuario actual...")
         if (cargando) return
@@ -139,16 +135,14 @@ class UsuarioViewModel : ViewModel() {
                 cargando = false
                 onResultado(false)
             } else {
-                viewModelScope.launch(Dispatchers.IO) { // 👈 Corregido a hilo IO
+                viewModelScope.launch(Dispatchers.IO) {
                     try {
-                        val respuestaRegistro = RetrofitClient.usuarioApi.registrarUsuario(usuario)
-                        val texto = respuestaRegistro.string().trim()
-                        Log.d("REGISTRO_FLOW", "Respuesta del servidor: $texto")
-                        val registroExitoso = texto.toBoolean()
-                        Log.d("REGISTRO_FLOW", "Registro exitoso: $registroExitoso")
+                        // 🌟 Tu interfaz devuelve directamente un Boolean aquí:
+                        val registroExitoso = RetrofitClient.usuarioApi.registrarUsuario(usuario)
+                        Log.d("REGISTRO_FLOW", "Registro exitoso según servidor: $registroExitoso")
 
                         if (registroExitoso) {
-                            Log.d("REGISTRO_FLOW", "Registro exitoso. Guardando sesión local...")
+                            Log.d("REGISTRO_FLOW", "Guardando sesión local...")
                             guardarSesionLocal(context)
                             withContext(Dispatchers.Main) {
                                 onResultado(true)
@@ -160,7 +154,7 @@ class UsuarioViewModel : ViewModel() {
                             }
                         }
                     } catch (e: Exception) {
-                        Log.e("REGISTRO_FLOW", "Error al registrar: ${e.localizedMessage}")
+                        Log.e("REGISTRO_FLOW", "Error al registrar", e)
                         withContext(Dispatchers.Main) {
                             mensajeError = "Error de conexión: ${e.localizedMessage}"
                             onResultado(false)
@@ -170,14 +164,7 @@ class UsuarioViewModel : ViewModel() {
                             cargando = false
                         }
                     }
->>>>>>> Stashed changes
                 }
-                onResultado(exito)
-            } catch (e: Exception) {
-                mensajeError = "Error al registrar usuario: ${e.localizedMessage}"
-                onResultado(false)
-            } finally {
-                cargando = false
             }
         }
     }

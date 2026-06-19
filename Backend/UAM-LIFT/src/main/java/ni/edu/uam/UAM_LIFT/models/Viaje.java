@@ -1,9 +1,5 @@
 package ni.edu.uam.UAM_LIFT.models;
 
-<<<<<<< Updated upstream
-import com.fasterxml.jackson.annotation.JsonBackReference;
-=======
->>>>>>> Stashed changes
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
@@ -11,13 +7,11 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Min;
 import lombok.*;
 import ni.edu.uam.UAM_LIFT.enums.EstadoViaje;
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
 
 @Entity
 @Getter
@@ -32,20 +26,12 @@ public class Viaje {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-<<<<<<< Updated upstream
     @ManyToOne(fetch = FetchType.LAZY)
-=======
-    @ManyToOne(fetch = FetchType.EAGER)
->>>>>>> Stashed changes
     @JoinColumn(name = "origen_id", nullable = false)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Destino origen;
 
-<<<<<<< Updated upstream
     @ManyToOne(fetch = FetchType.LAZY)
-=======
-    @ManyToOne(fetch = FetchType.EAGER)
->>>>>>> Stashed changes
     @JoinColumn(name = "destino_id", nullable = false)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Destino destino;
@@ -66,15 +52,9 @@ public class Viaje {
     @Min(value = 1, message = "El precio del viaje debe ser al menos 1")
     private double precioPorPersona;
 
-<<<<<<< Updated upstream
-    // 🔥 CORRECCIÓN AQUÍ: Se eliminó el atributo "viaje" redundante
-    // y se configuró correctamente la relación Uno a Muchos con la intermedia.
+    // 🔥 CORRECCIÓN: Se configuró correctamente la relación Uno a Muchos con la intermedia.
     @OneToMany(mappedBy = "viaje", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference // Evita bucles infinitos en Jackson al serializar a JSON
-=======
-    @OneToMany(mappedBy = "viaje", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
->>>>>>> Stashed changes
     private List<ViajeUsuario> pasajeros = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.EAGER)

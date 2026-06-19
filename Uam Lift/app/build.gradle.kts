@@ -50,9 +50,6 @@ configurations.all {
     }
 }
 dependencies {
-    //map libre
-    implementation(libs.maplibre.compose)
-
     implementation(libs.androidx.datastore)
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services)
@@ -91,7 +88,7 @@ dependencies {
     implementation(libs.play.services.maps)
     implementation(libs.play.services.maps)
     implementation("com.google.maps.android:maps-compose:4.4.1")
-    
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

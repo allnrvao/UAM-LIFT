@@ -4,7 +4,7 @@ import ni.edu.uam.uamlift.data.models.Viaje
 import retrofit2.http.*
 
 interface ViajeApiService {
-    // 1. AGREGA ESTA FUNCIÓN AL INICIO O AL FINAL
+
     @GET("api/viajes")
     suspend fun obtenerTodosLosViajes(): List<Viaje>
 
@@ -14,29 +14,25 @@ interface ViajeApiService {
         @Body viaje: Viaje
     ): Viaje
 
+    // 🌟 CORREGIDO: Cambiado de Boolean a Map<String, Boolean> para manejar las respuestas de Spring Boot {"success": true}
     @PUT("api/viajes/{viajeId}/pasajeros/{usuarioCif}")
     suspend fun agregarPasajero(
         @Path("viajeId") viajeId: Long,
         @Path("usuarioCif") usuarioCif: String
-<<<<<<< Updated upstream
-    ): Boolean
-=======
-    ): Map<String, Boolean> // Ajustado
->>>>>>> Stashed changes
+    ): Map<String, Boolean>
 
+    // 🌟 CORREGIDO: Cambiado de Boolean a Map<String, Boolean>
     @PUT("api/viajes/{viajeId}/cancelar/{usuarioCif}")
     suspend fun cancelarParticipacion(
         @Path("viajeId") viajeId: Long,
         @Path("usuarioCif") usuarioCif: String
-<<<<<<< Updated upstream
-    ): Boolean
+    ): Map<String, Boolean>
 
+    // 🌟 CORREGIDO: Cambiado de Boolean a Map<String, Boolean>
     @PUT("api/viajes/{viajeId}/finalizar")
-    suspend fun finalizarViaje(@Path("viajeId") viajeId: Long): Boolean
-=======
-    ): Map<String, Boolean> // Ajustado
+    suspend fun finalizarViaje(@Path("viajeId") viajeId: Long): Map<String, Boolean>
 
-    @PUT("api/viajes/{viajeId}/finalizar")
-    suspend fun finalizarViaje(@Path("viajeId") viajeId: Long): Map<String, Boolean> // Ajustado
->>>>>>> Stashed changes
+    // 🌟 AGREGADO: El método faltante que requería tu ViewModel para arrancar la ruta
+    @PUT("api/viajes/{viajeId}/iniciar")
+    suspend fun iniciarViaje(@Path("viajeId") viajeId: Long): Map<String, Boolean>
 }

@@ -13,5 +13,7 @@ data class Destino(
     val universidad: Boolean = false,
 
     @SerializedName("estado")
-    val estado: Boolean = true
+    val estado: Boolean = true,
+    val latitud: Double?,
+    val longitud: Double?
 )

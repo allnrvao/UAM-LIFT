@@ -1,40 +1,21 @@
 package ni.edu.uam.UAM_LIFT.controller;
 
-
 import ni.edu.uam.UAM_LIFT.models.Viaje;
 import ni.edu.uam.UAM_LIFT.services.ViajeServicio;
 import org.springframework.web.bind.annotation.*;
 
-<<<<<<< Updated upstream
 import java.util.List;
 
-=======
-
-import java.util.List;
-
-
->>>>>>> Stashed changes
 @RestController
 @RequestMapping("/api/viajes")
 public class ViajeController {
 
-<<<<<<< Updated upstream
     private final ViajeServicio viajeServicio;
 
-=======
-
-    private final ViajeServicio viajeServicio;
-
-
->>>>>>> Stashed changes
     public ViajeController(ViajeServicio viajeServicio) {
         this.viajeServicio = viajeServicio;
     }
 
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
     /**
      * Obtener todos los viajes
      */
@@ -43,10 +24,6 @@ public class ViajeController {
         return viajeServicio.obtenerTodosLosViajes();
     }
 
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
     /**
      * Crear un nuevo viaje
      */
@@ -58,10 +35,6 @@ public class ViajeController {
         return viajeServicio.crearViaje(viaje, conductorCif);
     }
 
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
     /**
      * Agregar un pasajero a un viaje
      */
@@ -79,10 +52,6 @@ public class ViajeController {
         }
     }
 
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
     /**
      * Cancelar participación de un pasajero
      */
@@ -100,10 +69,6 @@ public class ViajeController {
         }
     }
 
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
     /**
      * Finalizar un viaje
      */

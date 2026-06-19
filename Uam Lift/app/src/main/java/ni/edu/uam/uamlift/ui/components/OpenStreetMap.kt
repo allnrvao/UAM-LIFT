@@ -2,8 +2,10 @@ package ni.edu.uam.uamlift.ui.components
 
 import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -39,12 +41,11 @@ fun MapLibreView(
         Configuration.getInstance().userAgentValue = context.packageName
     }
 
-    // El LocationOverlay necesita ser recordado para poder encenderlo/apagarlo en el ciclo de vida
-    var myLocationOverlay: MyLocationNewOverlay? = remember { null }
+    // 🌟 CORRECCIÓN: Usar mutableStateOf para poder mutar y leer la referencia de manera segura en Compose
+    var myLocationOverlayState by remember { mutableStateOf<MyLocationNewOverlay?>(null) }
 
     AndroidView(
         factory = { ctx ->
-            // 🌟 SOLUCIÓN AL CRASH: Crear el MapView AQUÍ con el contexto fresco de la vista
             MapView(ctx).apply {
                 setTileSource(TileSourceFactory.MAPNIK)
                 setMultiTouchControls(isGesturesEnabled)
@@ -57,7 +58,7 @@ fun MapLibreView(
                 // Inicializar localización de forma segura dentro de la Factory
                 val overlay = MyLocationNewOverlay(GpsMyLocationProvider(ctx), this)
                 overlay.enableMyLocation()
-                myLocationOverlay = overlay
+                myLocationOverlayState = overlay
                 overlays.add(overlay)
             }
         },
@@ -140,9 +141,8 @@ fun MapLibreView(
             view.invalidate()
         },
         onRelease = { view ->
-            // 🌟 CONTROL DE CICLO DE VIDA EXTRA: Limpieza absoluta cuando se destruye el Composable
             try {
-                myLocationOverlay?.disableMyLocation()
+                myLocationOverlayState?.disableMyLocation()
                 view.onDetach()
             } catch (e: Exception) {
                 e.printStackTrace()
