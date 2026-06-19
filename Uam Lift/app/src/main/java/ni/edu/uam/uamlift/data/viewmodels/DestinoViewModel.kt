@@ -10,7 +10,11 @@ class DestinoViewModel : ViewModel() {
 
     var destino by mutableStateOf(
         Destino(
-            nombre = ""
+            nombre = "",
+            latitud = null,
+            longitud = null,
+            universidad = false,
+            estado = false
         )
     )
         private set

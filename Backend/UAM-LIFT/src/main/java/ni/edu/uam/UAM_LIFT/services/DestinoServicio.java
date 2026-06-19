@@ -32,14 +32,14 @@ public class DestinoServicio {
         }
     }
 
-        public boolean eliminarDestino(String nombre) {
-            try {
-                Destino destino = repoDestino.findByNombre(nombre).orElseThrow(() -> new RuntimeException("Destino no encontrado con nombre: " + nombre));
-                repoDestino.delete(destino);
-                return true;
-            } catch (Exception e) {
-                System.out.println("Error al eliminar destino: " + e.getMessage());
-                return false;
-            }
+    public boolean eliminarDestino(String nombre) {
+        try {
+            Destino destino = repoDestino.findByNombre(nombre).orElseThrow(() -> new RuntimeException("Destino no encontrado con nombre: " + nombre));
+            repoDestino.delete(destino);
+            return true;
+        } catch (Exception e) {
+            System.out.println("Error al eliminar destino: " + e.getMessage());
+            return false;
         }
+    }
 }

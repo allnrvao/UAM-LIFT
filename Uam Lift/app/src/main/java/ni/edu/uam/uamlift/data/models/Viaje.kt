@@ -25,7 +25,7 @@ data class Viaje(
     val precioPorPersona: Double = 0.0,
 
     @SerializedName("pasajeros")
-    val pasajeros: List<ViajeUsuario> = emptyList(),
+    val pasajeros: List<ViajeUsuario>? = emptyList(), // 💡 Permitir que sea anulable si Jackson manda null
 
     @SerializedName("conductor")
     val conductor: Usuario? = null,
@@ -35,6 +35,7 @@ data class Viaje(
 )
 
 enum class EstadoViaje {
+    @SerializedName("PROPUESTO") PROPUESTO, // 👈 Agrégalo aquí en Android
     @SerializedName("PROGRAMADO") PROGRAMADO,
     @SerializedName("EN_CURSO") EN_CURSO,
     @SerializedName("FINALIZADO") FINALIZADO,

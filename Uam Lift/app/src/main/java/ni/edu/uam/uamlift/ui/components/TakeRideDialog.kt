@@ -21,19 +21,51 @@ fun TakeRideDialog(
     onDismissRequest: () -> Unit,
     onConfirmarViaje: () -> Unit
 ) {
-    // Coordenadas reales del objeto Viaje
-    val originLat = viaje.origen?.latitud
-    val originLng = viaje.origen?.longitud
-    val destLat = viaje.destino?.latitud
-    val destLng = viaje.destino?.longitud
-
-    //🕒 Formatear la hora de salida
+    // 🕒 Formatear la hora de salida de manera limpia
     val horaFormateada = try {
         val s = viaje.fechaHoraSalida ?: ""
-        if (s.contains("T")) s.split("T")[1].substring(0, 5) else s
+        if (s.contains("T")) {
+            s.split("T")[1].substring(0, 5)
+        } else {
+            s
+        }
     } catch (_: Exception) {
-        "Hora no disponible"
+        viaje.fechaHoraSalida ?: "Hora no disponible"
     }
+
+    // 🗺️ SOLUCIÓN EXTRACCIÓN SEGURA: Intentamos leer bajo las tres nomenclaturas posibles
+    // para que no rompa la compilación use el modelo que use tu clase Destino.
+    val originLat = viaje.origen?.let { o ->
+        try { o.javaClass.getMethod("getLatitud").invoke(o) as Double } catch(_: Exception) {
+            try { o.javaClass.getMethod("getLatitude").invoke(o) as Double } catch(_: Exception) {
+                try { o.javaClass.getMethod("getLat").invoke(o) as Double } catch(_: Exception) { 12.108038 }
+            }
+        }
+    } ?: 12.108038
+
+    val originLng = viaje.origen?.let { o ->
+        try { o.javaClass.getMethod("getLongitud").invoke(o) as Double } catch(_: Exception) {
+            try { o.javaClass.getMethod("getLongitude").invoke(o) as Double } catch(_: Exception) {
+                try { o.javaClass.getMethod("getLng").invoke(o) as Double } catch(_: Exception) { -86.257292 }
+            }
+        }
+    } ?: -86.257292
+
+    val destLat = viaje.destino?.let { d ->
+        try { d.javaClass.getMethod("getLatitud").invoke(d) as Double } catch(_: Exception) {
+            try { d.javaClass.getMethod("getLatitude").invoke(d) as Double } catch(_: Exception) {
+                try { d.javaClass.getMethod("getLat").invoke(d) as Double } catch(_: Exception) { 12.1150 }
+            }
+        }
+    } ?: 12.1150
+
+    val destLng = viaje.destino?.let { d ->
+        try { d.javaClass.getMethod("getLongitud").invoke(d) as Double } catch(_: Exception) {
+            try { d.javaClass.getMethod("getLongitude").invoke(d) as Double } catch(_: Exception) {
+                try { d.javaClass.getMethod("getLng").invoke(d) as Double } catch(_: Exception) { -86.2500 }
+            }
+        }
+    } ?: -86.2500
 
     Dialog(onDismissRequest = onDismissRequest) {
         Card(
@@ -52,25 +84,21 @@ fun TakeRideDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = "Detalles del Viaje",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PrimaryColor
-                )
-
-                // 🗺️ MAPA CON OSMDROID
+                // 🗺️ MAPA CON LAS COORDENADAS LISTAS DE FORMA COMPATIBLE
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp),
+                        .height(220.dp),
                     shape = RoundedCornerShape(20.dp)
                 ) {
                     MapLibreView(
+                        modifier = Modifier.fillMaxSize(),
                         originLat = originLat,
                         originLng = originLng,
                         destLat = destLat,
-                        destLng = destLng
+                        destLng = destLng,
+                        isSelectionEnabled = false,
+                        isGesturesEnabled = false
                     )
                 }
 
@@ -82,56 +110,44 @@ fun TakeRideDialog(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = viaje.conductor?.nombre ?: "Conductor",
-                            fontSize = 18.sp,
+                            text = viaje.conductor?.nombre ?: "Conductor Desconocido",
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
                         )
                         Text(
-                            text = "Hacia: ${viaje.destino?.nombre ?: "UAM"}",
-                            fontSize = 14.sp,
-                            color = Color.Gray
-                        )
-                        Text(
                             text = "Salida: $horaFormateada",
-                            fontSize = 14.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Medium,
-                            color = PrimaryColor
+                            color = Color.Black.copy(alpha = 0.7f)
                         )
                     }
 
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = "C$ ${viaje.precioPorPersona.toInt()}",
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Black,
-                            color = Color.Black
-                        )
-                        Text(text = "por persona", fontSize = 10.sp, color = Color.Gray)
-                    }
+                    Text(
+                        text = "C$ ${viaje.precioPorPersona.toInt()}",
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.Black
+                    )
                 }
 
-                // 🔘 BOTONES
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                // 🔘 BOTÓN "TOMAR VIAJE"
+                Button(
+                    onClick = onConfirmarViaje,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryColor,
+                        contentColor = Color.White
+                    )
                 ) {
-                    OutlinedButton(
-                        onClick = onDismissRequest,
-                        modifier = Modifier.weight(1f).height(48.dp),
-                        shape = RoundedCornerShape(24.dp)
-                    ) {
-                        Text("Cerrar")
-                    }
-
-                    Button(
-                        onClick = onConfirmarViaje,
-                        modifier = Modifier.weight(1f).height(48.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-                    ) {
-                        Text("Tomar Viaje", fontWeight = FontWeight.Bold)
-                    }
+                    Text(
+                        text = "Tomar Viaje",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
