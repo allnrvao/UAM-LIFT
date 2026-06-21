@@ -82,4 +82,42 @@ public class ViajeController {
             return false;
         }
     }
+
+    /**
+     * Cancelar un viaje
+     */
+    @PutMapping("/{viajeId}/cancelar")
+    public boolean cancelarViaje(@PathVariable Long viajeId) {
+        try {
+            viajeServicio.cancelarViaje(viajeId);
+            return true;
+        } catch (Exception e) {
+            System.out.println("Error al cancelar viaje: " + e.getMessage());
+            return false;
+        }
+    }
+
+    //Validar Viaje crecion Conductor, limite y fecha
+        @GetMapping("/validar/conductor/{usuarioId}/{fechaSalida}/{fechaLlegada}")
+        public boolean validarViajeConductor(@PathVariable Long usuarioId, @PathVariable String fechaSalida, @PathVariable String fechaLlegada) {
+            try {
+                return viajeServicio.validarPorFecha(fechaSalida, fechaLlegada, usuarioId)
+                        && viajeServicio.LimiteDeViajeConductor(usuarioId);
+            }catch (Exception e) {
+                System.out.println("Error al validar viaje: " + e.getMessage());
+                return false;
+            }
+        }
+
+        @GetMapping("/validar/pasajero/{usuarioId}/{fechaSalida}/{fechaLlegada}")
+        public boolean validarViajePasajero(@PathVariable Long usuarioId, @PathVariable
+    String fechaSalida, @PathVariable String fechaLlegada) {
+                try {
+                    return viajeServicio.validarPorFecha(fechaSalida, fechaLlegada, usuarioId)
+                            && viajeServicio.LimitesDeViaje(usuarioId);
+                } catch (Exception e) {
+                    System.out.println("Error al validar viaje: " + e.getMessage());
+                    return false;
+                }
+            }
 }

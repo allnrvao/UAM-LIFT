@@ -42,4 +42,8 @@ public class DestinoServicio {
             return false;
         }
     }
+
+    public Destino darDestinoDefecto() {
+        return repoDestino.findByNombre("UAM").orElseThrow(() -> new RuntimeException("Destino predeterminado no encontrado"));
+    }
 }

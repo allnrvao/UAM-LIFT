@@ -1,7 +1,7 @@
 package ni.edu.uam.uamlift.data
 
-import android.R.attr.level
 import android.util.Log
+import ni.edu.uam.uamlift.data.api.CarroApiService
 import ni.edu.uam.uamlift.data.api.DestinoApiService
 import ni.edu.uam.uamlift.data.api.UsuarioApiService
 import ni.edu.uam.uamlift.data.api.ViajeApiService
@@ -12,7 +12,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
     // 10.0.2.2 es la IP para acceder al localhost de tu PC desde el emulador de Android
-    private const val BASE_URL = "http://10.151.99.87:8080/"
+    private const val BASE_URL = "http://192.168.1.5:8080/"
 
 
     private val loggingInterceptor = HttpLoggingInterceptor { message ->
@@ -43,5 +43,9 @@ object RetrofitClient {
 
     val viajeApi: ViajeApiService by lazy {
         retrofit.create(ViajeApiService::class.java)
+    }
+
+    val carroApi: CarroApiService by lazy {
+        retrofit.create(CarroApiService::class.java)
     }
 }

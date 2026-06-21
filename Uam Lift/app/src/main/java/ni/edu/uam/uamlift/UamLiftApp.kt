@@ -1,4 +1,3 @@
-
 package ni.edu.uam.uamlift
 
 import android.annotation.SuppressLint
@@ -20,7 +19,9 @@ import ni.edu.uam.uamlift.ui.screens.LogIn.LogIn
 import ni.edu.uam.uamlift.ui.screens.create.CreateAccountScreen
 import ni.edu.uam.uamlift.ui.screens.create.createRide.CreateRideScreen
 import ni.edu.uam.uamlift.ui.screens.home.HomeScreen
+import ni.edu.uam.uamlift.ui.screens.profile.AddCarScreen
 import ni.edu.uam.uamlift.ui.screens.profile.EditProfileScreen
+import ni.edu.uam.uamlift.ui.screens.profile.MyCarsScreen
 import ni.edu.uam.uamlift.ui.screens.profile.ProfileScreen
 
 
@@ -137,7 +138,7 @@ fun UamLiftApp() {
 
             // Create Ride
             composable("create") {
-                CreateRideScreen()
+                CreateRideScreen(navController = navController, usuarioViewModel = usuarioViewModel)
             }
 
             // Messages
@@ -159,6 +160,22 @@ fun UamLiftApp() {
             composable("edit_profile") {
 
                 EditProfileScreen(
+                    usuarioViewModel = usuarioViewModel
+                )
+            }
+
+            // Add Car
+            composable("add_car") {
+                AddCarScreen(
+                    navController = navController,
+                    usuarioViewModel = usuarioViewModel
+                )
+            }
+
+            // My Cars
+            composable("my_cars") {
+                MyCarsScreen(
+                    navController = navController,
                     usuarioViewModel = usuarioViewModel
                 )
             }

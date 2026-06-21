@@ -14,6 +14,8 @@ data class Destino(
 
     @SerializedName("estado")
     val estado: Boolean = true,
+    @SerializedName("latitud")
     val latitud: Double?,
+    @SerializedName("longitud")
     val longitud: Double?
 )
