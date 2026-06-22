@@ -3,6 +3,8 @@ package ni.edu.uam.uamlift
 import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -10,8 +12,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.launch
 import ni.edu.uam.UAM_LIFT.screens.search.SearchScreen
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
+import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
 import ni.edu.uam.uamlift.screens.messages.MessagesScreen
 import ni.edu.uam.uamlift.ui.navegation.BottomNavigationBar
 import ni.edu.uam.uamlift.ui.screens.animation.SplashScreen
@@ -32,9 +36,12 @@ fun UamLiftApp() {
     var currentTab by remember { mutableStateOf("home") }
 
     val navController = rememberNavController()
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    // Un único ViewModel compartido por toda la app
+    // ViewModels compartidos por toda la app
     val usuarioViewModel: UsuarioViewModel = viewModel()
+    val viajeViewModel: ViajeViewModel = viewModel()
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -48,20 +55,42 @@ fun UamLiftApp() {
     )
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             if (currentRoute in bottomBarRoutes) {
 
                 BottomNavigationBar(currentTab) { newTab ->
 
-                    currentTab = newTab
-
-                    navController.navigate(newTab) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
+                    if (newTab == "create") {
+                        // Validar límite antes de navegar a crear viaje
+                        val usuarioId = usuarioViewModel.usuario.id ?: 0L
+                        viajeViewModel.validarNumViajes(usuarioId) { esValido ->
+                            if (esValido) {
+                                currentTab = newTab
+                                navController.navigate(newTab) {
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            } else {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        "Has alcanzado el límite de viajes permitidos."
+                                    )
+                                }
+                            }
                         }
-
-                        launchSingleTop = true
-                        restoreState = true
+                    } else {
+                        currentTab = newTab
+                        navController.navigate(newTab) {
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
                 }
             }

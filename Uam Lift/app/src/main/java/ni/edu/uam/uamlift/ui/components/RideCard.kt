@@ -6,9 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ni.edu.uam.uamlift.data.models.EstadoViaje
 import ni.edu.uam.uamlift.data.models.Viaje
 import ni.edu.uam.uamlift.ui.theme.UAMColor
 import java.text.SimpleDateFormat
@@ -28,7 +27,9 @@ fun RideCard(
     viaje: Viaje,
     esConductor: Boolean = false,
     onConfirmarClick: (Long) -> Unit = {},
-    onIniciarViaje: (Viaje) -> Unit = {},
+    onIniciarViaje: (Long) -> Unit = {},
+    onFinalizarViaje: (Long) -> Unit = {},
+    onCancelarViaje: (Long) -> Unit = {},
     onVerPasajeros: (Long) -> Unit = {}
 ) {
     var mostrarDialogo by remember { mutableStateOf(false) }
@@ -44,21 +45,15 @@ fun RideCard(
     val destinoTexto = viaje.destino?.nombre ?: "Destino"
     val horaTexto = viaje.fechaHoraSalida?.substringAfter("T")?.take(5) ?: "00:00"
 
-
-    // Lógica para habilitar "Iniciar viaje" compatible con API 24
     val puedeIniciar = remember(viaje.fechaHoraSalida) {
         try {
             val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
             val dateSalida = sdf.parse(viaje.fechaHoraSalida ?: "")
             val now = Calendar.getInstance().time
-            // Habilitar 15 minutos antes
-            val fifteenMinsBefore = Calendar.getInstance().apply {
-                time = dateSalida ?: now
-                add(Calendar.MINUTE, -15)
-            }.time
-            now.after(fifteenMinsBefore)
+            // Permitir iniciar si ya es la hora o falta poco
+            now.after(dateSalida) || now.equals(dateSalida)
         } catch (e: Exception) {
-            true
+            false
         }
     }
 
@@ -102,10 +97,19 @@ fun RideCard(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(text = nombreConductor, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
-                        Text(
-                            text = if (esConductor) "Tú eres el conductor" else "Conductor verificado",
-                            fontSize = 12.sp, color = if (esConductor) UAMColor else Color(0xFF4CAF50)
-                        )
+                        val statusText = when(viaje.estadoViaje) {
+                            EstadoViaje.EN_CURSO -> "En proceso"
+                            EstadoViaje.FINALIZADO -> "Finalizado"
+                            EstadoViaje.CANCELADO -> "Cancelado"
+                            else -> if (esConductor) "Tú eres el conductor" else "Conductor verificado"
+                        }
+                        val statusColor = when(viaje.estadoViaje) {
+                            EstadoViaje.EN_CURSO -> Color(0xFFF44336)
+                            EstadoViaje.FINALIZADO -> Color.Gray
+                            EstadoViaje.CANCELADO -> Color.Red
+                            else -> if (esConductor) UAMColor else Color(0xFF4CAF50)
+                        }
+                        Text(text = statusText, fontSize = 12.sp, color = statusColor)
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
@@ -142,26 +146,52 @@ fun RideCard(
 
                 if (esConductor) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Botón de ver pasajeros
-                        IconButton(
-                            onClick = { onVerPasajeros(viaje.id ?: 0L) },
-                            modifier = Modifier.background(lightTealBg, CircleShape)
-                        ) {
-                            Icon(Icons.Default.People, contentDescription = "Ver pasajeros", tint = UAMColor)
+                        if (viaje.estadoViaje != EstadoViaje.FINALIZADO && viaje.estadoViaje != EstadoViaje.CANCELADO) {
+                            if (viaje.estadoViaje != EstadoViaje.EN_CURSO) {
+                                // Botón Cancelar (solo si no ha iniciado)
+                                TextButton(
+                                    onClick = { onCancelarViaje(viaje.id ?: 0L) },
+                                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                                ) {
+                                    Text("Cancelar", fontSize = 12.sp)
+                                }
+                                
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                // Botón Iniciar
+                                Button(
+                                    onClick = { onIniciarViaje(viaje.id ?: 0L) },
+                                    enabled = puedeIniciar,
+                                    colors = ButtonDefaults.buttonColors(containerColor = UAMColor),
+                                    shape = RoundedCornerShape(12.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                ) {
+                                    Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Iniciar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            } else {
+                                // Botón Finalizar (si está en curso)
+                                Button(
+                                    onClick = { onFinalizarViaje(viaje.id ?: 0L) },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                                    shape = RoundedCornerShape(12.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                ) {
+                                    Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Finalizar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
                         }
                         
                         Spacer(modifier = Modifier.width(8.dp))
 
-                        Button(
-                            onClick = { onIniciarViaje(viaje) },
-                            enabled = puedeIniciar,
-                            colors = ButtonDefaults.buttonColors(containerColor = UAMColor),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                        IconButton(
+                            onClick = { onVerPasajeros(viaje.id ?: 0L) },
+                            modifier = Modifier.size(36.dp).background(lightTealBg, CircleShape)
                         ) {
-                            Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Iniciar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Icon(Icons.Default.People, contentDescription = "Pasajeros", tint = UAMColor, modifier = Modifier.size(18.dp))
                         }
                     }
                 } else {

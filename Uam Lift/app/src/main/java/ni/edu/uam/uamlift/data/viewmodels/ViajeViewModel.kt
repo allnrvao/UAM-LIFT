@@ -39,7 +39,6 @@ class ViajeViewModel(
     var viaje by mutableStateOf(Viaje())
         private set
 
-    // Eliminamos la carga automática en el init para evitar que se carguen viajes sin el ID del usuario
     init { }
 
     fun publicarViaje(
@@ -75,7 +74,7 @@ class ViajeViewModel(
 
                 val limiteValido = apiService?.validarNumViajes(usuarioId) ?: false
                 if (!limiteValido) {
-                    onError("Has alcanzado el límite de viajes permitidos por día.")
+                    onError("Has alcanzado el límite de 2 viajes permitidos (entre creados y tomados).")
                     return@launch
                 }
 
@@ -129,7 +128,6 @@ class ViajeViewModel(
         viewModelScope.launch {
             if (apiService == null) return@launch
 
-            // Si no hay ID de usuario y ya tenemos datos, no hacemos nada para evitar parpadeos
             if (usuarioId == null && _viajesOtros.value.isNotEmpty()) return@launch
 
             val tieneDatos = _viajesOtros.value.isNotEmpty() || _misViajes.value.isNotEmpty()
@@ -146,25 +144,112 @@ class ViajeViewModel(
                     val unidos = userDef.await()
 
                     _viajes.value = todos
-                    _misViajes.value = (creados + unidos).distinctBy { it.id }
 
-                    // Filtrado estricto: Solo viajes donde el usuario NO es conductor Y NO es pasajero
+                    // Regla de visibilidad: 
+                    // 1. Mis viajes creados se ven siempre (el conductor puede verlos aunque estén cancelados/terminados)
+                    // 2. Viajes a los que me uní: Solo si no están CANCELADOS, FINALIZADOS, EN_CURSO o expirados
+                    val misUnidosFiltrados = unidos.filter { v ->
+                        v.estadoViaje != EstadoViaje.CANCELADO &&
+                                v.estadoViaje != EstadoViaje.FINALIZADO &&
+                                v.estadoViaje != EstadoViaje.EN_CURSO &&
+                                esFechaFutura(v.fechaHoraLlegada)
+                    }
+                    _misViajes.value = (creados + misUnidosFiltrados).distinctBy { it.id }
+
+                    // 3. Viajes de otros: Solo si hay asientos, no están cancelados/finalizados/en curso y no han expirado
                     _viajesOtros.value = todos.filter { v ->
                         val esConductor = v.conductor?.id == usuarioId
                         val esPasajero = v.pasajeros.any { p -> p.usuario?.id == usuarioId }
 
                         !esConductor && !esPasajero &&
                                 v.numeroAsientosDisponibles > 0 &&
-                                v.estadoViaje == EstadoViaje.PROPUESTO
+                                v.estadoViaje != EstadoViaje.CANCELADO &&
+                                v.estadoViaje != EstadoViaje.FINALIZADO &&
+                                v.estadoViaje != EstadoViaje.EN_CURSO &&
+                                esFechaFutura(v.fechaHoraLlegada)
                     }
                 } else {
-                    // Si no hay usuarioId, cargamos todos pero no marcamos nada como "mis viajes"
                     val todos = apiService.obtenerTodosLosViajes()
-                    _viajesOtros.value = todos.filter { it.estadoViaje == EstadoViaje.PROPUESTO && it.numeroAsientosDisponibles > 0 }
+                    _viajesOtros.value = todos.filter { v ->
+                        v.estadoViaje != EstadoViaje.CANCELADO &&
+                                v.estadoViaje != EstadoViaje.FINALIZADO &&
+                                v.estadoViaje != EstadoViaje.EN_CURSO &&
+                                esFechaFutura(v.fechaHoraLlegada) &&
+                                v.numeroAsientosDisponibles > 0
+                    }
                     _misViajes.value = emptyList()
                 }
             } catch (e: Exception) {
                 Log.e("ViajeViewModel", "Error al cargar datos", e)
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun cancelarViaje(viajeId: Long, usuarioId: Long, onExito: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val v = _misViajes.value.find { it.id == viajeId }
+                // Regla: No se puede cancelar si ya inició
+                if (v != null && (v.estadoViaje == EstadoViaje.EN_CURSO || v.estadoViaje == EstadoViaje.FINALIZADO)) {
+                    onError("El viaje ya ha iniciado o finalizado y no se puede cancelar.")
+                    return@launch
+                }
+                if (apiService?.cancelarViaje(viajeId) == true) {
+                    cargarViajesDesdeBackend(usuarioId)
+                    onExito()
+                } else {
+                    onError("No se pudo cancelar el viaje.")
+                }
+            } catch (e: Exception) {
+                Log.e("ViajeViewModel", "Error al cancelar", e)
+                onError("Error de conexión.")
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun iniciarViaje(viajeId: Long, usuarioId: Long, onExito: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val v = _misViajes.value.find { it.id == viajeId }
+                // Regla: Solo se inicia a partir de la hora de inicio
+                if (v != null && esFechaFutura(v.fechaHoraSalida)) {
+                    onError("Solo se puede iniciar el viaje a partir de su hora de salida.")
+                    return@launch
+                }
+                if (apiService?.iniciarViaje(viajeId) == true) {
+                    cargarViajesDesdeBackend(usuarioId)
+                    onExito()
+                } else {
+                    onError("No se pudo iniciar el viaje.")
+                }
+            } catch (e: Exception) {
+                Log.e("ViajeViewModel", "Error al iniciar", e)
+                onError("Error de conexión.")
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun finalizarViaje(viajeId: Long, usuarioId: Long, onExito: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                if (apiService?.finalizarViaje(viajeId) == true) {
+                    cargarViajesDesdeBackend(usuarioId)
+                    onExito()
+                } else {
+                    onError("No se pudo finalizar el viaje.")
+                }
+            } catch (e: Exception) {
+                Log.e("ViajeViewModel", "Error al finalizar", e)
+                onError("Error de conexión.")
             } finally {
                 _isLoading.value = false
             }
@@ -183,6 +268,13 @@ class ViajeViewModel(
         }
     }
 
+    fun validarNumViajes(usuarioId: Long, onExito: (Boolean) -> Unit = {}){
+        viewModelScope.launch {
+            val valido = apiService?.validarNumViajes(usuarioId) ?: false
+            onExito(valido)
+        }
+
+    }
     fun unirseAlViaje(
         viajeId: Long,
         usuarioId: Long,
@@ -218,7 +310,7 @@ class ViajeViewModel(
                     onExito()
                 }
             } catch (e: Exception) {
-                Log.e("ViajeViewModel", "Error al cancelar", e)
+                Log.e("ViajeViewModel", "Error al cancelar participacion", e)
             } finally {
                 _isLoading.value = false
             }
