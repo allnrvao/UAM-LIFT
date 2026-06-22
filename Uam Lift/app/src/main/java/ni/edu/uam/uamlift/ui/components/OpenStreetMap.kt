@@ -35,13 +35,11 @@ fun MapLibreView(
 ) {
     val context = LocalContext.current
 
-    // Cargar configuración de OSM de forma segura antes de renderizar
     LaunchedEffect(Unit) {
         Configuration.getInstance().load(context, context.getSharedPreferences("osm_pref", Context.MODE_PRIVATE))
         Configuration.getInstance().userAgentValue = context.packageName
     }
 
-    // 🌟 CORRECCIÓN: Usar mutableStateOf para poder mutar y leer la referencia de manera segura en Compose
     var myLocationOverlayState by remember { mutableStateOf<MyLocationNewOverlay?>(null) }
 
     AndroidView(
@@ -49,13 +47,12 @@ fun MapLibreView(
             MapView(ctx).apply {
                 setTileSource(TileSourceFactory.MAPNIK)
                 setMultiTouchControls(isGesturesEnabled)
-                controller.setZoom(16.0)
+                // Zoom inicial alejado (12.0) para una mejor vista general
+                controller.setZoom(12.0)
 
-                // Punto por defecto UAM
                 val uamPoint = GeoPoint(12.108038, -86.257292)
                 controller.setCenter(uamPoint)
 
-                // Inicializar localización de forma segura dentro de la Factory
                 val overlay = MyLocationNewOverlay(GpsMyLocationProvider(ctx), this)
                 overlay.enableMyLocation()
                 myLocationOverlayState = overlay
@@ -64,13 +61,9 @@ fun MapLibreView(
         },
         modifier = modifier,
         update = { view ->
-            // Actualizar controles táctiles dinámicamente
             view.setMultiTouchControls(isGesturesEnabled)
-
-            // Limpiar únicamente marcadores y rutas antiguas, reteniendo el LocationOverlay
             view.overlays.removeAll { it is Marker || it is Polyline || it is MapEventsOverlay }
 
-            // Configurar gestos de selección si aplica
             if (isSelectionEnabled) {
                 val receive = object : MapEventsReceiver {
                     override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
@@ -85,7 +78,6 @@ fun MapLibreView(
 
             val points = mutableListOf<GeoPoint>()
 
-            // Agregar marcador Origen
             originLat?.let { lat ->
                 originLng?.let { lng ->
                     val p = GeoPoint(lat, lng)
@@ -99,7 +91,6 @@ fun MapLibreView(
                 }
             }
 
-            // Agregar marcador Destino
             destLat?.let { lat ->
                 destLng?.let { lng ->
                     val p = GeoPoint(lat, lng)
@@ -113,7 +104,6 @@ fun MapLibreView(
                 }
             }
 
-            // Dibujar la línea de la ruta de viaje
             if (originLat != null && originLng != null && destLat != null && destLng != null) {
                 val line = Polyline(view).apply {
                     setPoints(listOf(GeoPoint(originLat, originLng), GeoPoint(destLat, destLng)))
@@ -123,15 +113,18 @@ fun MapLibreView(
                 view.overlays.add(line)
             }
 
-            // Encuadrar la cámara
             if (points.isNotEmpty()) {
-                if (points.size == 1) {
-                    view.controller.animateTo(points[0])
+                val uniquePoints = points.distinctBy { "${it.latitude},${it.longitude}" }
+                if (uniquePoints.size <= 1) {
+                    // Mantenemos el zoom alejado para un punto único
+                    view.controller.setZoom(12.0)
+                    view.controller.animateTo(uniquePoints.firstOrNull() ?: points[0])
                 } else {
-                    val boundingBox = BoundingBox.fromGeoPoints(points)
+                    val boundingBox = BoundingBox.fromGeoPoints(uniquePoints)
                     view.post {
                         try {
-                            view.zoomToBoundingBox(boundingBox, false, 120)
+                            // Padding de 300 para asegurar que se vea suficiente área alrededor de los puntos
+                            view.zoomToBoundingBox(boundingBox, false, 300)
                         } catch (e: Exception) {
                             e.printStackTrace()
                         }

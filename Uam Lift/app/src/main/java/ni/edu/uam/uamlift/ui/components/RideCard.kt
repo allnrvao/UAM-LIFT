@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,7 +28,8 @@ fun RideCard(
     viaje: Viaje,
     esConductor: Boolean = false,
     onConfirmarClick: (Long) -> Unit = {},
-    onIniciarViaje: (Long) -> Unit = {}
+    onIniciarViaje: (Viaje) -> Unit = {},
+    onVerPasajeros: (Long) -> Unit = {}
 ) {
     var mostrarDialogo by remember { mutableStateOf(false) }
 
@@ -41,6 +43,7 @@ fun RideCard(
     val origenTexto = viaje.origen?.nombre ?: "Origen"
     val destinoTexto = viaje.destino?.nombre ?: "Destino"
     val horaTexto = viaje.fechaHoraSalida?.substringAfter("T")?.take(5) ?: "00:00"
+
 
     // Lógica para habilitar "Iniciar viaje" compatible con API 24
     val puedeIniciar = remember(viaje.fechaHoraSalida) {
@@ -71,7 +74,13 @@ fun RideCard(
     }
 
     Card(
-        onClick = { if (!esConductor) mostrarDialogo = true },
+        onClick = { 
+            if (esConductor) {
+                onVerPasajeros(viaje.id ?: 0L)
+            } else {
+                mostrarDialogo = true
+            }
+        },
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -132,16 +141,28 @@ fun RideCard(
                 }
 
                 if (esConductor) {
-                    Button(
-                        onClick = { onIniciarViaje(viaje.id ?: 0L) },
-                        enabled = puedeIniciar,
-                        colors = ButtonDefaults.buttonColors(containerColor = UAMColor),
-                        shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Iniciar viaje", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Botón de ver pasajeros
+                        IconButton(
+                            onClick = { onVerPasajeros(viaje.id ?: 0L) },
+                            modifier = Modifier.background(lightTealBg, CircleShape)
+                        ) {
+                            Icon(Icons.Default.People, contentDescription = "Ver pasajeros", tint = UAMColor)
+                        }
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Button(
+                            onClick = { onIniciarViaje(viaje) },
+                            enabled = puedeIniciar,
+                            colors = ButtonDefaults.buttonColors(containerColor = UAMColor),
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Iniciar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 } else {
                     Surface(color = lightTealSeat.copy(alpha = 0.5f), shape = RoundedCornerShape(8.dp)) {

@@ -192,4 +192,16 @@ public class ViajeServicio implements InterfazViaje {
         return true;
     }
 
+    public boolean usuarioEsConductor(Long usuarioId) {
+        Usuario usuario = repoUsuario.findById(usuarioId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + usuarioId));
+        List<Viaje> viajesConductor = repoViaje.findByConductorAndEstadoViaje(usuario, EstadoViaje.PROPUESTO);
+        return !viajesConductor.isEmpty();
+    }
+
+    public List<Usuario> obtenerPasajerosPorViaje(Long viajeId) {
+        List<Usuario> usuarios = repoViajeUsuario.findByViajeIdAndEstado(viajeId, EstadoViajeUsuario.ACEPTADO);
+        return usuarios;
+    }
+
 }

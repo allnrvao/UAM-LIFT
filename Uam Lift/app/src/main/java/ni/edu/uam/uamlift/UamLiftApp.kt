@@ -133,7 +133,7 @@ fun UamLiftApp() {
 
             // Search
             composable("search") {
-                SearchScreen()
+                SearchScreen(usuarioViewModel = usuarioViewModel)
             }
 
             // Create Ride

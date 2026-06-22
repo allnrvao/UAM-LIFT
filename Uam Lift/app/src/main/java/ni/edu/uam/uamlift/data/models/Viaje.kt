@@ -31,7 +31,10 @@ data class Viaje(
     val conductor: Usuario? = null,
 
     @SerializedName("estadoViaje")
-    val estadoViaje: EstadoViaje? = null
+    val estadoViaje: EstadoViaje? = null,
+
+    @SerializedName("carro")
+    val carro : Carro? = null
 )
 
 enum class EstadoViaje {

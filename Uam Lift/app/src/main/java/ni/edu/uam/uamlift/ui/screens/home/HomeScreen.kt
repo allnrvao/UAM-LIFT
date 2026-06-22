@@ -8,9 +8,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,8 +23,7 @@ import ni.edu.uam.uamlift.ui.components.RideCard
 import ni.edu.uam.uamlift.ui.theme.Degradado2
 import ni.edu.uam.uamlift.ui.theme.Gray
 import ni.edu.uam.uamlift.ui.theme.UAMColor
-
-
+import ni.edu.uam.uamlift.ui.components.PassengersDialog
 
 @Composable
 fun HomeScreen(
@@ -34,12 +32,29 @@ fun HomeScreen(
     usuarioViewModel: UsuarioViewModel
 ) {
     val backgroundColor = Gray
+    val usuario = usuarioViewModel.usuario
 
-    // Observadores del estado del Backend de Spring Boot
-    val viajesDisponibles by viajeViewModel.viajes.collectAsState()
+    // Cargamos los viajes filtrados al iniciar
+    LaunchedEffect(usuario.id) {
+        viajeViewModel.cargarViajesDesdeBackend(usuario.id)
+    }
+
+    val misViajes by viajeViewModel.misViajes.collectAsState()
+    val viajesOtros by viajeViewModel.viajesOtros.collectAsState()
     val cargando by viajeViewModel.isLoading.collectAsState()
+    val pasajerosViaje by viajeViewModel.pasajerosViaje.collectAsState()
 
-    // ✂️ SE ELIMINÓ: var selectedViaje ya no es necesario aquí
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val tabs = listOf("Explorar", "Mis Viajes")
+
+    var viajeParaPasajeros by remember { mutableStateOf<Long?>(null) }
+
+    if (viajeParaPasajeros != null) {
+        PassengersDialog(
+            pasajeros = pasajerosViaje,
+            onDismissRequest = { viajeParaPasajeros = null }
+        )
+    }
 
     Box(modifier = modifier.fillMaxSize().background(backgroundColor)) {
         LazyColumn(
@@ -74,7 +89,7 @@ fun HomeScreen(
 
                         Column(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 16.dp)) {
                             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
-                                Text(text = "¡Hola, ${usuarioViewModel.usuario.nombre}! 👋", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                Text(text = "¡Hola, ${usuario.nombre}! 👋", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                 Spacer(modifier = Modifier.height(7.dp))
                                 Text(text = "Encuentra o comparte un viaje hoy", fontSize = 16.sp, color = Color.White.copy(alpha = 0.85f))
                             }
@@ -126,21 +141,32 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Encabezado "Viajes disponibles"
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    // Tab Selector
+                    TabRow(
+                        selectedTabIndex = selectedTabIndex,
+                        containerColor = Color.White,
+                        contentColor = UAMColor,
+                        indicator = { tabPositions ->
+                            if (selectedTabIndex < tabPositions.size) {
+                                TabRowDefaults.SecondaryIndicator(
+                                    Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                                    color = UAMColor
+                                )
+                            }
+                        }
                     ) {
-                        Text(text = "Viajes disponibles", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.Black)
-                        TextButton(onClick = { /* Navegar a ver todos */ }, contentPadding = PaddingValues(0.dp)) {
-                            Text(text = "Ver todos", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF019AA8))
+                        tabs.forEachIndexed { index, title ->
+                            Tab(
+                                selected = selectedTabIndex == index,
+                                onClick = { selectedTabIndex = index },
+                                text = { Text(text = title, fontWeight = FontWeight.Bold) }
+                            )
                         }
                     }
                 }
             }
 
-            // LISTADO DINÁMICO
+            // LISTADO DINÁMICO SEGÚN TAB
             if (cargando) {
                 item {
                     Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
@@ -148,22 +174,41 @@ fun HomeScreen(
                     }
                 }
             } else {
-                items(viajesDisponibles) { viaje ->
-                    Box(modifier = Modifier.padding(horizontal = 20.dp)) {
-                        // El callback ejecuta directamente la acción de reserva delegada del mapa
-                        RideCard(
-                            viaje = viaje,
-                            onConfirmarClick = { idViaje ->
-                                viajeViewModel.unirseAlViaje(
-                                    viajeId = idViaje,
-                                    usuarioCif = usuarioViewModel.usuario.cif ?: ""// Cif dinámico configurado
-                                )
-                            }
-                        )
+                val listaAMostrar = if (selectedTabIndex == 0) viajesOtros else misViajes
+                
+                if (listaAMostrar.isEmpty()) {
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = if (selectedTabIndex == 0) "No hay viajes disponibles de otros usuarios" else "No has creado ningún viaje aún",
+                                color = Color.Gray,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+                } else {
+                    items(listaAMostrar) { viaje ->
+                        Box(modifier = Modifier.padding(horizontal = 20.dp)) {
+                            RideCard(
+                                viaje = viaje,
+                                esConductor = selectedTabIndex == 1,
+                                onConfirmarClick = { idViaje ->
+                                    viajeViewModel.unirseAlViaje(
+                                        viajeId = idViaje,
+                                        usuarioId = usuario.id ?: 0L,
+                                        usuarioCif = usuario.cif ?: ""
+                                    )
+                                },
+                                onVerPasajeros = { idViaje ->
+                                    viajeParaPasajeros = idViaje
+                                    viajeViewModel.obtenerPasajeros(idViaje)
+                                }
+                            )
+                        }
                     }
                 }
             }
+            item { Spacer(modifier = Modifier.height(80.dp)) }
         }
-
     }
 }
