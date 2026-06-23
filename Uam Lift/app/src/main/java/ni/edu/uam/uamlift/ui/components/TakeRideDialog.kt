@@ -1,155 +1,253 @@
 package ni.edu.uam.uamlift.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import ni.edu.uam.uamlift.data.models.Viaje
-
-private val PrimaryColor = Color(0xFF019AA8)
+import ni.edu.uam.uamlift.ui.theme.UAMColor
 
 @Composable
 fun TakeRideDialog(
     viaje: Viaje,
+    esPasajero: Boolean,
     onDismissRequest: () -> Unit,
-    onConfirmarViaje: () -> Unit
+    onConfirmarViaje: () -> Unit,
+    onCancelarParticipacion: () -> Unit
 ) {
-    // 🕒 Formatear la hora de salida de manera limpia
-    val horaFormateada = try {
-        val s = viaje.fechaHoraSalida ?: ""
-        if (s.contains("T")) {
-            s.split("T")[1].substring(0, 5)
-        } else {
-            s
+    // 🕒 Formatear la hora de salida
+    val horaFormateada = remember(viaje.fechaHoraSalida) {
+        try {
+            val s = viaje.fechaHoraSalida ?: ""
+            if (s.contains("T")) {
+                s.split("T")[1].substring(0, 5)
+            } else {
+                s
+            }
+        } catch (_: Exception) {
+            viaje.fechaHoraSalida ?: "00:00"
         }
-    } catch (_: Exception) {
-        viaje.fechaHoraSalida ?: "Hora no disponible"
     }
 
-    // 🗺️ SOLUCIÓN EXTRACCIÓN SEGURA: Intentamos leer bajo las tres nomenclaturas posibles
-    // para que no rompa la compilación use el modelo que use tu clase Destino.
-    val originLat = viaje.origen?.let { o ->
-        try { o.javaClass.getMethod("getLatitud").invoke(o) as Double } catch(_: Exception) {
-            try { o.javaClass.getMethod("getLatitude").invoke(o) as Double } catch(_: Exception) {
-                try { o.javaClass.getMethod("getLat").invoke(o) as Double } catch(_: Exception) { 12.108038 }
-            }
-        }
-    } ?: 12.108038
-
-    val originLng = viaje.origen?.let { o ->
-        try { o.javaClass.getMethod("getLongitud").invoke(o) as Double } catch(_: Exception) {
-            try { o.javaClass.getMethod("getLongitude").invoke(o) as Double } catch(_: Exception) {
-                try { o.javaClass.getMethod("getLng").invoke(o) as Double } catch(_: Exception) { -86.257292 }
-            }
-        }
-    } ?: -86.257292
-
-    val destLat = viaje.destino?.let { d ->
-        try { d.javaClass.getMethod("getLatitud").invoke(d) as Double } catch(_: Exception) {
-            try { d.javaClass.getMethod("getLatitude").invoke(d) as Double } catch(_: Exception) {
-                try { d.javaClass.getMethod("getLat").invoke(d) as Double } catch(_: Exception) { 12.1150 }
-            }
-        }
-    } ?: 12.1150
-
-    val destLng = viaje.destino?.let { d ->
-        try { d.javaClass.getMethod("getLongitud").invoke(d) as Double } catch(_: Exception) {
-            try { d.javaClass.getMethod("getLongitude").invoke(d) as Double } catch(_: Exception) {
-                try { d.javaClass.getMethod("getLng").invoke(d) as Double } catch(_: Exception) { -86.2500 }
-            }
-        }
-    } ?: -86.2500
-
-    Dialog(onDismissRequest = onDismissRequest) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .padding(16.dp),
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            border = androidx.compose.foundation.BorderStroke(2.dp, PrimaryColor)
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color.White
         ) {
-            Column(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // 🗺️ MAPA CON LAS COORDENADAS LISTAS DE FORMA COMPATIBLE
-                Card(
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Header con botón de cerrar
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(220.dp),
-                    shape = RoundedCornerShape(20.dp)
-                ) {
-                    MapLibreView(
-                        modifier = Modifier.fillMaxSize(),
-                        originLat = originLat,
-                        originLng = originLng,
-                        destLat = destLat,
-                        destLng = destLng,
-                        isSelectionEnabled = false,
-                        isGesturesEnabled = false
-                    )
-                }
-
-                // 💵 INFORMACIÓN DE VIAJE
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
+                        .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = viaje.conductor?.nombre ?: "Conductor Desconocido",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
-                        Text(
-                            text = "Salida: $horaFormateada",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color.Black.copy(alpha = 0.7f)
+                    IconButton(onClick = onDismissRequest) {
+                        Icon(Icons.Default.Close, contentDescription = "Cerrar")
+                    }
+                    Text(
+                        text = "Detalles del Viaje",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                    Box(modifier = Modifier.size(48.dp))
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp)
+                ) {
+                    // 🗺️ MAPA (Visualización de la ruta)
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        MapLibreView(
+                            modifier = Modifier.fillMaxSize(),
+                            originLat = viaje.origen?.latitud ?: 12.108038,
+                            originLng = viaje.origen?.longitud ?: -86.257292,
+                            destLat = viaje.destino?.latitud ?: 12.1150,
+                            destLng = viaje.destino?.longitud ?: -86.2500,
+                            isSelectionEnabled = false,
+                            isGesturesEnabled = true
                         )
                     }
 
-                    Text(
-                        text = "C$ ${viaje.precioPorPersona.toInt()}",
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.Black
-                    )
-                }
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                // 🔘 BOTÓN "TOMAR VIAJE"
-                Button(
-                    onClick = onConfirmarViaje,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryColor,
-                        contentColor = Color.White
-                    )
-                ) {
+                    // 👤 INFORMACIÓN DEL CONDUCTOR
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(CircleShape)
+                                .background(UAMColor.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = null,
+                                tint = UAMColor,
+                                modifier = Modifier.size(35.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text(
+                                text = "${viaje.conductor?.nombre ?: ""} ${viaje.conductor?.apellido ?: ""}",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp
+                            )
+                            Text(
+                                text = "Conductor verificado",
+                                color = Color.Gray,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                    HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // 🚗 DETALLES DEL VEHÍCULO
                     Text(
-                        text = "Tomar Viaje",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "Vehículo",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = UAMColor
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    DetailItem(
+                        icon = Icons.Default.DirectionsCar,
+                        text = "${viaje.carro?.marca ?: "Marca"} ${viaje.carro?.modelo ?: "Modelo"}"
+                    )
+                    DetailItem(
+                        icon = Icons.Default.Numbers,
+                        text = "Placa: ${viaje.carro?.placa ?: "N/A"}"
+                    )
+                    DetailItem(
+                        icon = Icons.Default.Palette,
+                        text = "Color: ${viaje.carro?.color ?: "N/A"}"
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // 📍 RUTA Y COSTO DEL VIAJE
+                    Text(
+                        text = "Ruta y Aporte",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = UAMColor
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    DetailItem(
+                        icon = Icons.Default.Schedule,
+                        text = "Salida programada: $horaFormateada"
+                    )
+                    DetailItem(
+                        icon = Icons.Default.EventSeat,
+                        text = "${viaje.numeroAsientosDisponibles} asientos disponibles"
+                    )
+                    DetailItem(
+                        icon = Icons.Default.Payments,
+                        text = "Aporte: C$ ${viaje.precioPorPersona.toInt()} por pasajero"
+                    )
+
+                    Spacer(modifier = Modifier.height(40.dp))
+
+                    // 🔘 BOTÓN DE ACCIÓN DINÁMICO
+                    if (esPasajero) {
+                        // Si ya es pasajero, permite cancelar la participación
+                        Button(
+                            onClick = onCancelarParticipacion,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFFFEBEE),
+                                contentColor = Color.Red
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Icon(Icons.Default.Cancel, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Cancelar mi participación",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                        }
+                    } else {
+                        // Si no es pasajero, permite tomar el viaje
+                        Button(
+                            onClick = onConfirmarViaje,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = UAMColor,
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            enabled = viaje.numeroAsientosDisponibles > 0
+                        ) {
+                            Text(
+                                text = if (viaje.numeroAsientosDisponibles > 0) "Tomar Viaje" else "Sin asientos disponibles",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
         }
+    }
+}
+
+@Composable
+fun DetailItem(icon: ImageVector, text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(vertical = 8.dp)
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = Color.Gray,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = text,
+            fontSize = 15.sp,
+            color = Color.DarkGray
+        )
     }
 }

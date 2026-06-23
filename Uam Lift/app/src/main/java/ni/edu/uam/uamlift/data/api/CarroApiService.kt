@@ -1,10 +1,12 @@
 package ni.edu.uam.uamlift.data.api
 
 import ni.edu.uam.uamlift.data.models.Carro
-import retrofit2.http.*
 import retrofit2.Response
+import retrofit2.http.*
 
 interface CarroApiService {
+
+
     // GET /api/carros
     @GET("api/carros")
     suspend fun getAllCarros(): Response<List<Carro>>

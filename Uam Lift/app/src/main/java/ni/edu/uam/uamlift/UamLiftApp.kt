@@ -13,10 +13,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
-import ni.edu.uam.UAM_LIFT.screens.search.SearchScreen
+import ni.edu.uam.uamlift.ui.screens.search.SearchScreen
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
-import ni.edu.uam.uamlift.screens.messages.MessagesScreen
+import ni.edu.uam.uamlift.ui.screens.messages.MessagesScreen
 import ni.edu.uam.uamlift.ui.navegation.BottomNavigationBar
 import ni.edu.uam.uamlift.ui.screens.animation.SplashScreen
 import ni.edu.uam.uamlift.ui.screens.LogIn.LogIn

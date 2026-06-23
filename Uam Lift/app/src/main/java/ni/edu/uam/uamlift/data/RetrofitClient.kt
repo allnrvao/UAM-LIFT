@@ -2,6 +2,7 @@ package ni.edu.uam.uamlift.data
 
 import android.util.Log
 import ni.edu.uam.uamlift.data.api.CarroApiService
+import ni.edu.uam.uamlift.data.api.ChatApi
 import ni.edu.uam.uamlift.data.api.DestinoApiService
 import ni.edu.uam.uamlift.data.api.UsuarioApiService
 import ni.edu.uam.uamlift.data.api.ViajeApiService
@@ -48,4 +49,5 @@ object RetrofitClient {
     val carroApi: CarroApiService by lazy {
         retrofit.create(CarroApiService::class.java)
     }
+
 }

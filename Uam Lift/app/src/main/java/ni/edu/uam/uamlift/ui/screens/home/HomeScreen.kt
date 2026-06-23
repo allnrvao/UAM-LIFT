@@ -199,13 +199,23 @@ fun HomeScreen(
                             Box(modifier = Modifier.padding(horizontal = 20.dp)) {
                                 RideCard(
                                     viaje = viaje,
-                                    esConductor = selectedTabIndex == 1,
+                                    usuarioIdActual = usuario.id ?: 0L,
+                                    esConductor = viaje.conductor?.id == usuario.id,
                                     onConfirmarClick = { idViaje ->
                                         viajeViewModel.unirseAlViaje(
                                             viajeId = idViaje,
                                             usuarioId = usuario.id ?: 0L,
                                             usuarioCif = usuario.cif ?: "",
+                                            onExito = { scope.launch { snackbarHostState.showSnackbar("¡Te has unido al viaje!") } },
                                             onError = { scope.launch { snackbarHostState.showSnackbar(it) } }
+                                        )
+                                    },
+                                    onCancelarParticipacion = { idViaje ->
+                                        viajeViewModel.cancelarParticipacion(
+                                            viajeId = idViaje,
+                                            usuarioId = usuario.id ?: 0L,
+                                            usuarioCif = usuario.cif ?: "",
+                                            onExito = { scope.launch { snackbarHostState.showSnackbar("Has cancelado tu participación") } }
                                         )
                                     },
                                     onIniciarViaje = { idViaje ->

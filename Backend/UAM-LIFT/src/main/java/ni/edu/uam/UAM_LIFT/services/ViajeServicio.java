@@ -110,27 +110,21 @@ public class ViajeServicio implements InterfazViaje {
 
     public boolean LimitesDeViaje(Long usuarioId) {
         List<ViajeUsuario> viajesUsuario = repoViajeUsuario.findByUsuarioIdAndEstado(usuarioId, EstadoViajeUsuario.ACEPTADO);
-        int viajesActivos = 0;
-        for (ViajeUsuario vu : viajesUsuario) {
-            if (vu.getEstado() == EstadoViajeUsuario.ACEPTADO) {
-                viajesActivos++;
-            }
-        }
-        return viajesActivos < 2; // Limite de 3 viajes activos
+        return viajesUsuario .size() <=2;
     }
 
     public boolean LimiteDeViajeConductor(Long usuarioId) {
         Usuario usuario = repoUsuario.findById(usuarioId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + usuarioId));
         List<Viaje> viajesConductor = repoViaje.findByConductorAndEstadoViaje(usuario, EstadoViaje.PROPUESTO);
-        return viajesConductor.size() < 2;
+        return viajesConductor.size() <= 2;
     }
 
     public List<Viaje> viajesPorUsuario(Long usuarioId) {
         List<ViajeUsuario> viajesUsuario = repoViajeUsuario.findByUsuarioIdAndEstado(usuarioId, EstadoViajeUsuario.ACEPTADO);
         List<Viaje> viajes = new ArrayList<>();
         for (ViajeUsuario vu : viajesUsuario) {
-            if (vu.getEstado() == EstadoViajeUsuario.ACEPTADO) {
+            if (vu.getEstado() != EstadoViajeUsuario.CANCELADO) {
                 viajes.add(vu.getViaje());
             }
         }
@@ -140,7 +134,7 @@ public class ViajeServicio implements InterfazViaje {
     public List<Viaje> viajesPorConductor(Long usuarioId) {
         Usuario usuario = repoUsuario.findById(usuarioId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + usuarioId));
-        return repoViaje.findByConductorAndEstadoViaje(usuario, EstadoViaje.PROPUESTO);
+        return repoViaje.findByConductor(usuario);
     }
 
     // Espera formato: "2026-06-20T15:30:00"
@@ -200,8 +194,14 @@ public class ViajeServicio implements InterfazViaje {
     }
 
     public List<Usuario> obtenerPasajerosPorViaje(Long viajeId) {
-        List<Usuario> usuarios = repoViajeUsuario.findByViajeIdAndEstado(viajeId, EstadoViajeUsuario.ACEPTADO);
-        return usuarios;
+        List<ViajeUsuario> viajeUsuarios = repoViajeUsuario.findByViajeIdAndEstado(viajeId, EstadoViajeUsuario.ACEPTADO);
+        List<Usuario> pasajeros = new ArrayList<>();
+        for (ViajeUsuario vu : viajeUsuarios) {
+            if (vu.getEstado() == EstadoViajeUsuario.ACEPTADO) {
+                pasajeros.add(vu.getUsuario());
+            }
+        }
+        return pasajeros;
     }
 
 }

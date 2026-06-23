@@ -1,4 +1,4 @@
-package ni.edu.uam.UAM_LIFT.screens.search
+package ni.edu.uam.uamlift.ui.screens.search
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -155,6 +155,8 @@ fun SearchScreen(
                 items(viajesFiltrados) { miViaje ->
                     RideCard(
                         viaje = miViaje,
+                        usuarioIdActual = usuario.id ?: 0L,
+                        esConductor = miViaje.conductor?.id == usuario.id,
                         onConfirmarClick = { idViaje ->
                             viajeViewModel.unirseAlViaje(
                                 viajeId = idViaje,

@@ -31,5 +31,5 @@ public interface RepoViajeUsuario extends JpaRepository<ViajeUsuario, Long>
             EstadoViajeUsuario estado
     );
 
-    List<Usuario> findByViajeIdAndEstado(Long viajeId, EstadoViajeUsuario estado);
+    List<ViajeUsuario> findByViajeIdAndEstado(Long viajeId, EstadoViajeUsuario estado);
 }

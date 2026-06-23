@@ -1,4 +1,4 @@
-package ni.edu.uam.uamlift.screens.messages
+package ni.edu.uam.uamlift.ui.screens.messages
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -6,66 +6,103 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-// IMPORTANTE: Asegúrate de importar tu ChatScreen correctamente
-import ni.edu.uam.uamlift.screens.chat.ChatScreen
-import ni.edu.uam.uamlift.ui.screens.messages.MessageItem
-import ni.edu.uam.uamlift.ui.theme.Gray
-
-// Modelo de datos para empaquetar la información del usuario
-data class ChatUser(
-    val id: Int,
-    val name: String,
-    val initials: String,
-    val lastMessage: String,
-    val time: String,
-    val unread: Int,
-    val isOnline: Boolean
-)
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
+import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
 
 @Composable
-fun MessagesScreen(modifier: Modifier = Modifier) {
-    // 1. Datos simulados
-    val mockChats = remember {
-        listOf(
-            ChatUser(1, "María Rodríguez", "MR", "¡Perfecto, nos vemos mañana! 👍", "9:41", 2, isOnline = true),
-            ChatUser(2, "Juan López", "JL", "¿Puedes salir 10 min antes?", "8:20", 0, isOnline = true),
-            ChatUser(3, "Andrea Pérez", "AP", "Hola! Confirmas el viaje de mañana?", "Ayer", 0, isOnline = false)
-        )
+fun MessagesScreen(
+    modifier: Modifier = Modifier,
+    viajeViewModel: ViajeViewModel = viewModel(),
+    usuarioViewModel: UsuarioViewModel = viewModel()
+) {
+    val context = LocalContext.current
+    val misViajes by viajeViewModel.misViajes.collectAsState()
+    val usuario = usuarioViewModel.usuario
+    val currentUserId = usuario.id ?: 0L
+
+    // Paleta de colores
+    val chatBgColor = Color(0xFFF8FAFC)
+
+    // Cargar datos al iniciar
+    LaunchedEffect(Unit) {
+        usuarioViewModel.verificarSesion(context)
     }
 
-    // 2. Estado que controla qué chat está abierto (null = lista de mensajes)
-    var selectedChatUser by remember { mutableStateOf<ChatUser?>(null) }
+    LaunchedEffect(usuario.id) {
+        if (usuario.id != null) {
+            viajeViewModel.cargarViajesDesdeBackend(usuario.id)
+        }
+    }
 
-    // 3. Condicional de Navegación
-    if (selectedChatUser != null) {
-        // Si hay un usuario seleccionado, saltamos a tu ChatScreen con sus datos reales
+    // Estado para controlar la navegación interna
+    var selectedViajeId by remember { mutableStateOf<Long?>(null) }
+    var selectedChatName by remember { mutableStateOf("") }
+    var selectedChatInitials by remember { mutableStateOf("") }
+
+    if (selectedViajeId != null) {
         ChatScreen(
-            name = selectedChatUser!!.name,
-            initials = selectedChatUser!!.initials,
-            isOnline = selectedChatUser!!.isOnline,
-            onBackClick = { selectedChatUser = null } // Al dar atrás, volvemos a la lista
+            viajeId = selectedViajeId!!,
+            currentUserId = currentUserId,
+            name = selectedChatName,
+            initials = selectedChatInitials,
+            onBackClick = { selectedViajeId = null }
         )
     } else {
-        // Si es null, mostramos la lista de chats
-        Column(modifier = modifier.fillMaxSize().background(Gray)) {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .background(chatBgColor)
+        ) {
             Text(
                 text = "Mensajes",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(20.dp)
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
+                color = Color.Black
             )
 
-            LazyColumn(modifier = Modifier.padding(horizontal = 16.dp)) {
-                items(mockChats) { chat ->
-                    MessageItem(
-                        initials = chat.initials,
-                        name = chat.name,
-                        lastMessage = chat.lastMessage,
-                        time = chat.time,
-                        unread = chat.unread,
-                        onClick = { selectedChatUser = chat } // <--- AQUÍ SE DETONA EL CAMBIO
+            if (misViajes.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No tienes chats activos",
+                        color = Color.Gray,
+                        fontSize = 16.sp
                     )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 16.dp)
+                ) {
+                    items(misViajes) { viaje ->
+                        val destino = viaje.destino?.nombre ?: "UAM"
+                        val chatName = "Viaje a $destino"
+                        val initials = if (destino.isNotEmpty()) destino.take(1).uppercase() else "V"
+
+                        MessageItem(
+                            initials = initials,
+                            name = chatName,
+                            lastMessage = "Chat grupal del viaje",
+                            time = "",
+                            unread = 0,
+                            onClick = {
+                                selectedViajeId = viaje.id
+                                selectedChatName = chatName
+                                selectedChatInitials = initials
+                            }
+                        )
+                    }
                 }
             }
         }

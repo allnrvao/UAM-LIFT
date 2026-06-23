@@ -25,8 +25,10 @@ import java.util.*
 @Composable
 fun RideCard(
     viaje: Viaje,
+    usuarioIdActual: Long,
     esConductor: Boolean = false,
     onConfirmarClick: (Long) -> Unit = {},
+    onCancelarParticipacion: (Long) -> Unit = {},
     onIniciarViaje: (Long) -> Unit = {},
     onFinalizarViaje: (Long) -> Unit = {},
     onCancelarViaje: (Long) -> Unit = {},
@@ -37,6 +39,10 @@ fun RideCard(
     val lightTealBg = Color(0xFFE0F7FA)
     val lightTealSeat = Color(0xFFB2EBF2)
     val grayText = Color(0xFF757575)
+
+    val esPasajero = remember(viaje.pasajeros) {
+        viaje.pasajeros.any { it.usuario?.id == usuarioIdActual }
+    }
 
     val nombreConductor = "${viaje.conductor?.nombre ?: ""} ${viaje.conductor?.apellido ?: ""}".trim().ifEmpty { "Estudiante UAM" }
     val initials = (viaje.conductor?.nombre?.take(1) ?: "U") + (viaje.conductor?.apellido?.take(1) ?: "")
@@ -50,7 +56,6 @@ fun RideCard(
             val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
             val dateSalida = sdf.parse(viaje.fechaHoraSalida ?: "")
             val now = Calendar.getInstance().time
-            // Permitir iniciar si ya es la hora o falta poco
             now.after(dateSalida) || now.equals(dateSalida)
         } catch (e: Exception) {
             false
@@ -60,10 +65,15 @@ fun RideCard(
     if (mostrarDialogo && !esConductor) {
         TakeRideDialog(
             viaje = viaje,
+            esPasajero = esPasajero,
             onDismissRequest = { mostrarDialogo = false },
             onConfirmarViaje = {
                 mostrarDialogo = false
                 onConfirmarClick(viaje.id ?: 0L)
+            },
+            onCancelarParticipacion = {
+                mostrarDialogo = false
+                onCancelarParticipacion(viaje.id ?: 0L)
             }
         )
     }
@@ -101,13 +111,13 @@ fun RideCard(
                             EstadoViaje.EN_CURSO -> "En proceso"
                             EstadoViaje.FINALIZADO -> "Finalizado"
                             EstadoViaje.CANCELADO -> "Cancelado"
-                            else -> if (esConductor) "Tú eres el conductor" else "Conductor verificado"
+                            else -> if (esConductor) "Tú eres el conductor" else if (esPasajero) "Estás unido" else "Conductor verificado"
                         }
                         val statusColor = when(viaje.estadoViaje) {
                             EstadoViaje.EN_CURSO -> Color(0xFFF44336)
                             EstadoViaje.FINALIZADO -> Color.Gray
                             EstadoViaje.CANCELADO -> Color.Red
-                            else -> if (esConductor) UAMColor else Color(0xFF4CAF50)
+                            else -> if (esConductor || esPasajero) UAMColor else Color(0xFF4CAF50)
                         }
                         Text(text = statusText, fontSize = 12.sp, color = statusColor)
                     }
@@ -148,7 +158,6 @@ fun RideCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (viaje.estadoViaje != EstadoViaje.FINALIZADO && viaje.estadoViaje != EstadoViaje.CANCELADO) {
                             if (viaje.estadoViaje != EstadoViaje.EN_CURSO) {
-                                // Botón Cancelar (solo si no ha iniciado)
                                 TextButton(
                                     onClick = { onCancelarViaje(viaje.id ?: 0L) },
                                     colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
@@ -158,7 +167,6 @@ fun RideCard(
                                 
                                 Spacer(modifier = Modifier.width(8.dp))
 
-                                // Botón Iniciar
                                 Button(
                                     onClick = { onIniciarViaje(viaje.id ?: 0L) },
                                     enabled = puedeIniciar,
@@ -171,7 +179,6 @@ fun RideCard(
                                     Text("Iniciar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                 }
                             } else {
-                                // Botón Finalizar (si está en curso)
                                 Button(
                                     onClick = { onFinalizarViaje(viaje.id ?: 0L) },
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
@@ -195,9 +202,9 @@ fun RideCard(
                         }
                     }
                 } else {
-                    Surface(color = lightTealSeat.copy(alpha = 0.5f), shape = RoundedCornerShape(8.dp)) {
+                    Surface(color = if (esPasajero) UAMColor.copy(alpha = 0.1f) else lightTealSeat.copy(alpha = 0.5f), shape = RoundedCornerShape(8.dp)) {
                         Text(
-                            text = "${viaje.numeroAsientosDisponibles} asientos libres",
+                            text = if (esPasajero) "Ya estás unido" else "${viaje.numeroAsientosDisponibles} asientos libres",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             fontSize = 12.sp, fontWeight = FontWeight.Bold, color = UAMColor
                         )

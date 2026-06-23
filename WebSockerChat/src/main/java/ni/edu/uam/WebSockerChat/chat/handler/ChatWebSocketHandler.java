@@ -53,7 +53,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             }
 
         } catch (Exception e) {
-            System.err.println("❌ Error procesando el mensaje de chat: " + e.getMessage());
+            System.err.println("Error procesando el mensaje de chat: " + e.getMessage());
         }
     }
 
@@ -69,5 +69,27 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 salasDeChat.remove(viajeId);
             }
         }
+    }
+
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) {
+
+        String viajeIdParam =
+                session.getUri()
+                        .getQuery()
+                        .split("=")[1];
+
+        Long viajeId =
+                Long.parseLong(viajeIdParam);
+
+        session.getAttributes()
+                .put("viajeId", viajeId);
+
+        salasDeChat
+                .computeIfAbsent(
+                        viajeId,
+                        k -> new CopyOnWriteArrayList<>()
+                )
+                .add(session);
     }
 }

@@ -8,8 +8,8 @@ plugins {
 android {
     namespace = "ni.edu.uam.uamlift"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
+        version = release(37) {
+            minorApiLevel = 0
         }
     }
 
@@ -88,6 +88,7 @@ dependencies {
     implementation(libs.play.services.maps)
     implementation(libs.play.services.maps)
     implementation("org.osmdroid:osmdroid-android:6.1.18")
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
