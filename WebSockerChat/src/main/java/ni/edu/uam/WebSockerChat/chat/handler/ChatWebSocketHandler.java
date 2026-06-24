@@ -1,6 +1,7 @@
 package ni.edu.uam.WebSockerChat.chat.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.RequiredArgsConstructor;
 import ni.edu.uam.WebSockerChat.chat.dto.MensajeRequest;
@@ -21,53 +22,92 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     private final ChatService chatService;
 
-    // IMPORTANTE: JavaTimeModule es necesario para que Jackson entienda el LocalDateTime de tu Response
-    private final ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    private final ObjectMapper mapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS); // Esto hace que la fecha sea un String (ISO-8601)
 
-    // Memoria RAM para las salas de chat
     private final ConcurrentHashMap<Long, CopyOnWriteArrayList<WebSocketSession>> salasDeChat = new ConcurrentHashMap<>();
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+    protected void handleTextMessage(
+            WebSocketSession session,
+            TextMessage message
+    ) {
+
         try {
-            // 1. Recibimos el DTO (MensajeRequest) desde Android
-            MensajeRequest request = mapper.readValue(message.getPayload(), MensajeRequest.class);
-            Long viajeId = request.viajeId();
 
-            // Guardamos al usuario en la "sala" si no estaba
-            session.getAttributes().put("viajeId", viajeId);
-            salasDeChat.computeIfAbsent(viajeId, k -> new CopyOnWriteArrayList<>()).addIfAbsent(session);
+            MensajeRequest request =
+                    mapper.readValue(
+                            message.getPayload(),
+                            MensajeRequest.class
+                    );
 
-            // 2. Usamos tu Servicio para guardar en la BD y obtener la respuesta armada
-            MensajeResponse response = chatService.procesarYGuardarMensaje(request);
+            Long viajeId =
+                    (Long) session.getAttributes()
+                            .get("viajeId");
 
-            // 3. Convertimos la respuesta a JSON
-            String jsonRespuesta = mapper.writeValueAsString(response);
-            TextMessage mensajeDeSalida = new TextMessage(jsonRespuesta);
+            if (viajeId == null) {
+                throw new IllegalStateException(
+                        "La sesión no está asociada a ningún viaje"
+                );
+            }
 
-            // 4. Se lo mandamos a TODOS en la sala de ese viaje
-            for (WebSocketSession s : salasDeChat.get(viajeId)) {
-                if (s.isOpen()) {
+            if (chatService.usuariopertenceAlViaje(viajeId, request.usuarioId())) {
+                throw new IllegalStateException(
+                        "El usuario no pertenece al viaje"
+                );
+            }
+
+            MensajeResponse response =
+                    chatService.guardarMensaje(request);
+
+            TextMessage mensajeDeSalida =
+                    new TextMessage(
+                            mapper.writeValueAsString(response)
+                    );
+
+            CopyOnWriteArrayList<WebSocketSession> sala =
+                    salasDeChat.get(viajeId);
+
+            if (sala == null) {
+                return;
+            }
+
+            for (WebSocketSession s : sala) {
+
+                if (!s.isOpen()) {
+                    continue;
+                }
+
+                synchronized (s) {
                     s.sendMessage(mensajeDeSalida);
                 }
             }
 
         } catch (Exception e) {
-            System.err.println("❌ Error procesando el mensaje de chat: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
-
     @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        Long viajeId = (Long) session.getAttributes().get("viajeId");
-        if (viajeId != null && salasDeChat.containsKey(viajeId)) {
-            salasDeChat.get(viajeId).remove(session);
+    public void afterConnectionEstablished(WebSocketSession session) {
 
-            // Limpiamos la sala si ya no hay nadie chateando
-            if (salasDeChat.get(viajeId).isEmpty()) {
-                salasDeChat.remove(viajeId);
-            }
-        }
+        String viajeIdParam =
+                session.getUri()
+                        .getQuery()
+                        .split("=")[1];
+
+        Long viajeId =
+                Long.parseLong(viajeIdParam);
+
+        session.getAttributes()
+                .put("viajeId", viajeId);
+
+        salasDeChat
+                .computeIfAbsent(
+                        viajeId,
+                        k -> new CopyOnWriteArrayList<>()
+                )
+                .add(session);
     }
 }

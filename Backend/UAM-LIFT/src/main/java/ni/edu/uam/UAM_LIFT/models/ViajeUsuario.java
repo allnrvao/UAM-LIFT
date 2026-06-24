@@ -1,6 +1,6 @@
 package ni.edu.uam.UAM_LIFT.models;
 
-import jakarta.persistence.Entity;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,14 +11,17 @@ import ni.edu.uam.UAM_LIFT.enums.EstadoViajeUsuario;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter @Setter
+@Getter
+@Setter
 public class ViajeUsuario {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "viaje_id")
+    @JsonBackReference
     private Viaje viaje;
 
     @ManyToOne(fetch = FetchType.LAZY)

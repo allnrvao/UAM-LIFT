@@ -87,4 +87,15 @@ public class CarroController {
             return ResponseEntity.notFound().build();
         }
     }
+
+        @GetMapping("/usuario/{usuarioId}")
+        public ResponseEntity<List<Carro>> getCarrosByUsuarioId(@PathVariable Long usuarioId) {
+            Optional<Usuario> usuarioOptional = repoUsuario.findById(usuarioId);
+            if (usuarioOptional.isPresent()) {
+                List<Carro> carros = carroService.obtenerCarrosPorPropietario(usuarioOptional.get());
+                return ResponseEntity.ok(carros);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        }
 }

@@ -9,44 +9,40 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.Modifier
-import ni.edu.uam.uamlift.data.models.Viaje // Corregido: Importación de tu modelo real
+import ni.edu.uam.uamlift.data.models.Viaje
 import ni.edu.uam.uamlift.ui.components.RideCard
 
 @Composable
 fun RidesListScreen(
-    viajesList: List<Viaje>, // Corregido: Usamos tu lista de la base de datos
-    onReservarClick: (Long) -> Unit // Callback recomendado para avisar al ViewModel la reserva
+    viajesList: List<Viaje>,
+    usuarioIdActual: Long,
+    onReservarClick: (Long) -> Unit
 ) {
-    // Estado dinámico que guarda el objeto Viaje completo seleccionado
     var selectedViaje by remember { mutableStateOf<Viaje?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-
         LazyColumn {
-            // Corregido: Utilizamos 'items' mapeando tu modelo Viaje
             items(viajesList) { viaje ->
                 RideCard(
                     viaje = viaje,
+                    usuarioIdActual = usuarioIdActual,
+                    esConductor = viaje.conductor?.id == usuarioIdActual,
                     onConfirmarClick = { idDelViaje ->
-                        // Cuando el usuario confirma dentro del diálogo nativo,
-                        // este callback se dispara automáticamente hacia arriba.
                         onReservarClick(idDelViaje)
                     }
                 )
             }
         }
 
-        // Un solo diálogo reactivo para todos los elementos
         selectedViaje?.let { viaje ->
             val nombreConductor = viaje.conductor?.nombre ?: "Conductor UAM"
-            val origen = viaje.origen?.nombre ?: "Origen"      // Ajusta '.nombre' según tu clase Destino
-            val destino = viaje.destino?.nombre ?: "Destino"   // Ajusta '.nombre' según tu clase Destino
+            val origen = viaje.origen?.nombre ?: "Origen"
+            val destino = viaje.destino?.nombre ?: "Destino"
 
             AlertDialog(
                 onDismissRequest = { selectedViaje = null },
                 confirmButton = {
                     TextButton(onClick = {
-                        // Si el id no es nulo, ejecutamos la acción hacia tu API
                         viaje.id?.let { onReservarClick(it) }
                         selectedViaje = null
                     }) {

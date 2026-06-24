@@ -16,6 +16,8 @@ public class DestinoDefecto {
         if (!repoDestino.existsByNombre("UAM")) {
             Destino destino = new Destino();
             destino.setNombre("UAM");
+            destino.setLatitud(12.108502168418019);
+            destino.setLongitud(-86.2569602969308);
             repoDestino.save(destino);
         }
     }

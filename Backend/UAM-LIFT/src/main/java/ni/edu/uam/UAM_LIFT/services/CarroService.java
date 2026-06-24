@@ -42,4 +42,5 @@ public class CarroService {
     public List<Carro> obtenerCarrosPorPropietario(Usuario propietario) {
         return repoCarro.findByPropietario(propietario);
     }
+
 }

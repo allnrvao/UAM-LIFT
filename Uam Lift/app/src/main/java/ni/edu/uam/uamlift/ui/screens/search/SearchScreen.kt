@@ -1,46 +1,71 @@
-    package ni.edu.uam.uamlift.ui.screens.search
+package ni.edu.uam.uamlift.ui.screens.search
 
-    import androidx.compose.foundation.background
-    import androidx.compose.foundation.layout.*
-    import androidx.compose.foundation.lazy.LazyColumn
-    import androidx.compose.foundation.lazy.items
-    import androidx.compose.foundation.shape.RoundedCornerShape
-    import androidx.compose.material.icons.Icons
-    import androidx.compose.material.icons.filled.*
-    import androidx.compose.material3.*
-    import androidx.compose.runtime.*
-    import androidx.compose.ui.Alignment
-    import androidx.compose.ui.Modifier
-    import androidx.compose.ui.graphics.Color
-    import androidx.compose.ui.platform.LocalContext
-    import androidx.compose.ui.text.font.FontWeight
-    import androidx.compose.ui.unit.dp
-    import androidx.compose.ui.unit.sp
-    import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
-    import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
-    import ni.edu.uam.uamlift.sesion.ControlSesion
-    import ni.edu.uam.uamlift.ui.components.RideCard
-    import ni.edu.uam.uamlift.ui.theme.Gray
-    import ni.edu.uam.uamlift.ui.theme.UAMColor
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import ni.edu.uam.uamlift.data.models.Viaje
+import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
+import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
+import ni.edu.uam.uamlift.ui.components.RideCard
+import ni.edu.uam.uamlift.ui.theme.Gray
+import ni.edu.uam.uamlift.ui.theme.UAMColor
 
-    @Composable
-    fun SearchScreen(
-        viajeViewModel: ViajeViewModel,
-        usuarioViewModel: UsuarioViewModel
-    ) {
-        val context = LocalContext.current
-        val session = remember { ControlSesion(context) }
-        val userCif by session.obtenerCif.collectAsState(initial = "")
-
-        val chips = listOf("Todos", "Mañana", "Tarde", "Económicos")
-        var activeChip by remember { mutableStateOf("Todos") }
-        var searchQuery by remember { mutableStateOf("") }
+@Composable
+fun SearchScreen(
+    modifier: Modifier = Modifier,
+    viajeViewModel: ViajeViewModel = viewModel(),
+    usuarioViewModel: UsuarioViewModel
+) {
+    val chips = listOf("Todos", "Mañana", "Tarde", "Económicos")
+    var activeChip by remember { mutableStateOf("Todos") }
+    val usuario = usuarioViewModel.usuario
 
         val viajesBackend by viajeViewModel.viajes.collectAsState()
         val cargando by viajeViewModel.isLoading.collectAsState()
 
-        LaunchedEffect(Unit) {
-            viajeViewModel.cargarViajesDesdeBackend()
+    // Al iniciar la pantalla o cuando el usuario esté cargado, refrescamos los viajes
+    // pasando el ID para que el ViewModel separe "Mis Viajes" de "Otros Viajes"
+    LaunchedEffect(usuario.id) {
+        viajeViewModel.cargarViajesDesdeBackend(usuario.id)
+    }
+
+    // Observamos los viajes de OTROS conductores (los que el usuario puede tomar)
+    val viajesBackend by viajeViewModel.viajesOtros.collectAsState()
+    val cargando by viajeViewModel.isLoading.collectAsState()
+
+    // Lógica de filtrado en tiempo real sobre la lista de otros conductores
+    val viajesFiltrados = remember(viajesBackend, searchQuery, activeChip) {
+        viajesBackend.filter { viaje ->
+            val nombreConductor = viaje.conductor?.nombre.orEmpty()
+            val origen = viaje.origen?.nombre.orEmpty()
+            val destino = viaje.destino?.nombre.orEmpty()
+
+            val matchesQuery = nombreConductor.contains(searchQuery, ignoreCase = true) ||
+                    origen.contains(searchQuery, ignoreCase = true) ||
+                    destino.contains(searchQuery, ignoreCase = true)
+
+            val horaSalida = viaje.fechaHoraSalida?.substringAfter("T")?.take(5).orEmpty()
+            val matchesChip = when (activeChip) {
+                "Mañana" -> horaSalida in "00:00".."11:59"
+                "Tarde" -> horaSalida in "12:00".."18:59"
+                "Económicos" -> viaje.precioPorPersona <= 50.0
+                else -> true
+            }
+
+            matchesQuery && matchesChip
         }
 
         val viajesFiltrados = remember(viajesBackend, searchQuery, activeChip) {
@@ -95,26 +120,48 @@
                 }
             }
 
-            if (cargando && viajesFiltrados.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = UAMColor)
+        // Listado Dinámico
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = if (searchQuery.isEmpty() && activeChip == "Todos") "Disponibles hoy" else "Resultados de búsqueda",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.Black
+                )
+            }
+
+            if (cargando) {
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = UAMColor)
+                    }
                 }
             } else if (viajesFiltrados.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("No hay viajes disponibles por ahora", color = Color.Gray)
                 }
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    item { Spacer(modifier = Modifier.height(16.dp)) }
-                    items(viajesFiltrados) { miViaje ->
-                        RideCard(
-                            viaje = miViaje,
-                            esConductor = miViaje.conductor?.cif == usuarioViewModel.usuario.cif,
-                            onConfirmarClick = { idViaje -> viajeViewModel.unirseAlViaje(idViaje, userCif) }
-                        )
-                    }
-                    item { Spacer(modifier = Modifier.height(80.dp)) }
+                items(viajesFiltrados) { miViaje ->
+                    RideCard(
+                        viaje = miViaje,
+                        usuarioIdActual = usuario.id ?: 0L,
+                        esConductor = miViaje.conductor?.id == usuario.id,
+                        onConfirmarClick = { idViaje ->
+                            viajeViewModel.unirseAlViaje(
+                                viajeId = idViaje,
+                                usuarioId = usuario.id ?: 0L,
+                                usuarioCif = usuario.cif ?: ""
+                            )
+                        }
+                    )
                 }
             }
         }
     }
+}

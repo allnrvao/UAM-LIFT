@@ -4,10 +4,16 @@ import lombok.RequiredArgsConstructor;
 import ni.edu.uam.WebSockerChat.chat.dto.MensajeRequest;
 import ni.edu.uam.WebSockerChat.chat.dto.MensajeResponse;
 import ni.edu.uam.WebSockerChat.chat.model.Mensaje;
+import ni.edu.uam.WebSockerChat.chat.model.Usuario;
+import ni.edu.uam.WebSockerChat.chat.model.Viaje;
 import ni.edu.uam.WebSockerChat.chat.repository.MensajeRepository;
+import ni.edu.uam.WebSockerChat.chat.repository.UsuarioRepository;
+import ni.edu.uam.WebSockerChat.chat.repository.ViajeRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -16,41 +22,56 @@ import java.util.stream.Collectors;
 public class ChatService {
 
     private final MensajeRepository mensajeRepository;
+    private final ViajeRepository viajeRepository;
+    private final UsuarioRepository usuarioRepository;
 
-    @Transactional
-    public MensajeResponse procesarYGuardarMensaje(MensajeRequest request) {
-        // Guardamos todo directo, sin consultar a ninguna otra API
-        Mensaje nuevoMensaje = Mensaje.builder()
-                .viajeId(request.viajeId())
-                .remitenteId(request.remitenteId())
-                .remitenteNombre(request.remitenteNombre()) // Tomado del JSON de Android
-                .contenido(request.contenido())
-                .build();
+    public List<MensajeResponse> obtenerHistorial(Long viajeId) {
 
-        Mensaje guardado = mensajeRepository.save(nuevoMensaje);
+        List<Mensaje> mensajes =
+                mensajeRepository.findByViajeIdOrderByFechaEnvioAsc(viajeId);
+
+        return mensajes.stream()
+                .map(mensaje -> new MensajeResponse(
+                        mensaje.getId(),
+                        mensaje.getViaje().getId(),
+                        mensaje.getUsuario().getId(),
+                        mensaje.getContenido(),
+                        mensaje.getFechaEnvio()
+                ))
+                .toList();
+    }
+
+    public MensajeResponse guardarMensaje(MensajeRequest mensajeRequest) {
+
+        Viaje viaje = viajeRepository
+                .findById(mensajeRequest.viajeId())
+                .orElseThrow(() ->
+                        new RuntimeException("Viaje no encontrado"));
+
+        Usuario usuario = usuarioRepository
+                .findById(mensajeRequest.usuarioId())
+                .orElseThrow(() ->
+                        new RuntimeException("Usuario no encontrado"));
+
+        Mensaje mensaje = new Mensaje();
+        mensaje.setContenido(mensajeRequest.contenido());
+        mensaje.setUsuario(usuario);
+        mensaje.setViaje(viaje);
+
+        Mensaje mensajeGuardado =
+                mensajeRepository.save(mensaje);
 
         return new MensajeResponse(
-                guardado.getId(),
-                guardado.getViajeId(),
-                guardado.getRemitenteId(),
-                guardado.getRemitenteNombre(),
-                guardado.getContenido(),
-                guardado.getFechaEnvio()
+                mensajeGuardado.getId(),
+                mensajeGuardado.getViaje().getId(),
+                mensajeGuardado.getUsuario().getId(),
+                mensajeGuardado.getContenido(),
+                mensajeGuardado.getFechaEnvio()
         );
     }
 
-    @Transactional(readOnly = true)
-    public List<MensajeResponse> obtenerHistorial(Long viajeId) {
-        return mensajeRepository.findByViajeIdOrderByFechaEnvioAsc(viajeId)
-                .stream()
-                .map(msg -> new MensajeResponse(
-                        msg.getId(),
-                        msg.getViajeId(),
-                        msg.getRemitenteId(),
-                        msg.getRemitenteNombre(),
-                        msg.getContenido(),
-                        msg.getFechaEnvio()
-                ))
-                .collect(Collectors.toList());
+    public boolean usuariopertenceAlViaje(Long viajeId, Long usuarioId) {
+        return viajeRepository.usuarioPerteneceAlViaje(usuarioId, viajeId);
     }
+
 }
