@@ -15,15 +15,14 @@ public class Mensaje {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private Long viajeId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "viaje_id", nullable = false)
+    private Viaje viaje;
 
-    @Column(nullable = false)
-    private Long remitenteId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id", nullable = false)
+    private Usuario usuario;
 
-    // ¡NUEVO! Guardamos el nombre directamente en la BD del chat
-    @Column(nullable = false)
-    private String remitenteNombre;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String contenido;

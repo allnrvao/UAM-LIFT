@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import ni.edu.uam.uamlift.data.models.EstadoViajeUsuario
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
 
@@ -27,6 +28,7 @@ fun MessagesScreen(
     val misViajes by viajeViewModel.misViajes.collectAsState()
     val usuario = usuarioViewModel.usuario
     val currentUserId = usuario.id ?: 0L
+    val currentUserName = usuario.nombreUsuario ?: "Usuario"
 
     // Paleta de colores
     val chatBgColor = Color(0xFFF8FAFC)
@@ -39,6 +41,19 @@ fun MessagesScreen(
     LaunchedEffect(usuario.id) {
         if (usuario.id != null) {
             viajeViewModel.cargarViajesDesdeBackend(usuario.id)
+        }
+    }
+
+    // Filtrar chats permitidos: 
+    // - El usuario es el conductor (creador)
+    // - O el usuario es un pasajero ya ACEPTADO (está participando)
+    val chatsPermitidos = remember(misViajes, currentUserId) {
+        misViajes.filter { viaje ->
+            val esConductor = viaje.conductor?.id == currentUserId
+            val esPasajeroAceptado = viaje.pasajeros.any { 
+                it.usuario?.id == currentUserId && it.estado == EstadoViajeUsuario.ACEPTADO 
+            }
+            esConductor || esPasajeroAceptado
         }
     }
 
@@ -61,15 +76,9 @@ fun MessagesScreen(
                 .fillMaxSize()
                 .background(chatBgColor)
         ) {
-            Text(
-                text = "Mensajes",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
-                color = Color.Black
-            )
+            FragmentHeader(title = "Mensajes")
 
-            if (misViajes.isEmpty()) {
+            if (chatsPermitidos.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -85,7 +94,7 @@ fun MessagesScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
-                    items(misViajes) { viaje ->
+                    items(chatsPermitidos) { viaje ->
                         val destino = viaje.destino?.nombre ?: "UAM"
                         val chatName = "Viaje a $destino"
                         val initials = if (destino.isNotEmpty()) destino.take(1).uppercase() else "V"
@@ -107,4 +116,15 @@ fun MessagesScreen(
             }
         }
     }
+}
+
+@Composable
+fun FragmentHeader(title: String) {
+    Text(
+        text = title,
+        fontSize = 28.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
+        color = Color.Black
+    )
 }

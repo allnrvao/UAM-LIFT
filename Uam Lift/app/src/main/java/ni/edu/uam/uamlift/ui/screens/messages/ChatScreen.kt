@@ -34,9 +34,14 @@ fun ChatScreen(
     initials: String,
     isOnline: Boolean = true,
     onBackClick: () -> Unit,
-    viewModel: ChatViewModel = viewModel(factory = ChatViewModelFactory(RetrofitClient2.chatApi))
+    viewModel: ChatViewModel = viewModel(
+        factory = ChatViewModelFactory(
+            RetrofitClient2.chatApi,
+            RetrofitClient.usuarioApi
+        )
+    )
 ) {
-    val messagesList by viewModel.mensajes.collectAsState()
+    val messagesList by viewModel.mensajesUi.collectAsState()
     var textState by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
 
@@ -46,8 +51,10 @@ fun ChatScreen(
     val chatBgColor = Color(0xFFF8FAFC)
     val onlineGreen = Color(0xFF00E676)
 
-    LaunchedEffect(viajeId) {
-        viewModel.iniciarChat(viajeId)
+    LaunchedEffect(viajeId, currentUserId) {
+        if (currentUserId != 0L) {
+            viewModel.iniciarChat(viajeId, currentUserId)
+        }
     }
 
     LaunchedEffect(messagesList.size) {
@@ -190,7 +197,7 @@ fun ChatScreen(
             contentPadding = PaddingValues(vertical = 20.dp)
         ) {
             items(messagesList) { message ->
-                val isMe = message.usuarioId == currentUserId
+                val isMe = message.isMe
                 val alignment = if (isMe) Alignment.End else Alignment.Start
 
                 val bubbleShape = if (isMe) {
@@ -205,7 +212,7 @@ fun ChatScreen(
                 ) {
                     if (!isMe) {
                         Text(
-                            text = message.nombreUsuario,
+                            text = message.usuarioNombre,
                             fontSize = 12.sp,
                             color = Color.Gray,
                             modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
