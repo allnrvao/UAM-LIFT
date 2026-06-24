@@ -19,10 +19,10 @@ data class Viaje(
     val fechaHoraLlegada: String? = null,
 
     @SerializedName("numeroAsientosDisponibles")
-    val numeroAsientosDisponibles: Int = 0,
+    val numeroAsientosDisponibles: Int = 1,
 
     @SerializedName("precioPorPersona")
-    val precioPorPersona: Double = 0.0,
+    val precioPorPersona: Double = 1.0,
 
     @SerializedName("pasajeros")
     val pasajeros: List<ViajeUsuario>? = emptyList(), // 💡 Permitir que sea anulable si Jackson manda null
@@ -31,11 +31,14 @@ data class Viaje(
     val conductor: Usuario? = null,
 
     @SerializedName("estadoViaje")
-    val estadoViaje: EstadoViaje? = null
+    val estadoViaje: EstadoViaje? = null,
+
+    @SerializedName("carro")
+    val carro : Carro? = null
 )
 
 enum class EstadoViaje {
-    @SerializedName("PROPUESTO") PROPUESTO, // 👈 Agrégalo aquí en Android
+    @SerializedName("PROPUESTO") PROPUESTO,
     @SerializedName("PROGRAMADO") PROGRAMADO,
     @SerializedName("EN_CURSO") EN_CURSO,
     @SerializedName("FINALIZADO") FINALIZADO,

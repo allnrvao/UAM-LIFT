@@ -1,9 +1,11 @@
 package ni.edu.uam.UAM_LIFT.repositories;
 
 import ni.edu.uam.UAM_LIFT.enums.EstadoViajeUsuario;
+import ni.edu.uam.UAM_LIFT.models.Usuario;
 import ni.edu.uam.UAM_LIFT.models.ViajeUsuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface RepoViajeUsuario extends JpaRepository<ViajeUsuario, Long>
@@ -23,4 +25,11 @@ public interface RepoViajeUsuario extends JpaRepository<ViajeUsuario, Long>
             Long viajeId,
             String usuarioCif
     );
+
+    List<ViajeUsuario> findByUsuarioIdAndEstado(
+            Long usuarioId,
+            EstadoViajeUsuario estado
+    );
+
+    List<ViajeUsuario> findByViajeIdAndEstado(Long viajeId, EstadoViajeUsuario estado);
 }

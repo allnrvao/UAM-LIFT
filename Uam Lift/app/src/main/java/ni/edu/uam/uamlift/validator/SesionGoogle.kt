@@ -18,7 +18,7 @@ class SesionGoogle: ViewModel() {
 
         val googleIdOption = GetGoogleIdOption.Builder()
             .setFilterByAuthorizedAccounts(false)
-            .setServerClientId("")
+            .setServerClientId("973491982316-5i74b50mnm3k8i7nv3ugpd6445i93reu.apps.googleusercontent.com")
             .build()
             
         val request = GetCredentialRequest.Builder()

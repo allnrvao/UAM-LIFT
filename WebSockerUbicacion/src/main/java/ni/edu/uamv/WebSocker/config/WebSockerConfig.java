@@ -1,5 +1,6 @@
 package ni.edu.uamv.WebSocker.config;
 
+import ni.edu.uamv.WebSocker.handler.ViajeHandler;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.*;
 

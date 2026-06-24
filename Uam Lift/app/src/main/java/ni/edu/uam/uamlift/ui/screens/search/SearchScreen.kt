@@ -18,26 +18,35 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ni.edu.uam.uamlift.data.models.Viaje
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
+import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
 import ni.edu.uam.uamlift.ui.components.RideCard
 import ni.edu.uam.uamlift.ui.theme.Gray
 import ni.edu.uam.uamlift.ui.theme.UAMColor
-import ni.edu.uam.uamlift.viewmodel.ViajeViewModel
 
 @Composable
 fun SearchScreen(
     modifier: Modifier = Modifier,
     viajeViewModel: ViajeViewModel = viewModel(),
-    usuarioViewModel: UsuarioViewModel = viewModel() // Obtención del CIF en sesión real
+    usuarioViewModel: UsuarioViewModel
 ) {
     val chips = listOf("Todos", "Mañana", "Tarde", "Económicos")
     var activeChip by remember { mutableStateOf("Todos") }
+    val usuario = usuarioViewModel.usuario
+
+    // Estado para capturar lo que el estudiante escribe
     var searchQuery by remember { mutableStateOf("") }
 
-    // Clonado exacto de los observadores del Backend de Spring Boot de tu HomeScreen
-    val viajesBackend by viajeViewModel.viajes.collectAsState()
+    // Al iniciar la pantalla o cuando el usuario esté cargado, refrescamos los viajes
+    // pasando el ID para que el ViewModel separe "Mis Viajes" de "Otros Viajes"
+    LaunchedEffect(usuario.id) {
+        viajeViewModel.cargarViajesDesdeBackend(usuario.id)
+    }
+
+    // Observamos los viajes de OTROS conductores (los que el usuario puede tomar)
+    val viajesBackend by viajeViewModel.viajesOtros.collectAsState()
     val cargando by viajeViewModel.isLoading.collectAsState()
 
-    // Lógica de filtrado reactiva y segura sobre la data real
+    // Lógica de filtrado en tiempo real sobre la lista de otros conductores
     val viajesFiltrados = remember(viajesBackend, searchQuery, activeChip) {
         viajesBackend.filter { viaje ->
             // Filtro por texto (Buscador)
@@ -164,11 +173,14 @@ fun SearchScreen(
             } else {
                 items(viajesFiltrados) { viaje ->
                     RideCard(
-                        viaje = viaje,
+                        viaje = miViaje,
+                        usuarioIdActual = usuario.id ?: 0L,
+                        esConductor = miViaje.conductor?.id == usuario.id,
                         onConfirmarClick = { idViaje ->
                             viajeViewModel.unirseAlViaje(
                                 viajeId = idViaje,
-                                usuarioCif = usuarioViewModel.usuario.cif ?: ""
+                                usuarioId = usuario.id ?: 0L,
+                                usuarioCif = usuario.cif ?: ""
                             )
                         }
                     )

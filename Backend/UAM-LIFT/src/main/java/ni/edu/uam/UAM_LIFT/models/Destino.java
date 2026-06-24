@@ -24,4 +24,8 @@ public class Destino {
     private boolean universidad = true;
     @Column(nullable = false)
     private boolean estado = true;
+    @Column(nullable = false)
+    private double latitud;
+    @Column(nullable = false)
+    private double longitud;
 }

@@ -10,6 +10,9 @@ import ni.edu.uam.UAM_LIFT.repositories.*;
 import ni.edu.uam.UAM_LIFT.repositories.ValidacionViaje;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -104,4 +107,101 @@ public class ViajeServicio implements InterfazViaje {
         viaje.setEstadoViaje(EstadoViaje.CANCELADO);
         repoViaje.save(viaje);
     }
+
+    public boolean LimitesDeViaje(Long usuarioId) {
+        List<ViajeUsuario> viajesUsuario = repoViajeUsuario.findByUsuarioIdAndEstado(usuarioId, EstadoViajeUsuario.ACEPTADO);
+        return viajesUsuario .size() <=2;
+    }
+
+    public boolean LimiteDeViajeConductor(Long usuarioId) {
+        Usuario usuario = repoUsuario.findById(usuarioId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + usuarioId));
+        List<Viaje> viajesConductor = repoViaje.findByConductorAndEstadoViaje(usuario, EstadoViaje.PROPUESTO);
+        return viajesConductor.size() <= 2;
+    }
+
+    public List<Viaje> viajesPorUsuario(Long usuarioId) {
+        List<ViajeUsuario> viajesUsuario = repoViajeUsuario.findByUsuarioIdAndEstado(usuarioId, EstadoViajeUsuario.ACEPTADO);
+        List<Viaje> viajes = new ArrayList<>();
+        for (ViajeUsuario vu : viajesUsuario) {
+            if (vu.getEstado() != EstadoViajeUsuario.CANCELADO) {
+                viajes.add(vu.getViaje());
+            }
+        }
+        return viajes;
+    }
+
+    public List<Viaje> viajesPorConductor(Long usuarioId) {
+        Usuario usuario = repoUsuario.findById(usuarioId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + usuarioId));
+        return repoViaje.findByConductor(usuario);
+    }
+
+    // Espera formato: "2026-06-20T15:30:00"
+    public boolean validarPorFecha(String fechaSalida, String fechaLlegada, Long usuarioId) {
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+        LocalDateTime nuevaSalida = LocalDateTime.parse(fechaSalida, formatter);
+        LocalDateTime nuevaLlegada = LocalDateTime.parse(fechaLlegada, formatter);
+
+
+        if (nuevaSalida.isAfter(nuevaLlegada) || nuevaSalida.isEqual(nuevaLlegada)) {
+            return false;
+        }
+
+        List<Viaje> viajes = viajesPorUsuario(usuarioId);
+
+        for (Viaje viaje : viajes) {
+            LocalDateTime existenteSalida = viaje.getFechaHoraSalida();
+            LocalDateTime existenteLlegada = viaje.getFechaHoraLlegada();
+
+             if (nuevaSalida.isBefore(existenteLlegada) && nuevaLlegada.isAfter(existenteSalida)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public boolean validarPorFechaConductor(String fechaSalida, String fechaLlegada, Long usuarioId) {
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+        LocalDateTime nuevaSalida = LocalDateTime.parse(fechaSalida, formatter);
+        LocalDateTime nuevaLlegada = LocalDateTime.parse(fechaLlegada, formatter);
+
+
+        if (nuevaSalida.isAfter(nuevaLlegada) || nuevaSalida.isEqual(nuevaLlegada)) {
+            return false;
+        }
+
+        List<Viaje> viajes = viajesPorConductor(usuarioId);
+
+        for (Viaje viaje : viajes) {
+            LocalDateTime existenteSalida = viaje.getFechaHoraSalida();
+            LocalDateTime existenteLlegada = viaje.getFechaHoraLlegada();
+
+             if (nuevaSalida.isBefore(existenteLlegada) && nuevaLlegada.isAfter(existenteSalida)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public boolean usuarioEsConductor(Long usuarioId) {
+        Usuario usuario = repoUsuario.findById(usuarioId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + usuarioId));
+        List<Viaje> viajesConductor = repoViaje.findByConductorAndEstadoViaje(usuario, EstadoViaje.PROPUESTO);
+        return !viajesConductor.isEmpty();
+    }
+
+    public List<Usuario> obtenerPasajerosPorViaje(Long viajeId) {
+        List<ViajeUsuario> viajeUsuarios = repoViajeUsuario.findByViajeIdAndEstado(viajeId, EstadoViajeUsuario.ACEPTADO);
+        List<Usuario> pasajeros = new ArrayList<>();
+        for (ViajeUsuario vu : viajeUsuarios) {
+            if (vu.getEstado() == EstadoViajeUsuario.ACEPTADO) {
+                pasajeros.add(vu.getUsuario());
+            }
+        }
+        return pasajeros;
+    }
+
 }

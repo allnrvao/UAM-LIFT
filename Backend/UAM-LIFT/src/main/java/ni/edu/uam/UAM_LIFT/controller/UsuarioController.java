@@ -32,6 +32,16 @@ public class UsuarioController {
         return usuarioServicio.findByCorreo(correo);
     }
 
+    @GetMapping("/correoBol/{correo}")
+    public boolean verificarCorreo(@PathVariable String correo) {
+        try {
+            usuarioServicio.findByCorreo(correo);
+            return true;
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
     @GetMapping("/nombreUsuario/{nombreUsuario}")
     public Usuario obtenerPorNombreUsuario(
             @PathVariable String nombreUsuario) {

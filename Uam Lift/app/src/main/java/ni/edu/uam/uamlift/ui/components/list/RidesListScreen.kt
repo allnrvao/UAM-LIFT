@@ -12,130 +12,45 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import coil.compose.SubcomposeAsyncImage
 import ni.edu.uam.uamlift.data.models.Viaje
-import ni.edu.uam.uamlift.data.models.Usuario
-import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
-import ni.edu.uam.uamlift.ui.theme.UAMColor
-import java.text.SimpleDateFormat
-import java.util.*
+import ni.edu.uam.uamlift.ui.components.RideCard
 
 @Composable
-fun RideCard(
-    viaje: Viaje,
-    usuarioViewModel: UsuarioViewModel, // 🌟 1. Recibimos el ViewModel para realizar la búsqueda
-    esConductor: Boolean = false,
-    onConfirmarClick: (Long) -> Unit = {},
-    onIniciarViaje: (Long) -> Unit = {}
+fun RidesListScreen(
+    viajesList: List<Viaje>,
+    usuarioIdActual: Long,
+    onReservarClick: (Long) -> Unit
 ) {
-    var mostrarDialogo by remember { mutableStateOf(false) }
+    var selectedViaje by remember { mutableStateOf<Viaje?>(null) }
 
-    // 🌟 2. Estado local aislado para guardar el usuario dueño de ESTE viaje una vez se obtenga de la API
-    var conductorActualizado by remember { mutableStateOf<Usuario?>(null) }
-
-    val lightTealBg = Color(0xFFE0F7FA)
-    val lightTealSeat = Color(0xFFB2EBF2)
-    val grayText = Color(0xFF757575)
-
-    val nombreConductor = "${viaje.conductor?.nombre ?: ""} ${viaje.conductor?.apellido ?: ""}".trim().ifEmpty { "Estudiante UAM" }
-    val initials = (viaje.conductor?.nombre?.take(1) ?: "U") + (viaje.conductor?.apellido?.take(1) ?: "")
-
-    val origenTexto = viaje.origen?.nombre ?: "Origen"
-    val destinoTexto = viaje.destino?.nombre ?: "Destino"
-    val horaTexto = viaje.fechaHoraSalida?.substringAfter("T")?.take(5) ?: "00:00"
-
-    // 🌟 3. Efecto secundario: Al mostrarse la tarjeta, dispara la consulta del usuario a la API
-    LaunchedEffect(viaje.conductor?.correo) {
-        val correoConductor = viaje.conductor?.correo
-        if (!correoConductor.isNullOrBlank()) {
-            usuarioViewModel.obtenerUsuarioPorCorreo(correoConductor) { exito ->
-                if (exito) {
-                    // Extraemos el usuario que el ViewModel acaba de recuperar de Spring Boot
-                    conductorActualizado = usuarioViewModel.usuario
-                }
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn {
+            items(viajesList) { viaje ->
+                RideCard(
+                    viaje = viaje,
+                    usuarioIdActual = usuarioIdActual,
+                    esConductor = viaje.conductor?.id == usuarioIdActual,
+                    onConfirmarClick = { idDelViaje ->
+                        onReservarClick(idDelViaje)
+                    }
+                )
             }
         }
     }
 
-    // Lógica para habilitar "Iniciar viaje" compatible con API 24
-    val puedeIniciar = remember(viaje.fechaHoraSalida) {
-        try {
-            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
-            val dateSalida = sdf.parse(viaje.fechaHoraSalida ?: "")
-            val now = Calendar.getInstance().time
-            val fifteenMinsBefore = Calendar.getInstance().apply {
-                time = dateSalida ?: now
-                add(Calendar.MINUTE, -15)
-            }.time
-            now.after(fifteenMinsBefore)
-        } catch (e: Exception) {
-            true
-        }
-    }
+        selectedViaje?.let { viaje ->
+            val nombreConductor = viaje.conductor?.nombre ?: "Conductor UAM"
+            val origen = viaje.origen?.nombre ?: "Origen"
+            val destino = viaje.destino?.nombre ?: "Destino"
 
-    if (mostrarDialogo && !esConductor) {
-        TakeRideDialog(
-            viaje = viaje,
-            onDismissRequest = { mostrarDialogo = false },
-            onConfirmarViaje = {
-                mostrarDialogo = false
-                onConfirmarClick(viaje.id ?: 0L)
-            }
-        )
-    }
-
-    Card(
-        onClick = { if (!esConductor) mostrarDialogo = true },
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-
-                    // 🌟 4. Círculo del Avatar adaptado para mostrar la foto cargada desde la API
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(48.dp).clip(CircleShape).background(lightTealBg)
-                    ) {
-                        // Priorizamos la foto del usuario obtenido en tiempo real; si no ha cargado, usamos la que venga en el viaje
-                        val fotoUrl = conductorActualizado?.imagenUrl ?: viaje.conductor?.imagenUrl
-
-                        if (!fotoUrl.isNullOrEmpty()) {
-                            SubcomposeAsyncImage(
-                                model = fotoUrl,
-                                contentDescription = "Foto de $nombreConductor",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop,
-                                loading = {
-                                    // Indicador de carga mientras descarga la imagen
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.padding(14.dp),
-                                        color = UAMColor,
-                                        strokeWidth = 2.dp
-                                    )
-                                },
-                                error = {
-                                    // Si hay un error de red o no existe el archivo, se muestran las iniciales por seguridad
-                                    Text(text = initials.uppercase(), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = UAMColor)
-                                }
-                            )
-                        } else {
-                            // En caso de que el usuario no tenga configurada ninguna foto de perfil
-                            Text(text = initials.uppercase(), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = UAMColor)
-                        }
+            AlertDialog(
+                onDismissRequest = { selectedViaje = null },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viaje.id?.let { onReservarClick(it) }
+                        selectedViaje = null
+                    }) {
+                        Text("Reservar Asiento")
                     }
 
                     Spacer(modifier = Modifier.width(12.dp))

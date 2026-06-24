@@ -201,6 +201,10 @@ fun ProfileScreen(
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 1.dp, color = Color(0xFFE0E0E0))
                 ProfileMenuItem("Rutas favoritas", "3 guardadas", Icons.Default.Place, UAMColor) { /* Acción */ }
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 1.dp, color = Color(0xFFE0E0E0))
+                ProfileMenuItem("Mi Vehículo", "Gestionar carros", Icons.Default.DirectionsCar, UAMColor) {
+                    navController.navigate("my_cars")
+                }
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 1.dp, color = Color(0xFFE0E0E0))
                 ProfileMenuItem("Notificaciones", "Activas", Icons.Default.Notifications, UAMColor) { /* Acción */ }
             }
         }

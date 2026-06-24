@@ -6,7 +6,7 @@ public enum EstadoViaje {
     @JsonProperty("PROPUESTO")
     PROPUESTO,
 
-    @JsonProperty("PROGRAMADO") // 🌟 ¡Este es el que faltaba e invalidaba tus clases!
+    @JsonProperty("PROGRAMADO")
     PROGRAMADO,
 
     @JsonProperty("EN_CURSO")

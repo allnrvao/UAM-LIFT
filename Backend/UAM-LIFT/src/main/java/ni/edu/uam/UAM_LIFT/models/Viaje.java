@@ -62,6 +62,11 @@ public class Viaje {
     @JsonIgnoreProperties({"viajesAsignados", "password", "viajes", "hibernateLazyInitializer", "handler"})
     private Usuario conductor;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "carro_id", nullable = false)
+    @JsonIgnoreProperties({"propietario", "hibernateLazyInitializer", "handler"})
+    private Carro carro;
+
     @Enumerated(EnumType.STRING)
     private EstadoViaje estadoViaje;
 

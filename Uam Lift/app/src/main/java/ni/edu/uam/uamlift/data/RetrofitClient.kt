@@ -1,6 +1,8 @@
 package ni.edu.uam.uamlift.data
 
 import android.util.Log
+import ni.edu.uam.uamlift.data.api.CarroApiService
+import ni.edu.uam.uamlift.data.api.ChatApi
 import ni.edu.uam.uamlift.data.api.DestinoApiService
 import ni.edu.uam.uamlift.data.api.UsuarioApiService
 import ni.edu.uam.uamlift.data.api.ViajeApiService
@@ -14,6 +16,17 @@ object RetrofitClient {
 
 
     // Configurar logging para ver todas las peticiones/respuestas
+    private val loggingInterceptor = HttpLoggingInterceptor { message ->
+        Log.d("OkHttp", message)
+    }.apply {
+        level = HttpLoggingInterceptor.Level.BODY
+    }
+
+    private val httpClient = OkHttpClient.Builder()
+        .addInterceptor(loggingInterceptor)
+        .build()
+
+
     private val loggingInterceptor = HttpLoggingInterceptor { message ->
         Log.d("OkHttp", message)
     }.apply {
@@ -43,4 +56,9 @@ object RetrofitClient {
     val viajeApi: ViajeApiService by lazy {
         retrofit.create(ViajeApiService::class.java)
     }
+
+    val carroApi: CarroApiService by lazy {
+        retrofit.create(CarroApiService::class.java)
+    }
+
 }

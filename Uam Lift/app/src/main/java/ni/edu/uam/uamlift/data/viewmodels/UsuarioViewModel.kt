@@ -68,22 +68,16 @@ class UsuarioViewModel : ViewModel() {
     }
 
     fun obtenerUsuarioPorCif(cif: String, onResultado: (Boolean) -> Unit = {}) {
-        viewModelScope.launch(Dispatchers.IO) {
-            withContext(Dispatchers.Main) {
-                cargando = true
-                mensajeError = null
-            }
+        viewModelScope.launch {
+            cargando = true
+            mensajeError = null
             try {
                 val usuarioServidor = RetrofitClient.usuarioApi.obtenerPorCif(cif)
-                withContext(Dispatchers.Main) {
-                    usuario = usuarioServidor
-                    onResultado(true)
-                }
+                usuario = usuarioServidor
+                onResultado(true)
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    mensajeError = "Usuario no encontrado"
-                    onResultado(false)
-                }
+                mensajeError = "Usuario no encontrado"
+                onResultado(false)
             } finally {
                 withContext(Dispatchers.Main) {
                     cargando = false
@@ -169,6 +163,84 @@ class UsuarioViewModel : ViewModel() {
         }
     }
 
+    fun comprobarCorreo(correo: String?, onResultado: (Boolean) -> Unit) {
+        if (correo == null) {
+            onResultado(false)
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val respuestaCuerpo = RetrofitClient.usuarioApi.verificarCorreo(correo)
+
+                val textoPlano = respuestaCuerpo.string().trim()
+
+                val correoExiste = textoPlano.toBoolean()
+
+                withContext(Dispatchers.Main) {
+                    onResultado(correoExiste)
+                }
+
+            } catch (e: Exception) {
+                Log.e("RETROFIT_GET", "Error al verificar correo: ${e.localizedMessage}")
+
+                withContext(Dispatchers.Main) {
+                    onResultado(false)
+                }
+            }
+        }
+    }
+
+    fun registrarUsuarioActual(context: Context, onResultado: (Boolean) -> Unit) {
+        Log.d("REGISTRO_FLOW", "Registrando usuario actual...")
+        if (cargando) return
+
+        cargando = true
+        mensajeError = null
+
+        comprobarCorreo(usuario.correo) { correoExiste ->
+
+            if (correoExiste) {
+                Log.d("REGISTRO_FLOW", "Correo ya registrado.")
+                mensajeError = "El correo ya está registrado."
+                cargando = false
+                onResultado(false)
+            } else {
+                viewModelScope.launch {
+                    try {
+                        val respuestaRegistro = RetrofitClient.usuarioApi.registrarUsuario(usuario)
+                        val texto = respuestaRegistro.string().trim()
+                        Log.d("REGISTRO_FLOW", "Respuesta del servidor: $texto")
+                        val registroExitoso = texto.toBoolean()
+                        Log.d("REGISTRO_FLOW", "Registro exitoso: $registroExitoso")
+
+                        if (registroExitoso) {
+                            Log.d("REGISTRO_FLOW", "Registro exitoso. Guardando sesión local...")
+                            guardarSesionLocal(context)
+                            withContext(Dispatchers.Main) {
+                                onResultado(true)
+                            }
+                        } else {
+                            mensajeError = "No se pudo completar el registro. Inténtalo de nuevo."
+                            withContext(Dispatchers.Main) {
+                                onResultado(false)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("REGISTRO_FLOW", "Error al registrar: ${e.localizedMessage}")
+                        mensajeError = "Error de conexión: ${e.localizedMessage}"
+                        withContext(Dispatchers.Main) {
+                            onResultado(false)
+                        }
+                    } finally {
+                        withContext(Dispatchers.Main) {
+                            cargando = false
+                        }
+                    }
+                }
+            }
+        }
+    }
     suspend fun guardarSesionLocal(context: Context) {
         val controlSesion = ControlSesion(context)
         controlSesion.guardarSesion(
@@ -177,20 +249,16 @@ class UsuarioViewModel : ViewModel() {
             usuario.nombreUsuario ?: "",
             usuario.cif ?: ""
         )
-        withContext(Dispatchers.Main) {
-            estaLogeado = true
-        }
+        estaLogeado = true
     }
 
     fun cerrarSesion(context: Context, onFin: () -> Unit) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             val controlSesion = ControlSesion(context)
             controlSesion.cerrarSesion()
-            withContext(Dispatchers.Main) {
-                estaLogeado = false
-                usuario = Usuario()
-                onFin()
-            }
+            estaLogeado = false
+            usuario = Usuario()
+            onFin()
         }
     }
 
@@ -199,14 +267,12 @@ class UsuarioViewModel : ViewModel() {
             onResultado(true)
             return
         }
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
                 val u = RetrofitClient.usuarioApi.obtenerPorNombreUsuario(nombreUsuario)
-                withContext(Dispatchers.Main) {
-                    onResultado(u == null || u.nombreUsuario == null)
-                }
+                onResultado(u == null || u.nombreUsuario == null)
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { onResultado(true) }
+                onResultado(true)
             }
         }
     }
@@ -216,14 +282,12 @@ class UsuarioViewModel : ViewModel() {
             onResultado(true)
             return
         }
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
                 val u = RetrofitClient.usuarioApi.obtenerPorCorreo(correo)
-                withContext(Dispatchers.Main) {
-                    onResultado(u == null || u.correo == null)
-                }
+                onResultado(u == null || u.correo == null)
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { onResultado(true) }
+                onResultado(true)
             }
         }
     }
@@ -237,11 +301,9 @@ class UsuarioViewModel : ViewModel() {
         context: Context,
         onResultado: (Boolean) -> Unit
     ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            withContext(Dispatchers.Main) {
-                cargando = true
-                mensajeError = null
-            }
+        viewModelScope.launch {
+            cargando = true
+            mensajeError = null
             try {
                 val usuarioActualizado = usuario.copy(
                     nombre = nuevoNombre,
@@ -250,26 +312,18 @@ class UsuarioViewModel : ViewModel() {
                     correo = nuevoCorreo,
                     imagenUrl = nuevaImagenUrl ?: usuario.imagenUrl
                 )
-
+                
                 val exito = RetrofitClient.usuarioApi.actualizarUsuario(usuario.cif, usuarioActualizado)
                 if (exito) {
-                    withContext(Dispatchers.Main) {
-                        usuario = usuarioActualizado
-                    }
+                    usuario = usuarioActualizado
                     guardarSesionLocal(context)
                 }
-                withContext(Dispatchers.Main) {
-                    onResultado(exito)
-                }
+                onResultado(exito)
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    mensajeError = "Error al actualizar: ${e.localizedMessage}"
-                    onResultado(false)
-                }
+                mensajeError = "Error al actualizar: ${e.localizedMessage}"
+                onResultado(false)
             } finally {
-                withContext(Dispatchers.Main) {
-                    cargando = false
-                }
+                cargando = false
             }
         }
     }

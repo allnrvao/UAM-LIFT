@@ -34,6 +34,11 @@ class ControlSesion (private val context: Context){
         preferencias[cif] ?: ""
     }
 
+    val obtenerId: Flow<String> = context.dataStore.data.map { preferencias ->
+        preferencias[cif] ?: ""
+    }
+
+
     suspend fun guardarSesion(estaLogeado: Boolean, correo: String, nombre: String, cifUsuario: String) {
         context.dataStore.edit { preferencias ->
             preferencias[EstaLogeado] = estaLogeado

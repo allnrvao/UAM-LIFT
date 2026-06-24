@@ -8,8 +8,8 @@ plugins {
 android {
     namespace = "ni.edu.uam.uamlift"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
+        version = release(37) {
+            minorApiLevel = 0
         }
     }
 
@@ -22,7 +22,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         var wsUrl = project.findProperty("WEBSOCKET_URL") as String? ?: ""
-            buildConfigField("String", "WEBSOCKET_URL", "\"$wsUrl\"")    }
+        buildConfigField("String", "WEBSOCKET_URL", "\"$wsUrl\"")    }
 
     buildTypes {
         release {
@@ -87,9 +87,8 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.play.services.maps)
     implementation(libs.play.services.maps)
-    implementation("com.google.maps.android:maps-compose:4.4.1")
     implementation("org.osmdroid:osmdroid-android:6.1.18")
-
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
