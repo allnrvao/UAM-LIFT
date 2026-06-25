@@ -26,19 +26,19 @@ fun BottomNavigationBar(
     onTabSelected: (String) -> Unit
 ) {
     val brandColor = Color(0xFF019AA8)
-    val selectedBgColor = Color(0xFFE0F4F5) // Burbuja celeste de "Inicio"
+    val selectedBgColor = Color(0xFFE0F4F5)
     val unselectedColor = Color(0xFF757575)
 
     NavigationBar(
-        modifier = Modifier.height(95.dp), // Aumentado a 95.dp para que NUNCA se corte el texto "Crear"
+        modifier = Modifier.height(95.dp),
         containerColor = Color.White,
         tonalElevation = 8.dp
     ) {
         val items = listOf(
             BottomNavItem.Home,
             BottomNavItem.Search,
+            BottomNavItem.MyRides,
             BottomNavItem.Create,
-            BottomNavItem.Messages,
             BottomNavItem.Profile
         )
 
@@ -46,20 +46,19 @@ fun BottomNavigationBar(
             val selected = currentTab == item.route
 
             if (item.route == "create") {
-                //Botón "Crear"
                 Box(
                     modifier = Modifier
-                        .weight(1.5f) // Le damos un poquito más de espacio a los lados para que respire
+                        .weight(1.2f)
                         .fillMaxHeight()
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) { onTabSelected(item.route) },
-                    contentAlignment = Alignment.TopCenter // Alineamos arriba para controlar el espaciado descendente
+                    contentAlignment = Alignment.TopCenter
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(top = 10.dp) // Controla qué tan arriba empieza el botón
+                        modifier = Modifier.padding(top = 10.dp)
                     ) {
                         Box(
                             modifier = Modifier
@@ -76,42 +75,30 @@ fun BottomNavigationBar(
                                 modifier = Modifier.size(30.dp)
                             )
                         }
-
-                        Spacer(modifier = Modifier.height(6.dp)) // Espacio seguro entre el botón y el texto
-
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = item.label,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (selected) brandColor else unselectedColor
                         )
                     }
                 }
             } else {
-                // Pestañas normales: Inicio, Buscar, Mensajes, Perfil
                 NavigationBarItem(
                     selected = selected,
                     onClick = { onTabSelected(item.route) },
                     icon = {
-                        // Selección de iconos basada exactamente en tu imagen
-                        val iconVector = when (item.route) {
-                            "home" -> Icons.Default.Home
-                            "search" -> Icons.Default.Search
-                            "messages" -> Icons.Default.Send // El icono de flecha/avión de papel que tienes
-                            "profile" -> Icons.Default.Person // El icono de silueta humana
-                            else -> item.icon
-                        }
-
                         Icon(
-                            imageVector = iconVector,
+                            imageVector = item.icon,
                             contentDescription = null,
-                            modifier = Modifier.size(26.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     },
                     label = {
                         Text(
                             text = item.label,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
                         )
                     },

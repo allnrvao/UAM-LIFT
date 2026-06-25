@@ -49,23 +49,15 @@ fun SearchScreen(
     // Lógica de filtrado en tiempo real sobre la lista de otros conductores
     val viajesFiltrados = remember(viajesBackend, searchQuery, activeChip) {
         viajesBackend.filter { viaje ->
-            // Filtro por texto (Buscador)
-            val matchesQuery = if (searchQuery.isBlank()) {
-                true
-            } else {
-                val nombreConductor = viaje.conductor?.nombre.orEmpty()
-                val origen = viaje.origen?.nombre.orEmpty()
-                val destino = viaje.destino?.nombre.orEmpty()
+            val nombreConductor = viaje.conductor?.nombre.orEmpty()
+            val origen = viaje.origen?.nombre.orEmpty()
+            val destino = viaje.destino?.nombre.orEmpty()
 
-                nombreConductor.contains(searchQuery, ignoreCase = true) ||
-                        origen.contains(searchQuery, ignoreCase = true) ||
-                        destino.contains(searchQuery, ignoreCase = true)
-            }
+            val matchesQuery = nombreConductor.contains(searchQuery, ignoreCase = true) ||
+                    origen.contains(searchQuery, ignoreCase = true) ||
+                    destino.contains(searchQuery, ignoreCase = true)
 
-            // Filtro por franja horaria / precio (Chips)
-            val fechaRaw = viaje.fechaHoraSalida.orEmpty()
-            val horaSalida = if (fechaRaw.contains("T")) fechaRaw.substringAfter("T").take(5) else fechaRaw.take(5)
-
+            val horaSalida = viaje.fechaHoraSalida?.substringAfter("T")?.take(5).orEmpty()
             val matchesChip = when (activeChip) {
                 "Mañana" -> horaSalida in "00:00".."11:59"
                 "Tarde" -> horaSalida in "12:00".."18:59"
@@ -155,23 +147,12 @@ fun SearchScreen(
                 }
             } else if (viajesFiltrados.isEmpty()) {
                 item {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(top = 40.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(text = "No se encontraron viajes", fontSize = 16.sp, color = Color.Gray)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(
-                            onClick = { viajeViewModel.cargarViajesDesdeBackend() },
-                            colors = ButtonDefaults.buttonColors(containerColor = UAMColor)
-                        ) {
-                            Text("Recargar datos", color = Color.White)
-                        }
+                    Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                        Text("No se encontraron viajes", color = Color.Gray, fontSize = 16.sp)
                     }
                 }
             } else {
-                items(viajesFiltrados) { viaje ->
+                items(viajesFiltrados) { miViaje ->
                     RideCard(
                         viaje = miViaje,
                         usuarioIdActual = usuario.id ?: 0L,

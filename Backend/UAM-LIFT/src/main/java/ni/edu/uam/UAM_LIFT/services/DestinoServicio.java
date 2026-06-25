@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class DestinoServicio {
-    private final RepoDestino repoDestino;
+    private final   RepoDestino repoDestino;
 
     public DestinoServicio(RepoDestino repoDestino) {
         this.repoDestino = repoDestino;

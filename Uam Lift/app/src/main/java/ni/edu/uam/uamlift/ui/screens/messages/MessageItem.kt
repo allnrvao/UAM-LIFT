@@ -32,7 +32,6 @@ fun MessageItem(
     val grayTextColor = Color(0xFF757575)  // Gris para la hora y mensajes leídos
     val onlineGreen = Color(0xFF00E676)    // Verde brillante de conectado
 
-    // Envolvemos todo en una Card para lograr las cajas flotantes redondeadas de la imagen
     Card(
         modifier = Modifier
             .fillMaxWidth()

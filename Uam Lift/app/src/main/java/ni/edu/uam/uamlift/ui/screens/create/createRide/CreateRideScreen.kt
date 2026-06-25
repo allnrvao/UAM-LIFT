@@ -2,7 +2,6 @@ package ni.edu.uam.uamlift.ui.screens.create.createRide
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -34,6 +33,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 import ni.edu.uam.uamlift.data.enums.DepartamentosPacifico
 import ni.edu.uam.uamlift.data.models.Carro
 import ni.edu.uam.uamlift.data.models.Destino
@@ -61,6 +61,8 @@ fun CreateRideScreen(
 ) {
     val context = LocalContext.current
     val usuario = usuarioViewModel.usuario
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(usuario.id) {
         usuario.id?.let { carroViewModel.obtenerCarrosPorUsuario(it) }
@@ -86,19 +88,29 @@ fun CreateRideScreen(
     var showSuccessDialog by remember { mutableStateOf(false) }
     var isGoingToUam by remember { mutableStateOf(false) }
 
-    // Ubicaciones definitivas
     var selectedLat by remember { mutableStateOf<Double?>(null) }
     var selectedLng by remember { mutableStateOf<Double?>(null) }
     var nombreLugarConfirmado by remember { mutableStateOf<String?>(null) }
 
-    var date by remember { mutableStateOf("") }
-    var departureTime by remember { mutableStateOf("") }
-    var arrivalTime by remember { mutableStateOf("") }
+    val sdfDate = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US) }
+    val sdfTime = remember { SimpleDateFormat("HH:mm", Locale.US) }
+    val sdfDateTime = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US) }
+
+    val calendarInitial = remember { Calendar.getInstance() }
+    var date by remember { mutableStateOf(sdfDate.format(calendarInitial.time)) }
+    var departureTime by remember {
+        val cal = Calendar.getInstance().apply { add(Calendar.MINUTE, 5) }
+        mutableStateOf(sdfTime.format(cal.time))
+    }
+    var arrivalTime by remember {
+        val cal = Calendar.getInstance().apply { add(Calendar.MINUTE, 40) }
+        mutableStateOf(sdfTime.format(cal.time))
+    }
+
     var selectedCar by remember { mutableStateOf<Carro?>(null) }
     var seats by remember { mutableIntStateOf(1) }
     var price by remember { mutableStateOf("") }
 
-    // Auto-select first car if available
     LaunchedEffect(carroViewModel.listaCarros) {
         if (selectedCar == null && carroViewModel.listaCarros.isNotEmpty()) {
             selectedCar = carroViewModel.listaCarros.first()
@@ -113,90 +125,97 @@ fun CreateRideScreen(
         }
     }
 
-    // El scroll global ahora vive aquí para que responda bien en cualquier dispositivo
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Gray)
-            .verticalScroll(rememberScrollState())
-    ) {
-        HeaderSteps(step)
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Gray
+    ) { padding ->
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+        ) {
+            HeaderSteps(step)
 
-        when (step) {
-            1 -> Step1LocationFlow(
-                isToUam = isGoingToUam,
-                onToggleDirection = {
-                    isGoingToUam = !isGoingToUam
-                    selectedLat = null; selectedLng = null; nombreLugarConfirmado = null
-                },
-                nombreConfirmado = nombreLugarConfirmado,
-                onNombreConfirmado = { name ->
-                    nombreLugarConfirmado = name
-                    if (selectedLat == null) {
-                        selectedLat = destinoViewModel.destinoDefecto?.latitud
-                        selectedLng = destinoViewModel.destinoDefecto?.longitud
-                    }
-                },
-                selLat = selectedLat, selLng = selectedLng,
-                onLocationSelected = { lat, lng -> selectedLat = lat; selectedLng = lng },
-                destinoDefecto = destinoViewModel.destinoDefecto,
-                onContinue = { step = 2 }
-            )
-            2 -> Step2Schedule(
-                date = date, onDateChange = { date = it },
-                departureTime = departureTime, onDepartureTimeChange = { departureTime = it },
-                arrivalTime = arrivalTime, onArrivalTimeChange = { arrivalTime = it },
-                selectedCar = selectedCar, onCarChange = { selectedCar = it },
-                cars = carroViewModel.listaCarros,
-                seats = seats, onSeatsChange = { seats = it },
-                onBack = { step = 1 }, onContinue = { step = 3 }
-            )
-            3 -> Step3Price(
-                from = if (isGoingToUam) (nombreLugarConfirmado ?: "") else (destinoViewModel.destinoDefecto?.nombre ?: "UAM"),
-                to = if (isGoingToUam) (destinoViewModel.destinoDefecto?.nombre ?: "UAM") else (nombreLugarConfirmado ?: ""),
-                date = date, departureTime = departureTime, arrivalTime = arrivalTime,
-                car = selectedCar, seats = seats, price = price,
-                onPriceChange = { price = it },
-                onBack = { step = 2 },
-                onPublish = {
-                    val userId = usuario.id ?: return@Step3Price
-                    if (userCif.isNullOrEmpty()) return@Step3Price
-
-                    val uam = destinoViewModel.destinoDefecto
-                    val lugarUsuario = Destino(
-                        nombre = nombreLugarConfirmado ?: "Lugar",
-                        latitud = selectedLat,
-                        longitud = selectedLng,
-                        universidad = false
-                    )
-
-                    if (isGoingToUam) {
-                        viajeViewModel.actualizarOrigen(lugarUsuario)
-                        viajeViewModel.actualizarDestino(uam)
-                    } else {
-                        viajeViewModel.actualizarOrigen(uam)
-                        viajeViewModel.actualizarDestino(lugarUsuario)
-                    }
-
-                    viajeViewModel.actualizarFechaHoraSalida("${date}T${departureTime}:00")
-                    viajeViewModel.actualizarFechaHoraLlegada("${date}T${arrivalTime}:00")
-                    viajeViewModel.actualizarCarro(selectedCar)
-                    viajeViewModel.actualizarNumeroAsientos(seats)
-                    viajeViewModel.actualizarPrecio(price.toDoubleOrNull() ?: 1.0)
-
-                    viajeViewModel.publicarViaje(
-                        usuarioId = userId,
-                        conductorCif = userCif!!,
-                        onExito = { showSuccessDialog = true },
-                        onError = { razon ->
-                            Toast.makeText(context, razon, Toast.LENGTH_LONG).show()
+            when (step) {
+                1 -> Step1LocationFlow(
+                    isToUam = isGoingToUam,
+                    onToggleDirection = {
+                        isGoingToUam = !isGoingToUam
+                        selectedLat = null; selectedLng = null; nombreLugarConfirmado = null
+                    },
+                    nombreConfirmado = nombreLugarConfirmado,
+                    onNombreConfirmado = { name ->
+                        nombreLugarConfirmado = name
+                        if (selectedLat == null) {
+                            selectedLat = destinoViewModel.destinoDefecto?.latitud
+                            selectedLng = destinoViewModel.destinoDefecto?.longitud
                         }
-                    )
-                }
-            )
+                    },
+                    selLat = selectedLat, selLng = selectedLng,
+                    onLocationSelected = { lat, lng -> selectedLat = lat; selectedLng = lng },
+                    destinoDefecto = destinoViewModel.destinoDefecto,
+                    onContinue = { step = 2 }
+                )
+                2 -> Step2Schedule(
+                    date = date, onDateChange = { date = it },
+                    departureTime = departureTime, onDepartureTimeChange = { departureTime = it },
+                    arrivalTime = arrivalTime, onArrivalTimeChange = { arrivalTime = it },
+                    selectedCar = selectedCar, onCarChange = { selectedCar = it },
+                    cars = carroViewModel.listaCarros,
+                    seats = seats, onSeatsChange = { seats = it },
+                    onBack = { step = 1 }, onContinue = { step = 3 },
+                    sdfDateTime = sdfDateTime
+                )
+                3 -> Step3Price(
+                    from = if (isGoingToUam) (nombreLugarConfirmado ?: "") else (destinoViewModel.destinoDefecto?.nombre ?: "UAM"),
+                    to = if (isGoingToUam) (destinoViewModel.destinoDefecto?.nombre ?: "UAM") else (nombreLugarConfirmado ?: ""),
+                    date = date, departureTime = departureTime, arrivalTime = arrivalTime,
+                    car = selectedCar, seats = seats, price = price,
+                    onPriceChange = { price = it },
+                    onBack = { step = 2 },
+                    onPublish = {
+                        val userId = usuario.id ?: return@Step3Price
+                        if (userCif.isNullOrEmpty()) return@Step3Price
+
+                        val uam = destinoViewModel.destinoDefecto
+                        val lugarUsuario = Destino(
+                            nombre = nombreLugarConfirmado ?: "Lugar",
+                            latitud = selectedLat,
+                            longitud = selectedLng,
+                            universidad = false
+                        )
+
+                        if (isGoingToUam) {
+                            viajeViewModel.actualizarOrigen(lugarUsuario)
+                            viajeViewModel.actualizarDestino(uam)
+                        } else {
+                            viajeViewModel.actualizarOrigen(uam)
+                            viajeViewModel.actualizarDestino(lugarUsuario)
+                        }
+
+                        viajeViewModel.actualizarFechaHoraSalida("${date}T${departureTime}:00")
+                        viajeViewModel.actualizarFechaHoraLlegada("${date}T${arrivalTime}:00")
+                        viajeViewModel.actualizarCarro(selectedCar)
+                        viajeViewModel.actualizarNumeroAsientos(seats)
+                        viajeViewModel.actualizarPrecio(price.toDoubleOrNull() ?: 1.0)
+
+                        viajeViewModel.publicarViaje(
+                            usuarioId = userId,
+                            conductorCif = userCif!!,
+                            onExito = { showSuccessDialog = true },
+                            onError = { razon ->
+                                scope.launch { snackbarHostState.showSnackbar(razon) }
+                            }
+                        )
+                    }
+                )
+            }
         }
     }
 }
+
+// ... Resto de componentes (Step1LocationFlow, Step2Schedule, etc.) igual que antes ...
 
 @Composable
 fun Step1LocationFlow(
@@ -242,7 +261,7 @@ fun Step1LocationFlow(
 
                 AnimatedVisibility(visible = isCustomMode, enter = expandVertically(), exit = shrinkVertically()) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
-                        OutlinedTextField(value = customName, onValueChange = { customName = it }, label = { Text("Nombre del lugar") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp), singleLine = true)
+                        OutlinedTextField(value = customName, onValueChange = { customName = it }, label = { Text("Nombre del lugar") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp), singleLine = true, colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.Black, unfocusedTextColor = Color.Black))
                         Spacer(Modifier.width(8.dp))
                         IconButton(onClick = { if (customName.isNotBlank()) onNombreConfirmado(customName) }, modifier = Modifier.size(48.dp).background(UAMColor, CircleShape)) { Icon(Icons.Default.Check, null, tint = Color.White) }
                     }
@@ -349,20 +368,6 @@ fun VehicleRequiredPlaceholder(onNavigate: () -> Unit) {
                 }
             }
         }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Button(
-            onClick = onContinue,
-            enabled = selLat != null && selLng != null,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = UAMColor)
-        ) {
-            Text("Siguiente", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        }
     }
 }
 
@@ -385,35 +390,46 @@ fun Step2Schedule(
     selectedCar: Carro?, onCarChange: (Carro) -> Unit,
     cars: List<Carro>,
     seats: Int, onSeatsChange: (Int) -> Unit,
-    onBack: () -> Unit, onContinue: () -> Unit
+    onBack: () -> Unit, onContinue: () -> Unit,
+    sdfDateTime: SimpleDateFormat
 ) {
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
 
     val datePickerDialog = DatePickerDialog(context, { _, y, m, d ->
-        onDateChange(String.format("%04d-%02d-%02d", y, m + 1, d))
+        onDateChange(String.format(Locale.US, "%04d-%02d-%02d", y, m + 1, d))
     }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))
 
-    datePickerDialog.datePicker.minDate = System.currentTimeMillis() - 1000
+    val todayMidnight = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+    datePickerDialog.datePicker.minDate = todayMidnight
 
     val depTimePicker = TimePickerDialog(context, { _, h, m ->
-        onDepartureTimeChange(String.format("%02d:%02d", h, m))
+        onDepartureTimeChange(String.format(Locale.US, "%02d:%02d", h, m))
     }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true)
 
     val arrTimePicker = TimePickerDialog(context, { _, h, m ->
-        onArrivalTimeChange(String.format("%02d:%02d", h, m))
+        onArrivalTimeChange(String.format(Locale.US, "%02d:%02d", h, m))
     }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true)
 
     val isValid = remember(date, departureTime, arrivalTime, selectedCar) {
         if (date.isEmpty() || departureTime.isEmpty() || arrivalTime.isEmpty() || selectedCar == null) false
         else {
             try {
-                val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-                val now = Calendar.getInstance().time
-                val dep = sdf.parse("$date $departureTime") ?: return@remember false
-                val arr = sdf.parse("$date $arrivalTime") ?: return@remember false
+                val nowGrace = Calendar.getInstance().apply {
+                    add(Calendar.MINUTE, -15)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.time
 
-                dep.after(now) && arr.time >= (dep.time + 30 * 60 * 1000)
+                val dep = sdfDateTime.parse("$date $departureTime") ?: return@remember false
+                val arr = sdfDateTime.parse("$date $arrivalTime") ?: return@remember false
+
+                val isFutureOrNow = !dep.before(nowGrace)
+                val isGapValid = arr.time >= (dep.time + 30 * 60 * 1000)
+
+                isFutureOrNow && isGapValid
             } catch (e: Exception) {
                 false
             }
@@ -423,49 +439,48 @@ fun Step2Schedule(
     Column(modifier = Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Horario y Vehículo", style = MaterialTheme.typography.titleLarge, color = UAMColor, fontWeight = FontWeight.Bold)
 
-        OutlinedTextField(value = date, onValueChange = {}, label = { Text("Fecha del viaje") }, readOnly = true, modifier = Modifier.fillMaxWidth().clickable { datePickerDialog.show() }, enabled = false, colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = UAMColor, disabledTextColor = Color.DarkGray, disabledContainerColor = Color.White, disabledLabelColor = UAMColor), leadingIcon = { Icon(Icons.Default.DateRange, null, tint = UAMColor) })
+        Box(modifier = Modifier.fillMaxWidth().clickable { datePickerDialog.show() }) {
+            OutlinedTextField(
+                value = date, onValueChange = {}, label = { Text("Fecha del viaje") },
+                readOnly = true, enabled = false, modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = UAMColor, disabledTextColor = Color.Black, disabledContainerColor = Color.White, disabledLabelColor = UAMColor),
+                leadingIcon = { Icon(Icons.Default.DateRange, null, tint = UAMColor) }
+            )
+        }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedTextField(
-                value = departureTime,
-                onValueChange = {},
-                label = { Text("Salida") },
-                readOnly = true,
-                modifier = Modifier.weight(1f).clickable { depTimePicker.show() },
-                enabled = false,
-                colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = UAMColor, disabledTextColor = Color.DarkGray, disabledContainerColor = Color.White, disabledLabelColor = UAMColor, disabledLeadingIconColor = UAMColor),
-                leadingIcon = { Icon(Icons.Default.Schedule, null) }
-            )
-            OutlinedTextField(
-                value = arrivalTime,
-                onValueChange = {},
-                label = { Text("Llegada") },
-                readOnly = true,
-                modifier = Modifier.weight(1f).clickable { arrTimePicker.show() },
-                enabled = false,
-                colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = Color(0xFFE65100), disabledTextColor = Color.DarkGray, disabledContainerColor = Color.White, disabledLabelColor = Color(0xFFE65100), disabledLeadingIconColor = Color(0xFFE65100)),
-                leadingIcon = { Icon(Icons.Default.Timer, null) }
-            )
+            Box(modifier = Modifier.weight(1f).clickable { depTimePicker.show() }) {
+                OutlinedTextField(
+                    value = departureTime, onValueChange = {}, label = { Text("Salida") },
+                    readOnly = true, enabled = false, modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = UAMColor, disabledTextColor = Color.Black, disabledContainerColor = Color.White, disabledLabelColor = UAMColor, disabledLeadingIconColor = UAMColor),
+                    leadingIcon = { Icon(Icons.Default.Schedule, null) }
+                )
+            }
+            Box(modifier = Modifier.weight(1f).clickable { arrTimePicker.show() }) {
+                OutlinedTextField(
+                    value = arrivalTime, onValueChange = {}, label = { Text("Llegada Estimada") },
+                    readOnly = true, enabled = false, modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = Color(0xFFE65100), disabledTextColor = Color.Black, disabledContainerColor = Color.White, disabledLabelColor = Color(0xFFE65100), disabledLeadingIconColor = Color(0xFFE65100)),
+                    leadingIcon = { Icon(Icons.Default.Timer, null) }
+                )
+            }
         }
 
         if (!isValid && date.isNotEmpty() && departureTime.isNotEmpty() && arrivalTime.isNotEmpty()) {
-            val now = Calendar.getInstance().time
-            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-            val dep = try { sdf.parse("$date $departureTime") } catch(e: Exception) { null }
+            val nowValid = Calendar.getInstance().apply { add(Calendar.MINUTE, -15); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.time
+            val dep = try { sdfDateTime.parse("$date $departureTime") } catch(_: Exception) { null }
+            val arr = try { sdfDateTime.parse("$date $arrivalTime") } catch(_: Exception) { null }
 
-            val errorMsg = if (dep != null && !dep.after(now)) "La salida debe ser futura."
-            else "La llegada debe ser al menos 30 min después de la salida."
+            val errorMsg = if (dep != null && dep.before(nowValid)) "La salida debe ser hoy o en el futuro."
+            else if (dep != null && arr != null && arr.time < (dep.time + 30 * 60 * 1000)) "La llegada debe ser al menos 30 min después de la salida."
+            else "Horario no válido."
 
-            Text(errorMsg, color = Color.Red, fontSize = 12.sp)
+            Text(errorMsg, color = Color.Red, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
 
         Text("Selecciona tu vehículo", color = UAMColor, fontWeight = FontWeight.Bold)
-
-        CarSelectionList(
-            cars = cars,
-            selectedCar = selectedCar,
-            onCarSelected = onCarChange
-        )
+        CarSelectionList(cars = cars, selectedCar = selectedCar, onCarSelected = onCarChange)
 
         Text("Asientos disponibles", color = UAMColor, fontWeight = FontWeight.Bold)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -483,11 +498,7 @@ fun Step2Schedule(
 }
 
 @Composable
-fun CarSelectionList(
-    cars: List<Carro>,
-    selectedCar: Carro?,
-    onCarSelected: (Carro) -> Unit
-) {
+fun CarSelectionList(cars: List<Carro>, selectedCar: Carro?, onCarSelected: (Carro) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         cars.forEach { car ->
             val isSelected = car.id == selectedCar?.id
@@ -495,24 +506,13 @@ fun CarSelectionList(
                 onClick = { onCarSelected(car) },
                 shape = RoundedCornerShape(16.dp),
                 color = if (isSelected) UAMColor.copy(alpha = 0.08f) else Color.White,
-                border = BorderStroke(
-                    width = if (isSelected) 2.dp else 1.dp,
-                    color = if (isSelected) UAMColor else Color.LightGray.copy(alpha = 0.5f)
-                ),
+                border = BorderStroke(width = if (isSelected) 2.dp else 1.dp, color = if (isSelected) UAMColor else Color.LightGray.copy(alpha = 0.5f)),
                 shadowElevation = if (isSelected) 2.dp else 0.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .background(if (isSelected) UAMColor.copy(alpha = 0.1f) else Color.Gray.copy(alpha = 0.1f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.DirectionsCar, contentDescription = null, tint = if (isSelected) UAMColor else Color.Gray, modifier = Modifier.size(28.dp))
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(48.dp).background(if (isSelected) UAMColor.copy(alpha = 0.1f) else Color.Gray.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.DirectionsCar, null, tint = if (isSelected) UAMColor else Color.Gray, modifier = Modifier.size(28.dp))
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
@@ -525,9 +525,7 @@ fun CarSelectionList(
                             Text(text = car.color ?: "N/A", fontSize = 13.sp, color = Color.Gray)
                         }
                     }
-                    if (isSelected) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = "Seleccionado", tint = UAMColor, modifier = Modifier.size(24.dp))
-                    }
+                    if (isSelected) Icon(Icons.Default.CheckCircle, null, tint = UAMColor, modifier = Modifier.size(24.dp))
                 }
             }
         }
@@ -542,7 +540,7 @@ fun Step3Price(
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Aporte por persona", style = MaterialTheme.typography.titleLarge, color = UAMColor, fontWeight = FontWeight.Bold)
-        OutlinedTextField(value = price, onValueChange = onPriceChange, label = { Text("Monto en Córdoba (C$)") }, prefix = { Text("C$ ") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+        OutlinedTextField(value = price, onValueChange = onPriceChange, label = { Text("Monto en Córdoba (C$)") }, prefix = { Text("C$ ") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.Black, unfocusedTextColor = Color.Black))
 
         Card(colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), shape = RoundedCornerShape(16.dp)) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -579,96 +577,12 @@ fun SuccessRideDialog(onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) {
             Card(modifier = Modifier.fillMaxWidth(0.85f).padding(16.dp), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color(0xFF4CAF50))
+                Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(64.dp), tint = Color(0xFF4CAF50))
                     Text("¡Viaje Publicado!", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
                     Text("Tu viaje se ha registrado con éxito. Los pasajeros ahora podrán ver tu ruta disponible.", textAlign = TextAlign.Center, color = Color.Gray, fontSize = 14.sp)
-                    Button(
-                        onClick = onDismiss,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = UAMColor)
-                    ) {
+                    Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = UAMColor)) {
                         Text("Excelente", color = Color.White)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun SuccessRideDialog(onDismiss: () -> Unit) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth(0.85f)
-                    .padding(16.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .background(UAMColor.copy(alpha = 0.1f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            modifier = Modifier.size(50.dp),
-                            tint = UAMColor
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Text(
-                        "¡Viaje Publicado!",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = UAMColor,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        "Tu ruta ha sido creada con éxito. Los estudiantes ahora pueden ver tu oferta.",
-                        fontSize = 14.sp,
-                        color = Color.Gray,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 20.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Button(
-                        onClick = onDismiss,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = UAMColor)
-                    ) {
-                        Text("Ver mis viajes", fontWeight = FontWeight.Bold)
                     }
                 }
             }
