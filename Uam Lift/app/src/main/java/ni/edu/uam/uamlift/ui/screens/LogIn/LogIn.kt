@@ -167,38 +167,6 @@ fun LogIn(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     if (!googleVerificado) {
-                        // Botón de Google inicial
-                        OutlinedButton(
-                            onClick = { manejarLoginGoogle() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = Color.Gray
-                            )
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                // Aquí podrías poner un icono de Google
-                                Text(
-                                    text = "Continuar con Google",
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 16.sp
-                                )
-                            }
-                        }
-                        
-                        Text(
-                            text = "o usa tu CIF si ya tienes cuenta",
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center,
-                            fontSize = 12.sp,
-                            color = Color.Gray
-                        )
-
                         OutlinedTextField(
                             value = email,
                             onValueChange = {
@@ -350,6 +318,39 @@ fun LogIn(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            if (!googleVerificado) {
+                OutlinedButton(
+                    onClick = { manejarLoginGoogle() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black
+                    )
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_google),
+                            contentDescription = "Google Logo",
+                            modifier = Modifier.size(24.dp),
+                            tint = Color.Unspecified
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Continuar con Google",
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+            }
 
             Column(
                 modifier = Modifier.fillMaxWidth(),

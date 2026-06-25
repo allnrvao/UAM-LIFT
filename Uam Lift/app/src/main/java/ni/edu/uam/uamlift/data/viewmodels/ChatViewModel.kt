@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.*
 import ni.edu.uam.uamlift.data.ChatWebSocketManager
 import ni.edu.uam.uamlift.data.api.ChatApi
 import ni.edu.uam.uamlift.data.api.UsuarioApiService
+import ni.edu.uam.uamlift.data.models.Usuario
 
 data class MensajeUI(
     val id: Long,
@@ -25,6 +26,7 @@ class ChatViewModel(
 
     private val ws = ChatWebSocketManager()
     private val nombresCache = mutableMapOf<Long, String>()
+    private val fetchingIds = mutableSetOf<Long>()
 
     private val _mensajesUi = MutableStateFlow<List<MensajeUI>>(emptyList())
     val mensajesUi = _mensajesUi.asStateFlow()
@@ -40,19 +42,18 @@ class ChatViewModel(
         _mensajesUi.value = emptyList()
 
         connectionJob = viewModelScope.launch {
-            // 1. Conectar al WebSocket
             try {
                 ws.conectar(viajeId)
             } catch (e: Exception) {
                 Log.e("ChatViewModel", "Error al conectar WS: ${e.message}")
             }
 
-            // 2. Lanzar la escucha en tiempo real en un job separado de inmediato
+            // Escucha de mensajes en tiempo real
             launch {
                 ws.mensajes
                     .filter { it.viajeId == viajeId }
                     .collect { nuevo ->
-                        val nombre = obtenerNombreUsuario(nuevo.usuarioId)
+                        val nombre = resolveName(nuevo.usuarioId)
                         val nuevoUi = MensajeUI(
                             id = nuevo.id,
                             usuarioId = nuevo.usuarioId,
@@ -63,19 +64,19 @@ class ChatViewModel(
                         )
                         
                         _mensajesUi.update { actual ->
-                            // Evitar duplicados si el historial y el socket traen el mismo mensaje
                             if (actual.any { it.id == nuevoUi.id }) actual else actual + nuevoUi
                         }
                     }
             }
 
+            // Carga de historial
             try {
                 val historial = api.obtenerHistorial(viajeId)
                 val listaHistorialUi = historial.map { res ->
                     MensajeUI(
                         id = res.id,
                         usuarioId = res.usuarioId,
-                        usuarioNombre = obtenerNombreUsuario(res.usuarioId),
+                        usuarioNombre = resolveName(res.usuarioId),
                         contenido = res.contenido,
                         fechaEnvio = res.fechaEnvio,
                         isMe = res.usuarioId == currentUserId
@@ -87,37 +88,94 @@ class ChatViewModel(
                     val historialFiltrado = listaHistorialUi.filter { it.id !in idsExistentes }
                     (historialFiltrado + actual).sortedBy { it.id }
                 }
-                Log.d("ChatViewModel", "Historial sincronizado con éxito")
+                
+                // Intentar resolver nombres faltantes después de cargar
+                resolveMissingNames()
+                
             } catch (e: Exception) {
                 Log.e("ChatViewModel", "Error al cargar historial: ${e.message}")
             }
         }
     }
 
-    private suspend fun obtenerNombreUsuario(usuarioId: Long): String {
-        return nombresCache[usuarioId] ?: withContext(Dispatchers.IO) {
+    private fun resolveName(id: Long): String {
+        val cached = synchronized(nombresCache) { nombresCache[id] }
+        return if (cached != null) {
+            cached
+        } else {
+            fetchNameAsync(id)
+            "Usuario #$id"
+        }
+    }
+
+    private fun fetchNameAsync(id: Long) {
+        synchronized(fetchingIds) {
+            if (fetchingIds.contains(id)) return
+            fetchingIds.add(id)
+        }
+        
+        viewModelScope.launch(Dispatchers.IO) {
             try {
-                val usuario = usuarioApi.obtenerPorId(usuarioId)
-                val nombreCompleto = "${usuario.nombre ?: ""} ${usuario.apellido ?: ""}".trim()
-                val nombreAMostrar = if (nombreCompleto.isNotEmpty()) nombreCompleto else usuario.nombreUsuario ?: "Usuario $usuarioId"
+                val u = usuarioApi.obtenerPorId(id)
+                val name = u.nombreUsuario?.takeIf { it.isNotBlank() }
+                    ?: "${u.nombre ?: ""} ${u.apellido ?: ""}".trim().ifEmpty { "Usuario #$id" }
+                
                 synchronized(nombresCache) {
-                    nombresCache[usuarioId] = nombreAMostrar
+                    nombresCache[id] = name
                 }
-                nombreAMostrar
+                
+                withContext(Dispatchers.Main) {
+                    _mensajesUi.update { actual ->
+                        actual.map { 
+                            if (it.usuarioId == id) it.copy(usuarioNombre = name) else it 
+                        }
+                    }
+                }
             } catch (e: Exception) {
-                "Usuario $usuarioId"
+                Log.e("ChatViewModel", "Error fetching name for $id: ${e.message}")
+            } finally {
+                synchronized(fetchingIds) {
+                    fetchingIds.remove(id)
+                }
             }
         }
     }
 
-    fun enviarMensaje(viajeId: Long, usuarioId: Long, texto: String) {
-        if (texto.isNotBlank()) {
-            ws.enviarMensaje(viajeId, usuarioId, texto)
+    private fun resolveMissingNames() {
+        val missingIds = _mensajesUi.value
+            .filter { it.usuarioNombre.startsWith("Usuario #") }
+            .map { it.usuarioId }
+            .distinct()
+        
+        missingIds.forEach { fetchNameAsync(it) }
+    }
+
+    fun precargarNombres(participantes: List<Usuario>) {
+        participantes.forEach { u ->
+            val id = u.id ?: return@forEach
+            val name = u.nombreUsuario?.takeIf { it.isNotBlank() }
+                ?: "${u.nombre ?: ""} ${u.apellido ?: ""}".trim().ifEmpty { "Usuario #$id" }
+            
+            synchronized(nombresCache) {
+                nombresCache[id] = name
+            }
+            
+            // Actualizar mensajes existentes con este nombre precargado
+            _mensajesUi.update { actual ->
+                actual.map { 
+                    if (it.usuarioId == id) it.copy(usuarioNombre = name) else it 
+                }
+            }
+        }
+    }
+
+    fun enviarMensaje(viajeId: Long, usuarioId: Long, contenido: String) {
+        if (contenido.isNotBlank()) {
+            ws.enviarMensaje(viajeId, usuarioId, contenido)
         }
     }
 
     override fun onCleared() {
         ws.desconectar()
-        super.onCleared()
     }
 }

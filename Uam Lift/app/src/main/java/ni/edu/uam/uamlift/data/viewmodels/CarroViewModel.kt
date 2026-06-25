@@ -34,7 +34,7 @@ class CarroViewModel : ViewModel() {
             mensajeError = null
             try {
                 val nuevoCarro = Carro(
-                    placa = placa,
+                    placa = placa.uppercase().trim(),
                     marca = marca,
                     modelo = modelo,
                     color = color,
@@ -45,7 +45,7 @@ class CarroViewModel : ViewModel() {
                     obtenerCarrosPorUsuario(propietario.id ?: 0)
                     onResultado(true)
                 } else {
-                    mensajeError = "Error al crear el carro: ${response.code()}"
+                    mensajeError = "No se pudo registrar el vehículo. Verifica los datos."
                     onResultado(false)
                 }
             } catch (e: Exception) {
@@ -53,6 +53,26 @@ class CarroViewModel : ViewModel() {
                 onResultado(false)
             } finally {
                 cargando = false
+            }
+        }
+    }
+
+    fun verificarPlacaUnica(placa: String, onResultado: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.carroApi.obtenerPorPlaca(placa.uppercase().trim())
+                if (response.isSuccessful) {
+                    // Si el carro existe, la placa no es única
+                    onResultado(response.body() == null)
+                } else if (response.code() == 404) {
+                    // Si es 404, significa que no existe, por lo tanto es única
+                    onResultado(true)
+                } else {
+                    onResultado(false)
+                }
+            } catch (e: Exception) {
+                // En caso de error, por seguridad asumimos que no es única o hay error de red
+                onResultado(false)
             }
         }
     }

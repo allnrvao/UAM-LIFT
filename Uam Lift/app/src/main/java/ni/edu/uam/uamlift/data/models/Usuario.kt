@@ -24,5 +24,9 @@ data class Usuario(
     @SerializedName("correoVerificado")
     var correoVerificado: Boolean = false,
     @SerializedName("numeroViajes")
-    var numeroViajes: Int = 0
+    var numeroViajes: Int = 0,
+    @SerializedName("kilometrosTotales")
+    var kilometrosTotales: Double = 0.0,
+    @SerializedName("co2Ahorrado")
+    var co2Ahorrado: Double = 0.0
 )

@@ -14,7 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import ni.edu.uam.uamlift.data.models.EstadoViajeUsuario
+import ni.edu.uam.uamlift.data.enums.EstadoViajeUsuario
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
 
@@ -28,7 +28,6 @@ fun MessagesScreen(
     val misViajes by viajeViewModel.misViajes.collectAsState()
     val usuario = usuarioViewModel.usuario
     val currentUserId = usuario.id ?: 0L
-    val currentUserName = usuario.nombreUsuario ?: "Usuario"
 
     // Paleta de colores
     val chatBgColor = Color(0xFFF8FAFC)

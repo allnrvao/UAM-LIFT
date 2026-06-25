@@ -1,6 +1,7 @@
 package ni.edu.uam.uamlift.ui.screens.messages
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +26,11 @@ import ni.edu.uam.uamlift.data.RetrofitClient
 import ni.edu.uam.uamlift.data.RetrofitClient2
 import ni.edu.uam.uamlift.data.viewmodels.ChatViewModel
 import ni.edu.uam.uamlift.data.viewmodels.ChatViewModelFactory
+import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
+import ni.edu.uam.uamlift.ui.components.PassengersDialog
+import ni.edu.uam.uamlift.ui.theme.UAMColor
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,29 +39,52 @@ fun ChatScreen(
     currentUserId: Long,
     name: String,
     initials: String,
-    isOnline: Boolean = true,
+    isOnline: Boolean = false,
     onBackClick: () -> Unit,
     viewModel: ChatViewModel = viewModel(
         factory = ChatViewModelFactory(
             RetrofitClient2.chatApi,
             RetrofitClient.usuarioApi
         )
-    )
+    ),
+    viajeViewModel: ViajeViewModel = viewModel()
 ) {
     val messagesList by viewModel.mensajesUi.collectAsState()
     var textState by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
-
-    // Paleta de colores UAM LIFT
-    val uamColor = Color(0xFF019AA8)
-    val avatarBgColor = Color(0xFFE4F2F3)
     val chatBgColor = Color(0xFFF8FAFC)
-    val onlineGreen = Color(0xFF00E676)
+
+    val misViajes by viajeViewModel.misViajes.collectAsState()
+    val viajeActual = remember(misViajes, viajeId) {
+        misViajes.find { it.id == viajeId }
+    }
+
+    val pasajeros by viajeViewModel.pasajerosViaje.collectAsState()
+    
+    // Precarga de nombres mejorada: Incluye a pasajeros y al conductor
+    LaunchedEffect(pasajeros, viajeActual) {
+        val todosLosUsuarios = pasajeros.toMutableList()
+        viajeActual?.conductor?.let { todosLosUsuarios.add(it) }
+        if (todosLosUsuarios.isNotEmpty()) {
+            viewModel.precargarNombres(todosLosUsuarios)
+        }
+    }
 
     LaunchedEffect(viajeId, currentUserId) {
         if (currentUserId != 0L) {
+            viajeViewModel.obtenerPasajeros(viajeId)
             viewModel.iniciarChat(viajeId, currentUserId)
         }
+    }
+
+    var mostrarPasajeros by remember { mutableStateOf(false) }
+
+    if (mostrarPasajeros) {
+        PassengersDialog(
+            conductor = viajeActual?.conductor,
+            pasajeros = pasajeros, 
+            onDismissRequest = { mostrarPasajeros = false }
+        )
     }
 
     LaunchedEffect(messagesList.size) {
@@ -64,180 +94,120 @@ fun ChatScreen(
     }
 
     Scaffold(
+        containerColor = chatBgColor,
         topBar = {
-            Surface(
-                color = Color.White,
-                tonalElevation = 2.dp,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Surface(color = Color.White, shadowElevation = 1.dp) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .statusBarsPadding()
-                        .padding(horizontal = 12.dp, vertical = 14.dp),
+                    modifier = Modifier.statusBarsPadding().fillMaxWidth()
+                        .clickable { mostrarPasajeros = true }
+                        .padding(horizontal = 8.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Regresar",
-                            tint = Color.Black
-                        )
+                    IconButton(onClick = onBackClick) { Icon(Icons.Default.ArrowBack, null) }
+                    Surface(modifier = Modifier.size(44.dp), shape = CircleShape, color = Color(0xFFF1F5F9)) {
+                        Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Groups, null, tint = UAMColor) }
                     }
-
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    Box(modifier = Modifier.size(52.dp)) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(avatarBgColor),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = initials,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = uamColor
-                            )
-                        }
-                        if (isOnline) {
-                            Box(
-                                modifier = Modifier
-                                    .size(14.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.White)
-                                    .align(Alignment.BottomEnd),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(9.dp)
-                                        .clip(CircleShape)
-                                        .background(onlineGreen)
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(14.dp))
-
+                    Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text(
-                            text = name,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
-                        if (isOnline) {
-                            Text(
-                                text = "En línea",
-                                fontSize = 14.sp,
-                                color = onlineGreen,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
+                        Text(text = name, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "Grupo de viaje", fontSize = 12.sp, color = Color.Gray)
                     }
                 }
             }
         },
         bottomBar = {
-            Surface(
-                color = Color.White,
-                tonalElevation = 8.dp,
-                modifier = Modifier.navigationBarsPadding()
-            ) {
+            Surface(color = Color.White, shadowElevation = 16.dp) {
                 Row(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                        .fillMaxWidth(),
+                    modifier = Modifier.navigationBarsPadding().padding(16.dp).fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextField(
-                        value = textState,
-                        onValueChange = { textState = it },
+                        value = textState, onValueChange = { textState = it },
                         modifier = Modifier.weight(1f),
                         placeholder = { Text("Escribe un mensaje...") },
                         colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color(0xFFF1F5F9),
-                            unfocusedContainerColor = Color(0xFFF1F5F9),
-                            focusedIndicatorColor = Color.Transparent,
+                            focusedContainerColor = Color(0xFFF1F5F9), 
+                            unfocusedContainerColor = Color(0xFFF1F5F9), 
+                            focusedIndicatorColor = Color.Transparent, 
                             unfocusedIndicatorColor = Color.Transparent
                         ),
                         shape = RoundedCornerShape(24.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    FloatingActionButton(
-                        onClick = {
-                            if (textState.isNotBlank()) {
+                    Spacer(modifier = Modifier.width(12.dp))
+                    FilledIconButton(
+                        onClick = { 
+                            if (textState.isNotBlank()) { 
                                 viewModel.enviarMensaje(viajeId, currentUserId, textState)
-                                textState = ""
-                            }
+                                textState = "" 
+                            } 
                         },
-                        containerColor = uamColor,
-                        contentColor = Color.White,
-                        shape = CircleShape,
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(48.dp),
+                        colors = IconButtonDefaults.filledIconButtonColors(containerColor = UAMColor)
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar")
+                        Icon(Icons.AutoMirrored.Filled.Send, null, tint = Color.White)
                     }
                 }
             }
         }
-    ) { paddingValues ->
+    ) { padding ->
         LazyColumn(
             state = listState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(chatBgColor)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(vertical = 20.dp)
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp)
         ) {
             items(messagesList) { message ->
                 val isMe = message.isMe
-                val alignment = if (isMe) Alignment.End else Alignment.Start
-
-                val bubbleShape = if (isMe) {
-                    RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 24.dp, bottomEnd = 4.dp)
-                } else {
-                    RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 24.dp)
-                }
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = alignment
-                ) {
+                Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = if (isMe) Alignment.End else Alignment.Start) {
                     if (!isMe) {
                         Text(
-                            text = message.usuarioNombre,
-                            fontSize = 12.sp,
-                            color = Color.Gray,
-                            modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
+                            text = message.usuarioNombre, 
+                            fontSize = 12.sp, 
+                            fontWeight = FontWeight.Bold, 
+                            color = UAMColor, 
+                            modifier = Modifier.padding(start = 12.dp, bottom = 4.dp)
                         )
                     }
-                    Card(
-                        shape = bubbleShape,
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isMe) uamColor else Color.White
+                    Surface(
+                        shape = RoundedCornerShape(
+                            topStart = 16.dp, 
+                            topEnd = 16.dp, 
+                            bottomStart = if (isMe) 16.dp else 2.dp, 
+                            bottomEnd = if (isMe) 2.dp else 16.dp
                         ),
-                        elevation = CardDefaults.cardElevation(
-                            defaultElevation = if (isMe) 2.dp else 1.dp
-                        ),
-                        modifier = Modifier.widthIn(max = 280.dp)
+                        color = if (isMe) UAMColor else Color.White,
+                        shadowElevation = 1.dp
                     ) {
-                        Text(
-                            text = message.contenido,
-                            fontSize = 16.sp,
-                            lineHeight = 22.sp,
-                            color = if (isMe) Color.White else Color.Black,
-                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp)
-                        )
+                        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
+                            Text(text = message.contenido, fontSize = 15.sp, color = if (isMe) Color.White else Color(0xFF1E293B))
+                            Text(
+                                text = formatChatTime(message.fechaEnvio),
+                                fontSize = 10.sp,
+                                color = if (isMe) Color.White.copy(alpha = 0.7f) else Color.Gray,
+                                modifier = Modifier.align(Alignment.End).padding(top = 2.dp)
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+fun formatChatTime(fecha: String): String {
+    return try {
+        val timestamp = fecha.toLongOrNull()
+        if (timestamp != null) {
+            val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+            return sdf.format(Date(timestamp))
+        }
+        if (fecha.contains("T")) {
+            val inputSdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+            val date = inputSdf.parse(fecha)
+            return SimpleDateFormat("HH:mm", Locale.getDefault()).format(date!!)
+        }
+        fecha.takeLast(5)
+    } catch (e: Exception) {
+        "00:00"
     }
 }

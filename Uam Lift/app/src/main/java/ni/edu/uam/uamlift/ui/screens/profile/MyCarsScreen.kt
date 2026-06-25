@@ -26,6 +26,7 @@ import androidx.navigation.NavController
 import ni.edu.uam.uamlift.data.models.Carro
 import ni.edu.uam.uamlift.data.viewmodels.CarroViewModel
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
+import ni.edu.uam.uamlift.ui.theme.Gray
 import ni.edu.uam.uamlift.ui.theme.UAMColor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,7 +73,7 @@ fun MyCarsScreen(
             }
         }
     ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize().background(Color(0xFFF8FAFC))) {
+        Box(modifier = Modifier.padding(padding).fillMaxSize().background(Gray)) {
             if (carroViewModel.cargando && carroViewModel.listaCarros.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = UAMColor)
@@ -258,10 +259,11 @@ fun EditCarDialog(carro: Carro, onDismiss: () -> Unit, onConfirm: (Carro) -> Uni
         title = { Text("Editar Vehículo", fontWeight = FontWeight.Black, color = UAMColor) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 8.dp)) {
-                OutlinedTextField(value = placa, onValueChange = { placa = it }, label = { Text("Placa") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
-                OutlinedTextField(value = marca, onValueChange = { marca = it }, label = { Text("Marca") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
-                OutlinedTextField(value = modelo, onValueChange = { modelo = it }, label = { Text("Modelo") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
-                OutlinedTextField(value = color, onValueChange = { color = it }, label = { Text("Color") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+                val textFieldColors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.Black, unfocusedTextColor = Color.Black)
+                OutlinedTextField(value = placa, onValueChange = { if (it.matches(Regex("^[a-zA-Z0-9-]*\$"))) placa = it.uppercase() }, label = { Text("Placa") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = textFieldColors)
+                OutlinedTextField(value = marca, onValueChange = { if (it.matches(Regex("^[a-zA-Z0-9\\s\\u00C0-\\u017F]*\$"))) marca = it }, label = { Text("Marca") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = textFieldColors)
+                OutlinedTextField(value = modelo, onValueChange = { if (it.matches(Regex("^[a-zA-Z0-9\\s\\u00C0-\\u017F]*\$"))) modelo = it }, label = { Text("Modelo") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = textFieldColors)
+                OutlinedTextField(value = color, onValueChange = { if (it.matches(Regex("^[a-zA-Z0-9\\s\\u00C0-\\u017F]*\$"))) color = it }, label = { Text("Color") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = textFieldColors)
             }
         },
         confirmButton = {

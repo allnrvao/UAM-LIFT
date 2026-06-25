@@ -33,9 +33,6 @@ interface ViajeApiService {
         @Path("usuarioCif") usuarioCif: String
     ): Boolean
 
-    @PUT("api/viajes/{viajeId}/finalizar")
-    suspend fun finalizarViaje(@Path("viajeId") viajeId: Long): Boolean
-
     @PUT("api/viajes/{viajeId}/cancelar")
     suspend fun cancelarViaje(@Path("viajeId") viajeId: Long): Boolean
 
@@ -60,9 +57,6 @@ interface ViajeApiService {
 
     @GET("api/viajes/noconductor/{usuarioId}")
     suspend fun usuarioEsConductor(@Path("usuarioId") usuarioId: Long): Boolean
-
-    @PUT("api/viajes/{viajeId}/iniciar")
-    suspend fun iniciarViaje(@Path("viajeId") viajeId: Long): Boolean
 
     @GET("api/viajes/{viajeId}/pasajeros")
     suspend fun obtenerPasajerosPorViaje(@Path("viajeId") viajeId: Long): List<Usuario>

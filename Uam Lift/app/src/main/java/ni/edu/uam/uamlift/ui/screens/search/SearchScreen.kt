@@ -33,8 +33,8 @@ fun SearchScreen(
     var activeChip by remember { mutableStateOf("Todos") }
     val usuario = usuarioViewModel.usuario
 
-        val viajesBackend by viajeViewModel.viajes.collectAsState()
-        val cargando by viajeViewModel.isLoading.collectAsState()
+    // Estado para capturar lo que el estudiante escribe
+    var searchQuery by remember { mutableStateOf("") }
 
     // Al iniciar la pantalla o cuando el usuario esté cargado, refrescamos los viajes
     // pasando el ID para que el ViewModel separe "Mis Viajes" de "Otros Viajes"
@@ -67,58 +67,61 @@ fun SearchScreen(
 
             matchesQuery && matchesChip
         }
+    }
 
-        val viajesFiltrados = remember(viajesBackend, searchQuery, activeChip) {
-            viajesBackend.filter { viaje ->
-                val nombreCompleto = "${viaje.conductor?.nombre.orEmpty()} ${viaje.conductor?.apellido.orEmpty()}"
-                val origen = viaje.origen?.nombre.orEmpty()
-                val destino = viaje.destino?.nombre.orEmpty()
+    Column(modifier = modifier.fillMaxSize().background(Gray)) {
+        // Header + Search Bar
+        Surface(
+            color = Color.White,
+            shadowElevation = 4.dp
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    "Buscar viaje", fontSize = 30.sp,
+                    fontWeight = FontWeight.Black, color = UAMColor,
+                )
 
-                val matchesQuery = nombreCompleto.contains(searchQuery, ignoreCase = true) ||
-                        origen.contains(searchQuery, ignoreCase = true) ||
-                        destino.contains(searchQuery, ignoreCase = true)
+                Spacer(modifier = Modifier.height(12.dp))
 
-                val horaSalida = viaje.fechaHoraSalida?.substringAfter("T")?.take(5).orEmpty()
-                val matchesChip = when (activeChip) {
-                    "Mañana" -> horaSalida in "00:00".."11:59"
-                    "Tarde" -> horaSalida in "12:00".."23:59"
-                    "Económicos" -> viaje.precioPorPersona <= 100.0
-                    else -> true
-                }
-                matchesQuery && matchesChip
-            }
-        }
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Origen, destino o conductor...") },
+                    leadingIcon = { Icon(Icons.Default.Search, null) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
+                )
 
-        Column(modifier = Modifier.fillMaxSize().background(Gray)) {
-            Surface(color = Color.White, shadowElevation = 4.dp) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text("Viajes Disponibles", fontSize = 28.sp, fontWeight = FontWeight.Black, color = UAMColor)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text("¿A dónde vas?") },
-                        leadingIcon = { Icon(Icons.Default.Search, null) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        chips.forEach { chip ->
-                            FilterChip(
-                                selected = activeChip == chip,
-                                onClick = { activeChip = chip },
-                                label = { Text(chip) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = UAMColor,
-                                    selectedLabelColor = Color.White
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    chips.forEach { chip ->
+                        val isSelected = activeChip == chip
+
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { activeChip = chip },
+                            label = {
+                                Text(
+                                    text = chip,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                 )
-                            )
-                        }
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                containerColor = Color(0x1900BCD4),
+                                labelColor = UAMColor,
+                                selectedContainerColor = UAMColor,
+                                selectedLabelColor = Color.White
+                            ),
+                            border = null
+                        )
                     }
                 }
             }
+        }
 
         // Listado Dinámico
         LazyColumn(
@@ -143,8 +146,10 @@ fun SearchScreen(
                     }
                 }
             } else if (viajesFiltrados.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No hay viajes disponibles por ahora", color = Color.Gray)
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                        Text("No se encontraron viajes", color = Color.Gray, fontSize = 16.sp)
+                    }
                 }
             } else {
                 items(viajesFiltrados) { miViaje ->
