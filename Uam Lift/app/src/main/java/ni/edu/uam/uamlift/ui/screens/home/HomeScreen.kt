@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
+import ni.edu.uam.uamlift.data.models.Viaje
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
 import ni.edu.uam.uamlift.ui.components.RideCard
@@ -39,9 +40,17 @@ fun HomeScreen(
     val cargando by viajeViewModel.isLoading.collectAsState()
     val pasajerosViaje by viajeViewModel.pasajerosViaje.collectAsState()
 
-    // CARGA DE DATOS AL INICIAR
-    LaunchedEffect(Unit) {
-        viajeViewModel.cargarViajesDesdeBackend()
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val tabs = listOf("Explorar", "Mis Viajes")
+
+    var selectedViaje by remember { mutableStateOf<Viaje?>(null) }
+
+    if (selectedViaje != null) {
+        PassengersDialog(
+            conductor = selectedViaje?.conductor,
+            pasajeros = pasajerosViaje,
+            onDismissRequest = { selectedViaje = null }
+        )
     }
 
     Box(modifier = modifier.fillMaxSize().background(backgroundColor)) {
@@ -210,7 +219,7 @@ fun HomeScreen(
                                         )
                                     },
                                     onVerPasajeros = { idViaje ->
-                                        viajeParaPasajeros = idViaje
+                                        selectedViaje = viaje
                                         viajeViewModel.obtenerPasajeros(idViaje)
                                     }
                                 )
@@ -220,7 +229,6 @@ fun HomeScreen(
                 }
                 item { Spacer(modifier = Modifier.height(80.dp)) }
             }
-            item { Spacer(modifier = Modifier.height(80.dp)) }
         }
     }
 }

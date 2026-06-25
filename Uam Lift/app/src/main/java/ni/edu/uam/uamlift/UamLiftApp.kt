@@ -25,12 +25,14 @@ import ni.edu.uam.uamlift.ui.screens.myRides.MyRidesScreen
 import ni.edu.uam.uamlift.ui.screens.profile.EditProfileScreen
 import ni.edu.uam.uamlift.ui.screens.profile.MyCarsScreen
 import ni.edu.uam.uamlift.ui.screens.profile.ProfileScreen
-import ni.edu.uam.uamlift.ui.screens.search.SearchScreen
+
 
 @SuppressLint("ViewModelConstructorInComposable")
 @Composable
 fun UamLiftApp() {
+
     var currentTab by remember { mutableStateOf("home") }
+
     val navController = rememberNavController()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -45,23 +47,16 @@ fun UamLiftApp() {
     val bottomBarRoutes = setOf(
         "home",
         "search",
-        "my_rides",
         "create",
         "messages",
         "profile"
     )
 
-    // Sincronizar el currentTab con la navegación real
-    LaunchedEffect(currentRoute) {
-        if (currentRoute in bottomBarRoutes) {
-            currentTab = currentRoute!!
-        }
-    }
-
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             if (currentRoute in bottomBarRoutes) {
+
                 BottomNavigationBar(currentTab) { newTab ->
                     navController.navigate(newTab) {
                         popUpTo(navController.graph.startDestinationId) {
@@ -74,37 +69,54 @@ fun UamLiftApp() {
             }
         }
     ) { paddingValues ->
+
         NavHost(
             navController = navController,
             startDestination = "splash",
             modifier = Modifier.padding(paddingValues)
         ) {
-            composable("splash") {
-                SplashScreen(onDone = {
-                    navController.navigate("login") {
-                        popUpTo("splash") { inclusive = true }
-                    }
-                })
-            }
 
-            composable("login") {
-                LogIn(
-                    navController = navController,
-                    usuarioViewModel = usuarioViewModel,
-                    onLogin = {
-                        navController.navigate("home") {
-                            popUpTo("login") { inclusive = true }
+            // Splash
+            composable("splash") {
+
+                SplashScreen(
+                    onDone = {
+                        navController.navigate("login") {
+                            popUpTo("splash") {
+                                inclusive = true
+                            }
                         }
                     }
                 )
             }
 
+            // Login
+            composable("login") {
+
+                LogIn(
+                    navController = navController,
+                    usuarioViewModel = usuarioViewModel,
+                    onLogin = {
+
+                        navController.navigate("home") {
+
+                            popUpTo("login") {
+                                inclusive = true
+                            }
+                        }
+                    }
+                )
+            }
+
+            // Create Account
             composable("createAccount") {
                 CreateAccountScreen(
                     usuarioViewModel = usuarioViewModel,
                     onAccountCreated = {
                         navController.navigate("home") {
-                            popUpTo("createAccount") { inclusive = true }
+                            popUpTo("createAccount") {
+                                inclusive = true
+                            }
                         }
                     },
                     onBackToLogin = {
@@ -113,22 +125,10 @@ fun UamLiftApp() {
                 )
             }
 
+
+            // Home
             composable("home") {
                 HomeScreen(
-                    usuarioViewModel = usuarioViewModel,
-                    viajeViewModel = viajeViewModel
-                )
-            }
-
-            composable("search") {
-                SearchScreen(
-                    viajeViewModel = viajeViewModel,
-                    usuarioViewModel = usuarioViewModel
-                )
-            }
-            composable("my_rides") {
-                MyRidesScreen(
-                    viajeViewModel = viajeViewModel,
                     usuarioViewModel = usuarioViewModel
                 )
             }
@@ -145,11 +145,14 @@ fun UamLiftApp() {
                 )
             }
 
+            // Messages
             composable("messages") {
                 MessagesScreen()
             }
 
+            // Profile
             composable("profile") {
+
                 ProfileScreen(
                     navController = navController,
                     usuarioViewModel = usuarioViewModel,
@@ -157,8 +160,12 @@ fun UamLiftApp() {
                 )
             }
 
+            // Edit Profile
             composable("edit_profile") {
-                EditProfileScreen(usuarioViewModel = usuarioViewModel)
+
+                EditProfileScreen(
+                    usuarioViewModel = usuarioViewModel
+                )
             }
 
             // Add Car

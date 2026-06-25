@@ -216,13 +216,14 @@ fun EditProfileScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 4. Correo (INTERACTIVO)
+        // 4. Correo (BLOQUEADO)
         ValidatableField(
             value = correoActual,
-            onValueChange = { correoActual = it },
+            onValueChange = {},
             label = "Correo UAM",
-            isValid = correoValido,
-            errorText = errorCorreoTexto
+            isValid = true,
+            errorText = "",
+            readOnly = true
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -342,6 +343,8 @@ fun ValidatableField(
             }
         },
         colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = Color.Black,
+            unfocusedTextColor = Color.Black,
             focusedBorderColor = if (readOnly) Color.Gray else colorEstado,
             unfocusedBorderColor = if (isValid || readOnly) Color.Gray else Color.Red,
             focusedLabelColor = if (readOnly) Color.Gray else colorEstado,

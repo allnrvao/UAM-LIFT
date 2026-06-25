@@ -32,199 +32,113 @@ fun TakeRideDialog(
     onConfirmarViaje: () -> Unit,
     onCancelarParticipacion: () -> Unit
 ) {
-    // 🕒 Formatear la hora de salida
     val horaFormateada = remember(viaje.fechaHoraSalida) {
         try {
             val s = viaje.fechaHoraSalida ?: ""
-            if (s.contains("T")) {
-                s.split("T")[1].substring(0, 5)
-            } else {
-                s
-            }
+            if (s.contains("T")) s.split("T")[1].substring(0, 5) else s
         } catch (_: Exception) {
             viaje.fechaHoraSalida ?: "00:00"
         }
     }
 
+    val asientosLibres = remember(viaje.numeroAsientosDisponibles, viaje.pasajeros.size) {
+        val libres = viaje.numeroAsientosDisponibles - viaje.pasajeros.size
+        if (libres < 0) 0 else libres
+    }
+
+    // Priorizamos nombreUsuario sobre el nombre real
+    val nombreConductor = viaje.conductor?.nombreUsuario?.takeIf { it.isNotBlank() }
+        ?: "${viaje.conductor?.nombre ?: "Conductor"} ${viaje.conductor?.apellido ?: ""}".trim()
+
     Dialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = Color.White
-        ) {
+        Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Header con botón de cerrar
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = onDismissRequest) {
-                        Icon(Icons.Default.Close, contentDescription = "Cerrar")
-                    }
-                    Text(
-                        text = "Detalles del Viaje",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
+                    IconButton(onClick = onDismissRequest) { Icon(Icons.Default.Close, "Cerrar") }
+                    Text(text = "Detalles del Viaje", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     Box(modifier = Modifier.size(48.dp))
                 }
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 24.dp)
-                ) {
-                    // 🗺️ MAPA (Visualización de la ruta)
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(220.dp),
-                        shape = RoundedCornerShape(24.dp)
-                    ) {
+                Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
+                    Card(modifier = Modifier.fillMaxWidth().height(200.dp), shape = RoundedCornerShape(24.dp)) {
                         MapLibreView(
                             modifier = Modifier.fillMaxSize(),
-                            originLat = viaje.origen?.latitud ?: 12.108038,
-                            originLng = viaje.origen?.longitud ?: -86.257292,
-                            destLat = viaje.destino?.latitud ?: 12.1150,
-                            destLng = viaje.destino?.longitud ?: -86.2500,
+                            originLat = viaje.origen?.latitud ?: 12.108,
+                            originLng = viaje.origen?.longitud ?: -86.257,
+                            destLat = viaje.destino?.latitud ?: 12.115,
+                            destLng = viaje.destino?.longitud ?: -86.250,
                             isSelectionEnabled = false,
                             isGesturesEnabled = true
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(Modifier.height(24.dp))
 
-                    // 👤 INFORMACIÓN DEL CONDUCTOR
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(60.dp)
-                                .clip(CircleShape)
-                                .background(UAMColor.copy(alpha = 0.1f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Person,
-                                contentDescription = null,
-                                tint = UAMColor,
-                                modifier = Modifier.size(35.dp)
-                            )
+                        Box(Modifier.size(54.dp).clip(CircleShape).background(UAMColor.copy(alpha = 0.1f)), Alignment.Center) {
+                            Icon(Icons.Default.Person, null, tint = UAMColor, modifier = Modifier.size(30.dp))
                         }
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(Modifier.width(16.dp))
                         Column {
                             Text(
-                                text = "${viaje.conductor?.nombre ?: ""} ${viaje.conductor?.apellido ?: ""}",
+                                text = nombreConductor,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp
+                                fontSize = 18.sp
                             )
-                            Text(
-                                text = "Conductor verificado",
-                                color = Color.Gray,
-                                fontSize = 14.sp
-                            )
+                            Text(text = "Conductor verificado", color = Color.Gray, fontSize = 14.sp)
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
-                    HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(Modifier.height(24.dp))
+                    HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
+                    Spacer(Modifier.height(24.dp))
 
-                    // 🚗 DETALLES DEL VEHÍCULO
-                    Text(
-                        text = "Vehículo",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = UAMColor
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    DetailItem(
-                        icon = Icons.Default.DirectionsCar,
-                        text = "${viaje.carro?.marca ?: "Marca"} ${viaje.carro?.modelo ?: "Modelo"}"
-                    )
-                    DetailItem(
-                        icon = Icons.Default.Numbers,
-                        text = "Placa: ${viaje.carro?.placa ?: "N/A"}"
-                    )
-                    DetailItem(
-                        icon = Icons.Default.Palette,
-                        text = "Color: ${viaje.carro?.color ?: "N/A"}"
-                    )
+                    Text(text = "Vehículo", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = UAMColor)
+                    DetailItem(Icons.Default.DirectionsCar, "${viaje.carro?.marca ?: ""} ${viaje.carro?.modelo ?: ""}")
+                    DetailItem(Icons.Default.Numbers, "Placa: ${viaje.carro?.placa ?: "N/A"}")
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(Modifier.height(24.dp))
 
-                    // 📍 RUTA Y COSTO DEL VIAJE
-                    Text(
-                        text = "Ruta y Aporte",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = UAMColor
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    DetailItem(
-                        icon = Icons.Default.Schedule,
-                        text = "Salida programada: $horaFormateada"
-                    )
-                    DetailItem(
-                        icon = Icons.Default.EventSeat,
-                        text = "${viaje.numeroAsientosDisponibles} asientos disponibles"
-                    )
-                    DetailItem(
-                        icon = Icons.Default.Payments,
-                        text = "Aporte: C$ ${viaje.precioPorPersona.toInt()} por pasajero"
-                    )
+                    Text(text = "Ruta y Aporte", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = UAMColor)
+                    DetailItem(Icons.Default.Schedule, "Salida programada: $horaFormateada")
+                    DetailItem(Icons.Default.EventSeat, "$asientosLibres asientos libres actualmente")
+                    DetailItem(Icons.Default.Payments, "Aporte: C$ ${viaje.precioPorPersona.toInt()} p/p")
 
-                    Spacer(modifier = Modifier.height(40.dp))
+                    Spacer(Modifier.height(40.dp))
 
-                    // 🔘 BOTÓN DE ACCIÓN DINÁMICO
                     if (esPasajero) {
-                        // Si ya es pasajero, permite cancelar la participación
                         Button(
                             onClick = onCancelarParticipacion,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFFFEBEE),
-                                contentColor = Color.Red
-                            ),
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEBEE), contentColor = Color.Red),
                             shape = RoundedCornerShape(16.dp)
                         ) {
-                            Icon(Icons.Default.Cancel, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Cancelar mi participación",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
+                            Icon(Icons.Default.Cancel, null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(text = "Cancelar participación", fontWeight = FontWeight.Bold)
                         }
                     } else {
-                        // Si no es pasajero, permite tomar el viaje
                         Button(
                             onClick = onConfirmarViaje,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = UAMColor,
-                                contentColor = Color.White
-                            ),
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = UAMColor, contentColor = Color.White),
                             shape = RoundedCornerShape(16.dp),
-                            enabled = viaje.numeroAsientosDisponibles > 0
+                            enabled = asientosLibres > 0
                         ) {
                             Text(
-                                text = if (viaje.numeroAsientosDisponibles > 0) "Tomar Viaje" else "Sin asientos disponibles",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
+                                text = if (asientosLibres > 0) "Tomar Viaje" else "Viaje Lleno",
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(Modifier.height(32.dp))
                 }
             }
         }
@@ -232,22 +146,10 @@ fun TakeRideDialog(
 }
 
 @Composable
-fun DetailItem(icon: ImageVector, text: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(vertical = 8.dp)
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = Color.Gray,
-            modifier = Modifier.size(20.dp)
-        )
+private fun DetailItem(icon: ImageVector, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 8.dp)) {
+        Icon(icon, null, tint = Color.DarkGray, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = text,
-            fontSize = 15.sp,
-            color = Color.DarkGray
-        )
+        Text(text = text, fontSize = 15.sp, color = Color.Black)
     }
 }

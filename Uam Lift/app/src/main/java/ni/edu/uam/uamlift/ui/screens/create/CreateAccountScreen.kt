@@ -147,9 +147,14 @@ fun CreateAccountScreen(
                             if (usuarioViewModel.cargando) {
                                 CircularProgressIndicator(modifier = Modifier.size(20.dp), color = PrimaryColor)
                             } else {
-                                Icon(Icons.Default.Mail, null, modifier = Modifier.size(20.dp))
+                                Icon(
+                                    painter = androidx.compose.ui.res.painterResource(id = ni.edu.uam.uamlift.R.drawable.ic_google),
+                                    contentDescription = "Google Logo",
+                                    modifier = Modifier.size(24.dp),
+                                    tint = Color.Unspecified
+                                )
                                 Spacer(Modifier.width(8.dp))
-                                Text("Vincular con Correo UAM", fontWeight = FontWeight.Bold)
+                                Text("Vincular con Google", fontWeight = FontWeight.Bold)
                             }
                         }
                         if (errorCorreo != null) {
@@ -179,6 +184,8 @@ fun CreateAccountScreen(
                     Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color.LightGray.copy(alpha = 0.5f))
 
                     // --- RESTO DE CAMPOS ---
+                    val textFieldColors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.Black, unfocusedTextColor = Color.Black)
+
                     OutlinedTextField(
                         value = usuarioViewModel.usuario.nombre ?: "",
                         onValueChange = { errorNombre = null; usuarioViewModel.actualizarNombre(it) },
@@ -188,7 +195,8 @@ fun CreateAccountScreen(
                         shape = RoundedCornerShape(16.dp),
                         singleLine = true,
                         isError = errorNombre != null,
-                        supportingText = { if (errorNombre != null) Text(errorNombre!!, color = MaterialTheme.colorScheme.error) }
+                        supportingText = { if (errorNombre != null) Text(errorNombre!!, color = MaterialTheme.colorScheme.error) },
+                        colors = textFieldColors
                     )
 
                     OutlinedTextField(
@@ -200,7 +208,8 @@ fun CreateAccountScreen(
                         shape = RoundedCornerShape(16.dp),
                         singleLine = true,
                         isError = errorApellido != null,
-                        supportingText = { if (errorApellido != null) Text(errorApellido!!, color = MaterialTheme.colorScheme.error) }
+                        supportingText = { if (errorApellido != null) Text(errorApellido!!, color = MaterialTheme.colorScheme.error) },
+                        colors = textFieldColors
                     )
 
                     OutlinedTextField(
@@ -212,7 +221,8 @@ fun CreateAccountScreen(
                         shape = RoundedCornerShape(16.dp),
                         singleLine = true,
                         isError = errorUsuario != null,
-                        supportingText = { if (errorUsuario != null) Text(errorUsuario!!, color = MaterialTheme.colorScheme.error) }
+                        supportingText = { if (errorUsuario != null) Text(errorUsuario!!, color = MaterialTheme.colorScheme.error) },
+                        colors = textFieldColors
                     )
 
                     OutlinedTextField(
@@ -224,7 +234,8 @@ fun CreateAccountScreen(
                         shape = RoundedCornerShape(16.dp),
                         singleLine = true,
                         isError = errorCif != null,
-                        supportingText = { if (errorCif != null) Text(errorCif!!, color = MaterialTheme.colorScheme.error) }
+                        supportingText = { if (errorCif != null) Text(errorCif!!, color = MaterialTheme.colorScheme.error) },
+                        colors = textFieldColors
                     )
 
                     OutlinedTextField(
@@ -238,7 +249,8 @@ fun CreateAccountScreen(
                         shape = RoundedCornerShape(16.dp),
                         singleLine = true,
                         isError = errorContrasenia != null || (passwordActual.isNotEmpty() && !contraseniaEsSegura),
-                        supportingText = { if (errorContrasenia != null) Text(errorContrasenia!!, color = MaterialTheme.colorScheme.error) }
+                        supportingText = { if (errorContrasenia != null) Text(errorContrasenia!!, color = MaterialTheme.colorScheme.error) },
+                        colors = textFieldColors
                     )
 
                     Column(modifier = Modifier.fillMaxWidth().padding(start = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -260,7 +272,8 @@ fun CreateAccountScreen(
                         shape = RoundedCornerShape(16.dp),
                         singleLine = true,
                         isError = errorConfirmacion != null,
-                        supportingText = { if (errorConfirmacion != null) Text(errorConfirmacion!!, color = MaterialTheme.colorScheme.error) }
+                        supportingText = { if (errorConfirmacion != null) Text(errorConfirmacion!!, color = MaterialTheme.colorScheme.error) },
+                        colors = textFieldColors
                     )
                 }
             }

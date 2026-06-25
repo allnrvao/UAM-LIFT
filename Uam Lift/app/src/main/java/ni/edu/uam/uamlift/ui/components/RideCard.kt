@@ -33,9 +33,22 @@ fun RideCard(
 
     val lightTealBg = Color(0xFFE0F7FA)
     val lightTealSeat = Color(0xFFB2EBF2)
-    val grayText = Color(0xFF757575)
+    val grayText = Color(0xFF424242)
 
-    val nombreConductor = "${viaje.conductor?.nombre ?: ""} ${viaje.conductor?.apellido ?: ""}".trim().ifEmpty { "Estudiante UAM" }
+    val esPasajero = remember(viaje.pasajeros) {
+        viaje.pasajeros.any { it.usuario?.id == usuarioIdActual }
+    }
+
+    // LÓGICA DINÁMICA: Restar pasajeros actuales de la capacidad total
+    val asientosLibres = remember(viaje.numeroAsientosDisponibles, viaje.pasajeros.size) {
+        val libres = viaje.numeroAsientosDisponibles - viaje.pasajeros.size
+        if (libres < 0) 0 else libres
+    }
+
+    // Priorizamos nombreUsuario sobre el nombre real para el nombre del conductor
+    val nombreConductor = viaje.conductor?.nombreUsuario?.takeIf { it.isNotBlank() }
+        ?: "${viaje.conductor?.nombre ?: ""} ${viaje.conductor?.apellido ?: ""}".trim().ifEmpty { "Estudiante UAM" }
+
     val initials = (viaje.conductor?.nombre?.take(1) ?: "U") + (viaje.conductor?.apellido?.take(1) ?: "")
 
     val origenTexto = viaje.origen?.nombre ?: "Origen"
@@ -120,8 +133,8 @@ fun RideCard(
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.height(56.dp), verticalArrangement = Arrangement.SpaceBetween) {
-                    Text(text = origenTexto, fontSize = 14.sp, maxLines = 1, color = Color.DarkGray)
-                    Text(text = destinoTexto, fontSize = 14.sp, maxLines = 1, color = Color.DarkGray)
+                    Text(text = origenTexto, fontSize = 14.sp, maxLines = 1, color = Color.Black)
+                    Text(text = destinoTexto, fontSize = 14.sp, maxLines = 1, color = Color.Black)
                 }
             }
 
@@ -151,7 +164,7 @@ fun RideCard(
                 } else {
                     Surface(color = lightTealSeat.copy(alpha = 0.5f), shape = RoundedCornerShape(8.dp)) {
                         Text(
-                            text = "${viaje.numeroAsientosDisponibles} asientos libres",
+                            text = if (esPasajero) "Ya estás unido" else "$asientosLibres asientos libres",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             fontSize = 12.sp, fontWeight = FontWeight.Bold, color = UAMColor
                         )

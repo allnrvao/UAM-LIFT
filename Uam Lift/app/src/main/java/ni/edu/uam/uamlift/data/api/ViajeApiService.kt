@@ -25,4 +25,38 @@ interface ViajeApiService {
         @Path("viajeId") viajeId: Long,
         @Path("usuarioCif") usuarioCif: String
     ): Boolean
+
+    @PUT("api/viajes/{viajeId}/cancelar/{usuarioCif}")
+    suspend fun cancelarParticipacion(
+        @Path("viajeId") viajeId: Long,
+        @Path("usuarioCif") usuarioCif: String
+    ): Boolean
+
+    @PUT("api/viajes/{viajeId}/cancelar")
+    suspend fun cancelarViaje(@Path("viajeId") viajeId: Long): Boolean
+
+    @GET("api/viajes/validar/{usuarioId}/{fechaSalida}/{fechaLlegada}")
+    suspend fun validarFechas(
+        @Path("usuarioId") usuarioId: Long,
+        @Path("fechaSalida") fechaSalida: String,
+        @Path("fechaLlegada") fechaLlegada: String
+    ): Boolean
+
+    @GET("api/viajes/validar/numviajes/{usuarioId}")
+    suspend fun validarNumViajes(@Path("usuarioId") usuarioId: Long): Boolean
+
+    @GET("api/viajes/usuario/{usuarioId}")
+    suspend fun obtenerViajesPorUsuario(@Path("usuarioId") usuarioId: Long): List<Viaje>
+
+    @GET("api/viajes/conductor/{usuarioId}")
+    suspend fun obtenerViajesPorConductor(@Path("usuarioId") usuarioId: Long): List<Viaje>
+
+    @GET("api/viajes/pasajero/{usuarioId}")
+    suspend fun obtenerViajesPorPasajero(@Path("usuarioId") usuarioId: Long): List<Viaje>
+
+    @GET("api/viajes/noconductor/{usuarioId}")
+    suspend fun usuarioEsConductor(@Path("usuarioId") usuarioId: Long): Boolean
+
+    @GET("api/viajes/{viajeId}/pasajeros")
+    suspend fun obtenerPasajerosPorViaje(@Path("viajeId") viajeId: Long): List<Usuario>
 }

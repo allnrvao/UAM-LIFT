@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,6 +26,7 @@ import ni.edu.uam.uamlift.ui.theme.UAMColor
 
 @Composable
 fun PassengersDialog(
+    conductor: Usuario?,
     pasajeros: List<Usuario>,
     onDismissRequest: () -> Unit
 ) {
@@ -48,8 +50,8 @@ fun PassengersDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Pasajeros",
-                        fontSize = 20.sp,
+                        text = "Participantes",
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = UAMColor
                     )
@@ -60,26 +62,52 @@ fun PassengersDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                if (pasajeros.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // --- SECCIÓN CONDUCTOR ---
+                    item {
                         Text(
-                            text = "No hay pasajeros aún",
+                            text = "CONDUCTOR",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.ExtraBold,
                             color = Color.Gray,
-                            fontSize = 14.sp
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                        if (conductor != null) {
+                            PassengerItem(conductor, esConductor = true)
+                        } else {
+                            Text("Información no disponible", fontSize = 14.sp, color = Color.LightGray)
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        HorizontalDivider(color = Color(0xFFEEEEEE))
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    // --- SECCIÓN PASAJEROS ---
+                    item {
+                        Text(
+                            text = "PASAJEROS",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(bottom = 4.dp)
                         )
                     }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
+
+                    if (pasajeros.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().height(60.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("No hay pasajeros aún", color = Color.LightGray, fontSize = 14.sp)
+                            }
+                        }
+                    } else {
                         items(pasajeros) { pasajero ->
-                            PassengerItem(pasajero)
+                            PassengerItem(pasajero, esConductor = false)
                         }
                     }
                 }
@@ -100,48 +128,72 @@ fun PassengersDialog(
 }
 
 @Composable
-fun PassengerItem(usuario: Usuario) {
+fun PassengerItem(usuario: Usuario, esConductor: Boolean) {
     val initials = (usuario.nombre?.take(1) ?: "") + (usuario.apellido?.take(1) ?: "")
     
+    // Priorizamos nombreUsuario
+    val displayName = when {
+        !usuario.nombreUsuario.isNullOrEmpty() -> usuario.nombreUsuario!!
+        "${usuario.nombre ?: ""} ${usuario.apellido ?: ""}".trim().isNotEmpty() -> 
+            "${usuario.nombre ?: ""} ${usuario.apellido ?: ""}".trim()
+        else -> "Usuario #${usuario.id}"
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
+            .background(
+                if (esConductor) UAMColor.copy(alpha = 0.05f) else Color(0xFFF8F9FA), 
+                RoundedCornerShape(12.dp)
+            )
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(44.dp)
                 .clip(CircleShape)
-                .background(UAMColor.copy(alpha = 0.1f)),
+                .background(if (esConductor) UAMColor else Color(0xFFE2E8F0)),
             contentAlignment = Alignment.Center
         ) {
             if (initials.isNotEmpty()) {
                 Text(
                     text = initials.uppercase(),
-                    color = UAMColor,
+                    color = if (esConductor) Color.White else Color.Gray,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
+                    fontSize = 15.sp
                 )
             } else {
-                Icon(Icons.Default.Person, contentDescription = null, tint = UAMColor)
+                Icon(
+                    Icons.Default.Person, 
+                    contentDescription = null, 
+                    tint = if (esConductor) Color.White else Color.Gray
+                )
             }
         }
         
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(14.dp))
         
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "${usuario.nombre} ${usuario.apellido}",
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
+                text = displayName,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
                 color = Color.Black
             )
             Text(
                 text = "CIF: ${usuario.cif ?: "N/A"}",
                 fontSize = 12.sp,
                 color = Color.Gray
+            )
+        }
+
+        if (esConductor) {
+            Icon(
+                Icons.Default.Stars, 
+                contentDescription = "Conductor", 
+                tint = UAMColor,
+                modifier = Modifier.size(20.dp)
             )
         }
     }

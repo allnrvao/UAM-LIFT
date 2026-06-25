@@ -8,8 +8,8 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient2 {
-    // Si usas EMULADOR, usa "10.0.2.2". Si usas dispositivo FÍSICO, usa la IP de tu PC.
-    private const val HOST = "192.168.1.5" 
+
+    private const val HOST = "192.168.1.22"
     private const val BASE_URL2 = "http://$HOST:8081/"
 
     val chatHost: String get() = HOST

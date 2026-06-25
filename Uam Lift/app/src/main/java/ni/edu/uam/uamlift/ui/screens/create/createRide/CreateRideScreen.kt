@@ -31,6 +31,14 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import kotlinx.coroutines.launch
+import ni.edu.uam.uamlift.data.enums.DepartamentosPacifico
+import ni.edu.uam.uamlift.data.models.Carro
+import ni.edu.uam.uamlift.data.models.Destino
+import ni.edu.uam.uamlift.data.viewmodels.CarroViewModel
+import ni.edu.uam.uamlift.data.viewmodels.DestinoViewModel
+import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.sesion.ControlSesion
 import ni.edu.uam.uamlift.ui.components.MapLibreView
 import ni.edu.uam.uamlift.ui.theme.Degradado2
@@ -91,26 +99,25 @@ fun CreateRideScreen(
     val sdfDate = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US) }
     val sdfTime = remember { SimpleDateFormat("HH:mm", Locale.US) }
     val sdfDateTime = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US) }
-
+    
     val calendarInitial = remember { Calendar.getInstance() }
     var date by remember { mutableStateOf(sdfDate.format(calendarInitial.time)) }
-    var departureTime by remember {
+    var departureTime by remember { 
         val cal = Calendar.getInstance().apply { add(Calendar.MINUTE, 5) }
-        mutableStateOf(sdfTime.format(cal.time))
+        mutableStateOf(sdfTime.format(cal.time)) 
     }
-    var arrivalTime by remember {
+    var arrivalTime by remember { 
         val cal = Calendar.getInstance().apply { add(Calendar.MINUTE, 40) }
-        mutableStateOf(sdfTime.format(cal.time))
+        mutableStateOf(sdfTime.format(cal.time)) 
     }
-
+    
     var selectedCar by remember { mutableStateOf<Carro?>(null) }
     var seats by remember { mutableIntStateOf(1) }
     var price by remember { mutableStateOf("") }
 
-    if (showSuccessDialog) {
-        SuccessRideDialog {
-            showSuccessDialog = false
-            onViajeCreado()
+    LaunchedEffect(carroViewModel.listaCarros) {
+        if (selectedCar == null && carroViewModel.listaCarros.isNotEmpty()) {
+            selectedCar = carroViewModel.listaCarros.first()
         }
     }
 
@@ -595,7 +602,7 @@ fun Step2Schedule(
                     set(Calendar.SECOND, 0)
                     set(Calendar.MILLISECOND, 0)
                 }.time
-
+                
                 val dep = sdfDateTime.parse("$date $departureTime") ?: return@remember false
                 val arr = sdfDateTime.parse("$date $arrivalTime") ?: return@remember false
 
@@ -614,9 +621,9 @@ fun Step2Schedule(
 
         Box(modifier = Modifier.fillMaxWidth().clickable { datePickerDialog.show() }) {
             OutlinedTextField(
-                value = date, onValueChange = {}, label = { Text("Fecha del viaje") },
+                value = date, onValueChange = {}, label = { Text("Fecha del viaje") }, 
                 readOnly = true, enabled = false, modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = UAMColor, disabledTextColor = Color.Black, disabledContainerColor = Color.White, disabledLabelColor = UAMColor),
+                colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = UAMColor, disabledTextColor = Color.Black, disabledContainerColor = Color.White, disabledLabelColor = UAMColor), 
                 leadingIcon = { Icon(Icons.Default.DateRange, null, tint = UAMColor) }
             )
         }
