@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ni.edu.uam.uamlift.data.enums.EstadoViaje
 import ni.edu.uam.uamlift.data.models.Viaje
 import ni.edu.uam.uamlift.ui.theme.UAMColor
 import java.text.SimpleDateFormat

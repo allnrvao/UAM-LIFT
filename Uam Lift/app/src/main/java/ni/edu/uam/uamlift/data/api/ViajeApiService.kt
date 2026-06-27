@@ -14,8 +14,11 @@ interface ViajeApiService {
         @Body viaje: Viaje
     ): Viaje
 
-    @PUT("api/viajes/{viajeId}/iniciar")
-    suspend fun iniciarViaje(@Path("viajeId") viajeId: Long): Boolean
+    @PUT("api/viajes/{viajeId}/{conductorId}/iniciar")
+    suspend fun iniciarViaje(
+        @Path("viajeId") viajeId: Long,
+        @Path("conductorId") conductorId: Long
+    ): Boolean
 
     @PUT("api/viajes/{viajeId}/finalizar")
     suspend fun finalizarViaje(@Path("viajeId") viajeId: Long): Boolean

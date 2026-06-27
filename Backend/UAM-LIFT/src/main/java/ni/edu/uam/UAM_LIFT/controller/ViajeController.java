@@ -25,13 +25,6 @@ public class ViajeController {
     public List<Viaje> obtenerTodosLosViajes() {
         return viajeServicio.obtenerTodosLosViajes();
     }
-    @PutMapping("/{id}/iniciar")
-    public ResponseEntity<Boolean> iniciarViaje(
-            @PathVariable Long id,
-            @RequestParam String conductorCif) {
-        boolean exito = viajeServicio.iniciarViajeReal(id, conductorCif);
-        return ResponseEntity.ok(exito);
-    }
 
     /**
      * Crear un nuevo viaje
@@ -74,6 +67,19 @@ public class ViajeController {
             return true;
         } catch (Exception e) {
             System.out.println("Error al cancelar participación: " + e.getMessage());
+            return false;
+        }
+    }
+
+    @PutMapping("/{viajeId}/{conductorId}/iniciar")
+    public boolean iniciarViaje(
+            @PathVariable Long viajeId,
+            @PathVariable Long conductorId) {
+        try {
+            viajeServicio.iniciarViajeReal(viajeId, conductorId);
+            return true;
+        } catch (Exception e) {
+            System.out.println("Error al iniciar viaje: " + e.getMessage());
             return false;
         }
     }

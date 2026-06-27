@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Ubicacion {
+public class    Ubicacion {
     private Long idViaje;
     private double lat;
     private double lon;

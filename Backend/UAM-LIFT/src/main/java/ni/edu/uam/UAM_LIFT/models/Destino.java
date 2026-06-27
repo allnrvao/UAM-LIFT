@@ -23,7 +23,6 @@ public class Destino {
     @Column(nullable = false, length = 100)
     private String nombre;
 
-    // ✅ CORRECCIÓN: Se agregan coordenadas para recibir los datos desde el mapa de Android
     @Column(nullable = true)
     private Double latitud;
 
@@ -35,4 +34,5 @@ public class Destino {
 
     @Column(nullable = false)
     private boolean estado = true;
+
 }

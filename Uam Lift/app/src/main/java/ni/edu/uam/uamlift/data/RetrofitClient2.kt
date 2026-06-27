@@ -9,7 +9,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient2 {
 
-    private const val HOST = "192.168.1.22"
+    private const val HOST = "192.168.1.4"
     private const val BASE_URL2 = "http://$HOST:8081/"
 
     val chatHost: String get() = HOST

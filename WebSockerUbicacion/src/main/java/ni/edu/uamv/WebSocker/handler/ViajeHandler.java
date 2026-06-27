@@ -1,89 +1,159 @@
 package ni.edu.uamv.WebSocker.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import ni.edu.uamv.WebSocker.models.Ubicacion;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
+@Slf4j
 public class ViajeHandler extends TextWebSocketHandler {
 
-    // IMPORTANTE: Se corrigió la importación de Jackson
     private final ObjectMapper mapper = new ObjectMapper();
 
-    // Mapas concurrentes para soportar múltiples conexiones simultáneas sin crashear
-    private final ConcurrentHashMap<Long, CopyOnWriteArrayList<WebSocketSession>> viajes = new ConcurrentHashMap<>();
+    // Viaje -> sesiones conectadas
+    private final ConcurrentHashMap<Long, Set<WebSocketSession>> viajes = new ConcurrentHashMap<>();
+
+    // Viaje -> última ubicación
     private final ConcurrentHashMap<Long, String> ultimasUbicaciones = new ConcurrentHashMap<>();
 
     @Override
-    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        System.out.println("✅ Nueva conexión física abierta: " + session.getId());
+    public void afterConnectionEstablished(WebSocketSession session) {
+        log.info("Nueva conexión: {}", session.getId());
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        String payload = message.getPayload();
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) {
 
         try {
-            Ubicacion ubicacion = mapper.readValue(payload, Ubicacion.class);
-            Long idViaje = ubicacion.getIdViaje();
-            String tipo = ubicacion.getTipo();
 
-            if (idViaje == null || idViaje == 0 || tipo == null) return;
+            Ubicacion ubicacion = mapper.readValue(message.getPayload(), Ubicacion.class);
 
-            // Asociar la sesión a este idViaje
-            session.getAttributes().put("idViaje", idViaje);
-            CopyOnWriteArrayList<WebSocketSession> usuarios = viajes.computeIfAbsent(idViaje, k -> new CopyOnWriteArrayList<>());
+            if (!mensajeValido(ubicacion))
+                return;
 
-            if (!usuarios.contains(session)) {
-                usuarios.add(session);
+            registrarSesion(session, ubicacion.getIdViaje());
+
+            switch (ubicacion.getTipo().toUpperCase()) {
+
+                case "SUSCRIBIR":
+                    procesarSuscripcion(session, ubicacion.getIdViaje());
+                    break;
+
+                case "ACTUALIZAR":
+                    procesarActualizacion(session, ubicacion.getIdViaje(), message);
+                    break;
+
+                default:
+                    log.warn("Tipo desconocido: {}", ubicacion.getTipo());
+
             }
 
-            if ("SUSCRIBIR".equalsIgnoreCase(tipo)) {
-                System.out.println("👤 Pasajero " + session.getId() + " suscrito al viaje: " + idViaje);
-
-                // Si ya hay una ubicación guardada, se la mandamos de inmediato
-                if (ultimasUbicaciones.containsKey(idViaje)) {
-                    String ultimaCoordenadaJson = ultimasUbicaciones.get(idViaje);
-                    session.sendMessage(new TextMessage(ultimaCoordenadaJson));
-                    System.out.println("📍 Enviando última ubicación retenida al nuevo pasajero.");
-                }
-
-            } else if ("ACTUALIZAR".equalsIgnoreCase(tipo)) {
-                // Guardar la última posición en memoria
-                ultimasUbicaciones.put(idViaje, payload);
-
-                // Reenviar a los demás (Broadcast)
-                String idEmisor = session.getId();
-                for (WebSocketSession s : usuarios) {
-                    if (s.isOpen() && !s.getId().equals(idEmisor)) {
-                        s.sendMessage(message);
-                    }
-                }
-            }
         } catch (Exception e) {
-            System.err.println("❌ Error procesando el mensaje JSON: " + e.getMessage());
+            log.error("Error procesando mensaje", e);
         }
+
+    }
+
+    private boolean mensajeValido(Ubicacion u) {
+
+        return u.getIdViaje() != null
+                && u.getIdViaje() > 0
+                && u.getTipo() != null;
+
+    }
+
+    private void registrarSesion(WebSocketSession session, Long idViaje) {
+
+        session.getAttributes().put("idViaje", idViaje);
+
+        viajes.computeIfAbsent(idViaje,
+                k -> ConcurrentHashMap.newKeySet()).add(session);
+
+    }
+
+    private void procesarSuscripcion(WebSocketSession session, Long idViaje) throws Exception {
+
+        log.info("Usuario {} suscrito al viaje {}", session.getId(), idViaje);
+
+        enviarUltimaUbicacion(session, idViaje);
+
+    }
+
+    private void procesarActualizacion(WebSocketSession session,
+                                       Long idViaje,
+                                       TextMessage message) throws Exception {
+
+        ultimasUbicaciones.put(idViaje, message.getPayload());
+
+        reenviarUbicacion(session, idViaje, message);
+
+    }
+
+    private void enviarUltimaUbicacion(WebSocketSession session,
+                                       Long idViaje) throws Exception {
+
+        String ultima = ultimasUbicaciones.get(idViaje);
+
+        if (ultima != null) {
+            session.sendMessage(new TextMessage(ultima));
+        }
+
+    }
+
+    private void reenviarUbicacion(WebSocketSession emisor,
+                                   Long idViaje,
+                                   TextMessage message) throws Exception {
+
+        Set<WebSocketSession> sesiones = viajes.get(idViaje);
+
+        if (sesiones == null)
+            return;
+
+        sesiones.removeIf(s -> !s.isOpen());
+
+        for (WebSocketSession s : sesiones) {
+
+            if (!s.getId().equals(emisor.getId())) {
+                s.sendMessage(message);
+            }
+
+        }
+
     }
 
     @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+    public void afterConnectionClosed(WebSocketSession session,
+                                      CloseStatus status) {
+
         Long idViaje = (Long) session.getAttributes().get("idViaje");
 
-        if (idViaje != null && viajes.containsKey(idViaje)) {
-            CopyOnWriteArrayList<WebSocketSession> usuarios = viajes.get(idViaje);
-            usuarios.remove(session);
+        if (idViaje == null)
+            return;
 
-            if (usuarios.isEmpty()) {
-                viajes.remove(idViaje);
-                ultimasUbicaciones.remove(idViaje);
-                System.out.println("🗑️ Viaje " + idViaje + " completamente vacío. Memoria RAM liberada.");
-            }
+        Set<WebSocketSession> sesiones = viajes.get(idViaje);
+
+        if (sesiones == null)
+            return;
+
+        sesiones.remove(session);
+
+        if (sesiones.isEmpty()) {
+
+            viajes.remove(idViaje);
+            ultimasUbicaciones.remove(idViaje);
+
+            log.info("Viaje {} eliminado de memoria", idViaje);
+
         }
-        System.out.println("🔴 Conexión cerrada para el usuario: " + session.getId());
+
+        log.info("Conexión cerrada {}", session.getId());
+
     }
+
 }

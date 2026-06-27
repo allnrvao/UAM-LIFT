@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ni.edu.uam.uamlift.data.RetrofitClient
 import ni.edu.uam.uamlift.data.api.ViajeApiService
+import ni.edu.uam.uamlift.data.enums.EstadoViaje
 import ni.edu.uam.uamlift.data.models.*
 import ni.edu.uam.uamlift.data.RetrofitClient
 import ni.edu.uam.uamlift.data.enums.EstadoViaje
@@ -54,7 +55,7 @@ class ViajeViewModel(
             try {
                 // 1. Validación: Ya tiene un viaje activo
                 val tieneViajeActivo = _misViajes.value.any { 
-                    it.estadoViaje == EstadoViaje.PROPUESTO || 
+                    it.estadoViaje == EstadoViaje.PROPUESTO ||
                     it.estadoViaje == EstadoViaje.PROGRAMADO || 
                     it.estadoViaje == EstadoViaje.EN_CURSO 
                 }
@@ -207,27 +208,21 @@ class ViajeViewModel(
         }
     }
 
-    fun iniciarViaje(viajeId: Long) {
-        viewModelScope.launch {
-            try {
-                val exito = apiService?.iniciarViaje(viajeId) ?: false
-                if (exito) {
-                    cargarViajesDesdeBackend()
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
-    fun iniciarViaje(viajeId: Long, usuarioId: Long, onExito: () -> Unit = {}, onError: (String) -> Unit = {}) {
+    fun iniciarViaje(viajeId: Long, conductorId: Long, onExito: () -> Unit = {}, onError: (String) -> Unit = {}) {
         val api = apiService ?: return
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val resultado = withContext(Dispatchers.IO) { api.iniciarViaje(viajeId) }
+                // Validación local para no iniciar un viaje que ya está en curso
+                val viajeActual = _misViajes.value.find { it.id == viajeId }
+                if (viajeActual?.estadoViaje == EstadoViaje.EN_CURSO) {
+                    onExito()
+                    return@launch
+                }
+
+                val resultado = withContext(Dispatchers.IO) { api.iniciarViaje(viajeId, conductorId) }
                 if (resultado) {
-                    fetchViajesInternal(api, usuarioId)
+                    fetchViajesInternal(api, conductorId)
                     onExito()
                 } else {
                     onError("No se pudo iniciar el viaje.")
