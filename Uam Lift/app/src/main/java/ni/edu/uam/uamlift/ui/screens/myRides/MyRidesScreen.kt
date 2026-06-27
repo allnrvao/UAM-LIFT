@@ -14,6 +14,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.delay
+import ni.edu.uam.uamlift.data.enums.EstadoViaje
+import ni.edu.uam.uamlift.data.viewmodels.UbicacionViewModel
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
 import ni.edu.uam.uamlift.ui.components.RideCard
@@ -23,19 +27,37 @@ import ni.edu.uam.uamlift.ui.theme.UAMColor
 @Composable
 fun MyRidesScreen(
     viajeViewModel: ViajeViewModel,
-    usuarioViewModel: UsuarioViewModel
+    usuarioViewModel: UsuarioViewModel,
+    ubicacionViewModel: UbicacionViewModel = viewModel()
 ) {
     val viajes by viajeViewModel.viajes.collectAsState()
     val cargando by viajeViewModel.isLoading.collectAsState()
     val userCif = usuarioViewModel.usuario.cif ?: ""
+    val userId = usuarioViewModel.usuario.id ?: 0L
 
     // Cargar viajes al entrar para asegurar que la lista esté actualizada
-    LaunchedEffect(Unit) {
-        viajeViewModel.cargarViajesDesdeBackend()
+    LaunchedEffect(userId) {
+        viajeViewModel.cargarViajesDesdeBackend(userId)
     }
 
     val misViajes = remember(viajes) {
         viajes.filter { it.conductor?.cif == userCif }
+    }
+
+    // Lógica para enviar ubicación si el conductor tiene un viaje en curso
+    val viajeActivo = misViajes.find { it.estadoViaje == EstadoViaje.EN_CURSO }
+    
+    LaunchedEffect(viajeActivo) {
+        if (viajeActivo != null) {
+            ubicacionViewModel.conectar(viajeActivo.id!!)
+            while (true) {
+                // Simulación de coordenadas (UAM)
+                val latSimulada = 12.1276
+                val lngSimulada = -86.2713
+                ubicacionViewModel.enviar(viajeActivo.id!!, latSimulada, lngSimulada)
+                delay(5000)
+            }
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize().background(Gray)) {
@@ -81,9 +103,25 @@ fun MyRidesScreen(
                 items(misViajes) { viaje ->
                     RideCard(
                         viaje = viaje,
+                        usuarioIdActual = userId,
                         esConductor = true,
                         onIniciarViaje = { id ->
-                            viajeViewModel.iniciarViaje(id)
+                            viajeViewModel.iniciarViaje(
+                                viajeId = id,
+                                conductorId = userId,
+                                onExito = {
+                                    ubicacionViewModel.conectar(id)
+                                }
+                            )
+                        },
+                        onFinalizarViaje = { id ->
+                            viajeViewModel.finalizarViaje(id, userId)
+                        },
+                        onCancelarViaje = { id ->
+                            viajeViewModel.cancelarViaje(id, userId)
+                        },
+                        onVerPasajeros = { id ->
+                            viajeViewModel.obtenerPasajeros(id)
                         }
                     )
                 }

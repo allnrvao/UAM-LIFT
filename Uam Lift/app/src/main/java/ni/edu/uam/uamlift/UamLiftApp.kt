@@ -23,6 +23,7 @@ import ni.edu.uam.uamlift.ui.screens.LogIn.LogIn
 import ni.edu.uam.uamlift.ui.screens.create.CreateAccountScreen
 import ni.edu.uam.uamlift.ui.screens.create.createRide.CreateRideScreen
 import ni.edu.uam.uamlift.ui.screens.home.HomeScreen
+import ni.edu.uam.uamlift.ui.screens.myRides.MyRidesScreen
 import ni.edu.uam.uamlift.ui.screens.profile.AddCarScreen
 import ni.edu.uam.uamlift.ui.screens.profile.EditProfileScreen
 import ni.edu.uam.uamlift.ui.screens.profile.MyCarsScreen
@@ -49,6 +50,7 @@ fun UamLiftApp() {
     val bottomBarRoutes = setOf(
         "home",
         "search",
+        "my_rides",
         "create",
         "messages",
         "profile"
@@ -163,6 +165,14 @@ fun UamLiftApp() {
             // Search
             composable("search") {
                 SearchScreen(usuarioViewModel = usuarioViewModel)
+            }
+
+            // My Rides
+            composable("my_rides") {
+                MyRidesScreen(
+                    viajeViewModel = viajeViewModel,
+                    usuarioViewModel = usuarioViewModel
+                )
             }
 
             // Create Ride

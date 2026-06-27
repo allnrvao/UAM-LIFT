@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ViajeServicio implements InterfazViaje {
@@ -57,17 +58,15 @@ public class ViajeServicio implements InterfazViaje {
 
         return repoViaje.save(viaje);
     }
-    public boolean iniciarViajeReal(Long viajeId, String conductorCif) {
-        // Cambiamos viajeRepository por repoViaje
+    public boolean iniciarViajeReal(Long viajeId, Long conductorId) {
         Optional<Viaje> viajeOpt = repoViaje.findById(viajeId);
 
         if (viajeOpt.isPresent()) {
             Viaje viaje = viajeOpt.get();
 
-            // 🔒 VALIDACIÓN: Solo el conductor creador puede iniciar el viaje
-            if (viaje.getConductor().getCif().equals(conductorCif)) {
+
+            if (viaje.getConductor().getId()== conductorId && viaje.getEstadoViaje() == EstadoViaje.PROPUESTO) {
                 viaje.setEstadoViaje(EstadoViaje.EN_CURSO);
-                // Cambiamos viajeRepository por repoViaje
                 repoViaje.save(viaje);
                 return true;
             }

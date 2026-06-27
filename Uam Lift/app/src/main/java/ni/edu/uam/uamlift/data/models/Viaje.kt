@@ -37,11 +37,3 @@ data class Viaje(
     @SerializedName("carro")
     val carro : Carro? = null
 )
-
-enum class EstadoViaje {
-    @SerializedName("PROPUESTO") PROPUESTO,
-    @SerializedName("PROGRAMADO") PROGRAMADO,
-    @SerializedName("EN_CURSO") EN_CURSO,
-    @SerializedName("FINALIZADO") FINALIZADO,
-    @SerializedName("CANCELADO") CANCELADO
-}

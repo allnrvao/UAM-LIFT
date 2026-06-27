@@ -39,6 +39,7 @@ fun BottomNavigationBar(
             BottomNavItem.Search,
             BottomNavItem.MyRides,
             BottomNavItem.Create,
+            BottomNavItem.Messages,
             BottomNavItem.Profile
         )
 

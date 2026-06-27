@@ -17,8 +17,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import ni.edu.uam.uamlift.data.enums.EstadoViaje
 import ni.edu.uam.uamlift.data.models.Viaje
+import ni.edu.uam.uamlift.data.viewmodels.UbicacionViewModel
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
 import ni.edu.uam.uamlift.ui.components.RideCard
@@ -31,7 +34,8 @@ import ni.edu.uam.uamlift.ui.components.PassengersDialog
 fun HomeScreen(
     modifier: Modifier = Modifier,
     viajeViewModel: ViajeViewModel = viewModel(),
-    usuarioViewModel: UsuarioViewModel
+    usuarioViewModel: UsuarioViewModel,
+    ubicacionViewModel: UbicacionViewModel = viewModel()
 ) {
     val backgroundColor = Gray
     val usuario = usuarioViewModel.usuario
@@ -47,6 +51,23 @@ fun HomeScreen(
     val viajesOtros by viajeViewModel.viajesOtros.collectAsState()
     val cargando by viajeViewModel.isLoading.collectAsState()
     val pasajerosViaje by viajeViewModel.pasajerosViaje.collectAsState()
+
+    // Lógica para el Conductor: Enviar ubicación periódicamente si tiene un viaje en curso
+    val viajeActivo = misViajes.find { it.estadoViaje == EstadoViaje.EN_CURSO && it.conductor?.id == usuario.id }
+    
+    LaunchedEffect(viajeActivo) {
+        if (viajeActivo != null) {
+            ubicacionViewModel.conectar(viajeActivo.id!!)
+            while (true) {
+                // Simulación de coordenadas (en producción usar GPS real)
+                val latSimulada = 12.1276
+                val lngSimulada = -86.2713
+                
+                ubicacionViewModel.enviar(viajeActivo.id!!, latSimulada, lngSimulada)
+                delay(5000) // Actualizar cada 5 segundos
+            }
+        }
+    }
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("Explorar", "Mis Viajes")
@@ -223,8 +244,11 @@ fun HomeScreen(
                                     onIniciarViaje = { idViaje ->
                                         viajeViewModel.iniciarViaje(
                                             viajeId = idViaje,
-                                            usuarioId = usuario.id ?: 0L,
-                                            onExito = { scope.launch { snackbarHostState.showSnackbar("¡Viaje iniciado!") } },
+                                            conductorId = usuario.id ?: 0L,
+                                            onExito = { 
+                                                scope.launch { snackbarHostState.showSnackbar("¡Viaje iniciado!") } 
+                                                ubicacionViewModel.conectar(idViaje)
+                                            },
                                             onError = { scope.launch { snackbarHostState.showSnackbar(it) } }
                                         )
                                     },
