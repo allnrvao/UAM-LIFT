@@ -15,13 +15,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ni.edu.uam.uamlift.data.enums.EstadoViajeUsuario
+import ni.edu.uam.uamlift.data.viewmodels.AppViewModelFactory
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
 
 @Composable
 fun MessagesScreen(
     modifier: Modifier = Modifier,
-    viajeViewModel: ViajeViewModel = viewModel(),
+    viajeViewModel: ViajeViewModel = viewModel(factory = AppViewModelFactory()),
     usuarioViewModel: UsuarioViewModel = viewModel()
 ) {
     val context = LocalContext.current

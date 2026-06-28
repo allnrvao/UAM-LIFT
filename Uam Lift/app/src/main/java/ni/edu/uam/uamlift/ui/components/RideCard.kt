@@ -14,9 +14,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import ni.edu.uam.uamlift.data.enums.EstadoViaje
 import ni.edu.uam.uamlift.data.models.Viaje
 import ni.edu.uam.uamlift.ui.theme.UAMColor
@@ -27,6 +30,7 @@ import java.util.*
 fun RideCard(
     viaje: Viaje,
     esConductor: Boolean = false,
+    onCardEnCursoClick: (Viaje) -> Unit = {},
     onConfirmarClick: (Long) -> Unit = {},
     onIniciarViaje: (Long) -> Unit = {}
 ) {
@@ -40,17 +44,18 @@ fun RideCard(
         viaje.pasajeros.any { it.usuario?.id == usuarioIdActual }
     }
 
-    // LÓGICA DINÁMICA: Restar pasajeros actuales de la capacidad total
     val asientosLibres = remember(viaje.numeroAsientosDisponibles, viaje.pasajeros.size) {
         val libres = viaje.numeroAsientosDisponibles - viaje.pasajeros.size
         if (libres < 0) 0 else libres
     }
 
-    // Priorizamos nombreUsuario sobre el nombre real para el nombre del conductor
     val nombreConductor = viaje.conductor?.nombreUsuario?.takeIf { it.isNotBlank() }
-        ?: "${viaje.conductor?.nombre ?: ""} ${viaje.conductor?.apellido ?: ""}".trim().ifEmpty { "Estudiante UAM" }
+        ?: "${viaje.conductor?.nombre ?: ""} ${viaje.conductor?.apellido ?: ""}".trim()
+            .ifEmpty { "Estudiante UAM" }
 
-    val initials = (viaje.conductor?.nombre?.take(1) ?: "U") + (viaje.conductor?.apellido?.take(1) ?: "")
+    val initials = (viaje.conductor?.nombre?.take(1) ?: "U") +
+            (viaje.conductor?.apellido?.take(1) ?: "")
+    val fotoConductor = viaje.conductor?.imagenUrl
 
     val origenTexto = viaje.origen?.nombre ?: "Origen"
     val destinoTexto = viaje.destino?.nombre ?: "Destino"
@@ -73,7 +78,11 @@ fun RideCard(
         }
     }
 
-    if (mostrarDialogo && !esConductor) {
+    // Si el viaje está FINALIZADO o CANCELADO, no abrimos diálogos al hacer clic
+    val estaTerminado = viaje.estadoViaje == EstadoViaje.FINALIZADO ||
+            viaje.estadoViaje == EstadoViaje.CANCELADO
+
+    if (mostrarDialogo && !esConductor && !estaTerminado) {
         TakeRideDialog(
             viaje = viaje,
             esPasajero = esPasajero,
@@ -89,89 +98,270 @@ fun RideCard(
         )
     }
 
+    // Colores según estado: terminado = fondo levemente gris pero mantiene estructura
+    val cardBgColor = when (viaje.estadoViaje) {
+        EstadoViaje.FINALIZADO -> Color(0xFFF0F0F0)
+        EstadoViaje.CANCELADO  -> Color(0xFFF5EDED)   // tinte rojizo muy sutil
+        else                   -> Color.White
+    }
+
     Card(
-        onClick = { if (!esConductor) mostrarDialogo = true },
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        onClick = {
+            when {
+                viaje.estadoViaje == EstadoViaje.EN_CURSO -> onCardEnCursoClick(viaje)
+                esConductor && !estaTerminado -> onVerPasajeros(viaje.id ?: 0L)
+                !esConductor && !estaTerminado -> mostrarDialogo = true
+                else -> {}
+            }
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+            .padding(horizontal = 2.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBgColor),
+        // Mantener siempre elevación para que se vea el contenedor
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Fila superior: conductor + precio
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    // Avatar conductor
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(lightTealBg)
+                    ) {
+                        if (!fotoConductor.isNullOrEmpty()) {
+                            AsyncImage(
+                                model = fotoConductor,
+                                contentDescription = "Foto del conductor",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Text(
+                                text = initials.uppercase(),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = UAMColor
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = nombreConductor,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = if (estaTerminado) Color(0xFF757575) else Color.Black,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        val statusText = when (viaje.estadoViaje) {
+                            EstadoViaje.EN_CURSO -> "En proceso"
+                            EstadoViaje.FINALIZADO -> "Finalizado"
+                            EstadoViaje.CANCELADO -> "Cancelado"
+                            else -> if (esConductor) "Tú eres el conductor"
+                            else if (esPasajero) "Estás unido"
+                            else "Conductor verificado"
+                        }
+                        val statusColor = when (viaje.estadoViaje) {
+                            EstadoViaje.EN_CURSO -> Color(0xFFF44336)
+                            EstadoViaje.FINALIZADO -> Color.Gray
+                            EstadoViaje.CANCELADO -> Color.Red
+                            else -> if (esConductor || esPasajero) UAMColor else Color(0xFF4CAF50)
+                        }
+                        Text(text = statusText, fontSize = 11.sp, color = statusColor)
+                    }
+                }
+
+                // Precio — siempre visible, pero gris si está terminado
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    modifier = Modifier.padding(start = 8.dp)
+                ) {
+                    Text(
+                        text = "C$ ${viaje.precioPorPersona.toInt()}",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        color = if (estaTerminado) Color(0xFF9E9E9E) else UAMColor
+                    )
+                    Text(
+                        text = "p/p",
+                        fontSize = 10.sp,
+                        color = if (estaTerminado) Color(0xFFBDBDBD) else grayText
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Ruta: origen → destino
+            Row(modifier = Modifier.fillMaxWidth()) {
+                val routeColor = if (estaTerminado) Color(0xFFBDBDBD) else UAMColor
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.width(16.dp)
+                ) {
+                    Box(modifier = Modifier.size(7.dp).background(routeColor, CircleShape))
+                    Box(
+                        modifier = Modifier
+                            .width(2.dp)
+                            .height(24.dp)
+                            .background(routeColor.copy(alpha = 0.3f))
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .border(2.dp, routeColor, CircleShape)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = origenTexto,
+                        fontSize = 13.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (estaTerminado) Color(0xFF757575) else Color.Black
+                    )
+                    Text(
+                        text = destinoTexto,
+                        fontSize = 13.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (estaTerminado) Color(0xFF757575) else Color.Black
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = Color(0xFFF5F5F5))
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Fila inferior: hora + acciones
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(48.dp).clip(CircleShape).background(lightTealBg)
-                    ) {
-                        Text(text = initials.uppercase(), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = UAMColor)
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(text = nombreConductor, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
-                        Text(
-                            text = if (esConductor) "Tú eres el conductor" else "Conductor verificado",
-                            fontSize = 12.sp, color = if (esConductor) UAMColor else Color(0xFF4CAF50)
-                        )
-                    }
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(text = "C$ ${viaje.precioPorPersona.toInt()}", fontSize = 20.sp, fontWeight = FontWeight.Black, color = UAMColor)
-                    Text(text = "p/p", fontSize = 11.sp, color = grayText)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(20.dp)) {
-                    Box(modifier = Modifier.size(8.dp).background(UAMColor, CircleShape))
-                    Box(modifier = Modifier.width(2.dp).height(30.dp).background(UAMColor.copy(alpha = 0.3f)))
-                    Box(modifier = Modifier.size(8.dp).border(2.dp, UAMColor, CircleShape))
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.height(56.dp), verticalArrangement = Arrangement.SpaceBetween) {
-                    Text(text = origenTexto, fontSize = 14.sp, maxLines = 1, color = Color.Black)
-                    Text(text = destinoTexto, fontSize = 14.sp, maxLines = 1, color = Color.Black)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = Color(0xFFF5F5F5))
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.DateRange, null, tint = grayText, modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Default.DateRange,
+                        null,
+                        tint = grayText,
+                        modifier = Modifier.size(14.dp)
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Hoy, $horaTexto", fontSize = 13.sp, color = grayText)
+                    Text(text = "Hoy, $horaTexto", fontSize = 12.sp, color = grayText)
                 }
 
                 if (esConductor) {
-                    Button(
-                        onClick = { onIniciarViaje(viaje.id ?: 0L) },
-                        enabled = puedeIniciar,
-                        colors = ButtonDefaults.buttonColors(containerColor = UAMColor),
-                        shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Iniciar viaje", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        if (!estaTerminado) {
+                            if (viaje.estadoViaje != EstadoViaje.EN_CURSO) {
+                                TextButton(
+                                    onClick = { onCancelarViaje(viaje.id ?: 0L) },
+                                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red),
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text("Cancelar", fontSize = 11.sp)
+                                }
+
+                                Button(
+                                    onClick = { onIniciarViaje(viaje.id ?: 0L) },
+                                    enabled = puedeIniciar,
+                                    colors = ButtonDefaults.buttonColors(containerColor = UAMColor),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.PlayArrow,
+                                        null,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text("Iniciar", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            } else {
+                                Button(
+                                    onClick = { onFinalizarViaje(viaje.id ?: 0L) },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF4CAF50)
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        null,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text("Finalizar", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+
+                        IconButton(
+                            onClick = { onVerPasajeros(viaje.id ?: 0L) },
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(lightTealBg, CircleShape)
+                        ) {
+                            Icon(
+                                Icons.Default.People,
+                                contentDescription = "Pasajeros",
+                                tint = UAMColor,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
-                } else {
-                    Surface(color = lightTealSeat.copy(alpha = 0.5f), shape = RoundedCornerShape(8.dp)) {
+                } else if (!estaTerminado) {
+                    Surface(
+                        color = if (esPasajero)
+                            UAMColor.copy(alpha = 0.1f)
+                        else
+                            lightTealSeat.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
                         Text(
-                            text = if (esPasajero) "Ya estás unido" else "$asientosLibres asientos libres",
+                            text = if (esPasajero) "Ya estás unido"
+                            else "$asientosLibres asientos libres",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            fontSize = 12.sp, fontWeight = FontWeight.Bold, color = UAMColor
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = UAMColor
                         )
                     }
                 }
             }
         }
     }
+    //comentario
 }

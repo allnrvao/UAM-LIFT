@@ -13,15 +13,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import ni.edu.uam.uamlift.data.RetrofitClient
 import ni.edu.uam.uamlift.data.api.ViajeApiService
 import ni.edu.uam.uamlift.data.enums.EstadoViaje
 import ni.edu.uam.uamlift.data.models.*
-import ni.edu.uam.uamlift.data.RetrofitClient
-import ni.edu.uam.uamlift.data.enums.EstadoViaje
 
 class ViajeViewModel(
-    private val apiService: ViajeApiService? = RetrofitClient.viajeApi
+    private val apiService: ViajeApiService
 ) : ViewModel() {
 
     private val _viajes = MutableStateFlow<List<Viaje>>(emptyList())
@@ -48,7 +45,6 @@ class ViajeViewModel(
         onExito: () -> Unit,
         onError: (String) -> Unit = {}
     ) {
-        val api = apiService ?: return
         viewModelScope.launch {
             _isLoading.value = true
 
@@ -71,7 +67,7 @@ class ViajeViewModel(
                 
                 // 2. Validación: Conflicto de horario (al mismo tiempo)
                 val fechasValidas = withContext(Dispatchers.IO) {
-                    api.validarFechas(usuarioId, viaje.fechaHoraSalida ?: "", viaje.fechaHoraLlegada ?: "")
+                    apiService.validarFechas(usuarioId, viaje.fechaHoraSalida ?: "", viaje.fechaHoraLlegada ?: "")
                 }
                 if (!fechasValidas) {
                     onError("Conflicto de horario: Ya tienes otro viaje programado en ese mismo horario.")
@@ -80,10 +76,10 @@ class ViajeViewModel(
 
                 val conductorSimulado = Usuario(cif = conductorCif)
                 val viajeAEnviar = viaje.copy(estadoViaje = EstadoViaje.PROPUESTO, conductor = conductorSimulado)
-                val nuevoViaje = withContext(Dispatchers.IO) { api.crearViaje(conductorCif, viajeAEnviar) }
+                val nuevoViaje = withContext(Dispatchers.IO) { apiService.crearViaje(conductorCif, viajeAEnviar) }
 
                 if (nuevoViaje != null) {
-                    fetchViajesInternal(api, usuarioId)
+                    fetchViajesInternal(apiService, usuarioId)
                     viaje = Viaje()
                     onExito()
                 } else {
@@ -104,7 +100,6 @@ class ViajeViewModel(
         onExito: () -> Unit = {},
         onError: (String) -> Unit = {}
     ) {
-        val api = apiService ?: return
         viewModelScope.launch {
             _isLoading.value = true
             try {
@@ -123,7 +118,7 @@ class ViajeViewModel(
                 val viajeADeterminar = _viajesOtros.value.find { it.id == viajeId } ?: _viajes.value.find { it.id == viajeId }
                 if (viajeADeterminar != null) {
                     val fechasValidas = withContext(Dispatchers.IO) {
-                        api.validarFechas(usuarioId, viajeADeterminar.fechaHoraSalida ?: "", viajeADeterminar.fechaHoraLlegada ?: "")
+                        apiService.validarFechas(usuarioId, viajeADeterminar.fechaHoraSalida ?: "", viajeADeterminar.fechaHoraLlegada ?: "")
                     }
                     if (!fechasValidas) {
                         onError("Conflicto de horario: Tienes otro viaje en este mismo horario.")
@@ -131,9 +126,9 @@ class ViajeViewModel(
                     }
                 }
 
-                val exito = withContext(Dispatchers.IO) { api.agregarPasajero(viajeId, usuarioCif) }
+                val exito = withContext(Dispatchers.IO) { apiService.agregarPasajero(viajeId, usuarioCif) }
                 if (exito) {
-                    fetchViajesInternal(api, usuarioId)
+                    fetchViajesInternal(apiService, usuarioId)
                     onExito()
                 } else {
                     onError("No se pudo unir al viaje.")
@@ -147,11 +142,10 @@ class ViajeViewModel(
     }
 
     fun cargarViajesDesdeBackend(usuarioId: Long? = null) {
-        val api = apiService ?: return
         viewModelScope.launch {
             if (usuarioId == null && _viajesOtros.value.isNotEmpty()) return@launch
             try {
-                fetchViajesInternal(api, usuarioId)
+                fetchViajesInternal(apiService, usuarioId)
             } catch (e: Exception) {
                 Log.e("ViajeViewModel", "Error al cargar datos", e)
             } finally {
@@ -189,13 +183,12 @@ class ViajeViewModel(
     }
 
     fun cancelarViaje(viajeId: Long, usuarioId: Long, onExito: () -> Unit = {}, onError: (String) -> Unit = {}) {
-        val api = apiService ?: return
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val exito = withContext(Dispatchers.IO) { api.cancelarViaje(viajeId) }
+                val exito = withContext(Dispatchers.IO) { apiService.cancelarViaje(viajeId) }
                 if (exito) {
-                    fetchViajesInternal(api, usuarioId)
+                    fetchViajesInternal(apiService, usuarioId)
                     onExito()
                 } else {
                     onError("No se pudo cancelar el viaje.")
@@ -209,7 +202,6 @@ class ViajeViewModel(
     }
 
     fun iniciarViaje(viajeId: Long, conductorId: Long, onExito: () -> Unit = {}, onError: (String) -> Unit = {}) {
-        val api = apiService ?: return
         viewModelScope.launch {
             _isLoading.value = true
             try {
@@ -220,9 +212,9 @@ class ViajeViewModel(
                     return@launch
                 }
 
-                val resultado = withContext(Dispatchers.IO) { api.iniciarViaje(viajeId, conductorId) }
+                val resultado = withContext(Dispatchers.IO) { apiService.iniciarViaje(viajeId, conductorId) }
                 if (resultado) {
-                    fetchViajesInternal(api, conductorId)
+                    fetchViajesInternal(apiService, conductorId)
                     onExito()
                 } else {
                     onError("No se pudo iniciar el viaje.")
@@ -236,13 +228,12 @@ class ViajeViewModel(
     }
 
     fun finalizarViaje(viajeId: Long, usuarioId: Long, onExito: () -> Unit = {}, onError: (String) -> Unit = {}) {
-        val api = apiService ?: return
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val exito = withContext(Dispatchers.IO) { api.finalizarViaje(viajeId) }
+                val exito = withContext(Dispatchers.IO) { apiService.finalizarViaje(viajeId) }
                 if (exito) {
-                    fetchViajesInternal(api, usuarioId)
+                    fetchViajesInternal(apiService, usuarioId)
                     onExito()
                 } else {
                     onError("No se pudo finalizar el viaje.")
@@ -256,10 +247,9 @@ class ViajeViewModel(
     }
 
     fun obtenerPasajeros(viajeId: Long) {
-        val api = apiService ?: return
         viewModelScope.launch {
             try {
-                val pasajeros = withContext(Dispatchers.IO) { api.obtenerPasajerosPorViaje(viajeId) }
+                val pasajeros = withContext(Dispatchers.IO) { apiService.obtenerPasajerosPorViaje(viajeId) }
                 _pasajerosViaje.value = pasajeros
             } catch (e: Exception) {
                 _pasajerosViaje.value = emptyList()
@@ -268,12 +258,11 @@ class ViajeViewModel(
     }
 
     fun cancelarParticipacion(viajeId: Long, usuarioId: Long, usuarioCif: String, onExito: () -> Unit = {}) {
-        val api = apiService ?: return
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val exito = withContext(Dispatchers.IO) { api.cancelarParticipacion(viajeId, usuarioCif) }
-                if (exito) fetchViajesInternal(api, usuarioId)
+                val exito = withContext(Dispatchers.IO) { apiService.cancelarParticipacion(viajeId, usuarioCif) }
+                if (exito) fetchViajesInternal(apiService, usuarioId)
                 onExito()
             } catch (e: Exception) {
                 Log.e("ViajeViewModel", "Error al cancelar participacion", e)
@@ -284,10 +273,9 @@ class ViajeViewModel(
     }
 
     fun validarNumViajes(usuarioId: Long, onResultado: (Boolean) -> Unit) {
-        val api = apiService ?: return
         viewModelScope.launch {
             try {
-                val esValido = withContext(Dispatchers.IO) { api.validarNumViajes(usuarioId) }
+                val esValido = withContext(Dispatchers.IO) { apiService.validarNumViajes(usuarioId) }
                 onResultado(esValido)
             } catch (e: Exception) {
                 onResultado(false)

@@ -156,14 +156,8 @@ fun LogIn(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next)
                         )
                     } else {
-                        // 🛡️ CORRECCIÓN DE NULOS: Evitamos que rompa si el objeto no tiene el nombre listo todavía
-                        val nombreEstudiante = usuarioViewModel.usuario?.nombre ?: "Estudiante"
-                        Text(
-                            text = "Hola, $nombreEstudiante",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = PrimaryColor
-                        )
+                        val nombreGoogle = usuarioViewModel.usuario?.nombre ?: "Estudiante"
+                        Text(text = "Hola, $nombreGoogle", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = PrimaryColor)
                         Text(text = email, fontSize = 14.sp, color = Color.Gray)
                     }
 
@@ -207,13 +201,13 @@ fun LogIn(
                         errorMessage = "Completa todos los campos."
                         showError = true
                     } else {
-                        // 🌟 CORRECCIÓN DE HILOS: Dejamos que el ViewModel maneje el hilo asíncrono
                         if (googleVerificado || email.contains("@")) {
                             usuarioViewModel.obtenerUsuarioPorCorreo(email.trim()) { existe ->
-                                if (existe && usuarioViewModel.usuario?.contrasenia == password) {
+                                val userActual = usuarioViewModel.usuario
+                                if (existe && userActual != null && userActual.contrasenia == password) {
                                     scope.launch {
-                                        usuarioViewModel.guardarSesionLocal(context)
-                                        onLogin() // Se ejecuta seguro en el hilo principal
+                                        usuarioViewModel.guardarSesionLocal(context.applicationContext)
+                                        onLogin()
                                     }
                                 } else {
                                     errorMessage = "Contraseña incorrecta."
@@ -222,9 +216,10 @@ fun LogIn(
                             }
                         } else {
                             usuarioViewModel.obtenerUsuarioPorCif(email.trim()) { existe ->
-                                if (existe && usuarioViewModel.usuario?.contrasenia == password) {
+                                val userActual = usuarioViewModel.usuario
+                                if (existe && userActual != null && userActual.contrasenia == password) {
                                     scope.launch {
-                                        usuarioViewModel.guardarSesionLocal(context)
+                                        usuarioViewModel.guardarSesionLocal(context.applicationContext)
                                         onLogin()
                                     }
                                 } else {
@@ -252,40 +247,20 @@ fun LogIn(
             if (!googleVerificado) {
                 OutlinedButton(
                     onClick = { manejarLoginGoogle() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.White,
-                        contentColor = Color.Black
-                    )
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Color.Black)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_google),
-                            contentDescription = "Google Logo",
-                            modifier = Modifier.size(24.dp),
-                            tint = Color.Unspecified
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                        Icon(painter = painterResource(id = R.drawable.ic_google), contentDescription = "Google Logo", modifier = Modifier.size(24.dp), tint = Color.Unspecified)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Continuar con Google",
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 16.sp
-                        )
+                        Text(text = "Continuar con Google",fontWeight = FontWeight.Medium, fontSize = 16.sp)
                     }
                 }
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(text = "¿No tienes una cuenta?", color = Color.White.copy(alpha = 0.6f))
                 Spacer(modifier = Modifier.height(8.dp))
                 TextButton(
@@ -306,7 +281,6 @@ fun LogIn(
             }
 
             Spacer(modifier = Modifier.height(60.dp))
-
             Text(text = "Solo para estudiantes UAM verificados", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp, textAlign = TextAlign.Center)
         }
     }

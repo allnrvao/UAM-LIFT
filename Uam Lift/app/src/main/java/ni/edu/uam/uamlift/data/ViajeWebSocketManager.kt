@@ -28,7 +28,7 @@ class ViajeWebSocketManager(
     fun conectar(idViaje: Long) {
         // Usando la IP definida en RetrofitClient
         val request = Request.Builder()
-            .url("ws://192.168.1.4:8080/ws/viaje")
+            .url("ws://192.168.0.7:8080/ws/viaje")
             .build()
 
         socket = client.newWebSocket(request, object : okhttp3.WebSocketListener() {

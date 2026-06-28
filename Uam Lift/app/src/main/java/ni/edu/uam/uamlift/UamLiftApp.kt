@@ -7,26 +7,30 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.launch
+import ni.edu.uam.uamlift.data.viewmodels.AppViewModelFactory
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
-import ni.edu.uam.uamlift.screens.messages.MessagesScreen
 import ni.edu.uam.uamlift.ui.navegation.BottomNavigationBar
-import ni.edu.uam.uamlift.ui.screens.animation.SplashScreen
 import ni.edu.uam.uamlift.ui.screens.LogIn.LogIn
+import ni.edu.uam.uamlift.ui.screens.animation.SplashScreen
 import ni.edu.uam.uamlift.ui.screens.create.CreateAccountScreen
 import ni.edu.uam.uamlift.ui.screens.create.createRide.CreateRideScreen
 import ni.edu.uam.uamlift.ui.screens.home.HomeScreen
+import ni.edu.uam.uamlift.ui.screens.messages.MessagesScreen
 import ni.edu.uam.uamlift.ui.screens.myRides.MyRidesScreen
 import ni.edu.uam.uamlift.ui.screens.profile.AddCarScreen
 import ni.edu.uam.uamlift.ui.screens.profile.EditProfileScreen
 import ni.edu.uam.uamlift.ui.screens.profile.MyCarsScreen
 import ni.edu.uam.uamlift.ui.screens.profile.ProfileScreen
-
+import ni.edu.uam.uamlift.ui.screens.rideInfo.ActiveRideMapScreen
+import ni.edu.uam.uamlift.ui.screens.search.SearchScreen
 
 @SuppressLint("ViewModelConstructorInComposable")
 @Composable
@@ -38,31 +42,59 @@ fun UamLiftApp() {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // ViewModels compartidos para toda la App para asegurar la sincronización de datos
-    val usuarioViewModel: UsuarioViewModel = viewModel()
-    val viajeViewModel: ViajeViewModel = viewModel()
+    val appViewModelFactory = AppViewModelFactory()
+    val usuarioViewModel: UsuarioViewModel = viewModel(factory = appViewModelFactory)
+    val viajeViewModel: ViajeViewModel = viewModel(factory = appViewModelFactory)
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    // Rutas en las que se muestra la barra inferior
     val bottomBarRoutes = setOf(
-        "home",
-        "search",
-        "my_rides",
-        "create",
-        "messages",
-        "profile"
+        "home", "search", "my_rides", "create", "messages", "profile"
     )
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             if (currentRoute in bottomBarRoutes) {
-
                 BottomNavigationBar(currentTab) { newTab ->
-                    navController.navigate(newTab) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
+                    if (newTab == "create") {
+                        val usuarioId = usuarioViewModel.usuario?.id ?: 0L
+                        if (usuarioId != 0L) {
+                            viajeViewModel.validarNumViajes(usuarioId) { esValido ->
+                                if (esValido) {
+                                    currentTab = newTab
+                                    navController.navigate(newTab) {
+                                        popUpTo(navController.graph.startDestinationId) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                } else {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            "Has alcanzado el límite de viajes permitidos."
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    "Cargando datos de usuario... Inténtalo de nuevo."
+                                )
+                            }
+                        }
+                    } else {
+                        currentTab = newTab
+                        navController.navigate(newTab) {
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
                         }
                         launchSingleTop = true
                         restoreState = true
@@ -78,97 +110,97 @@ fun UamLiftApp() {
             modifier = Modifier.padding(paddingValues)
         ) {
 
-            // Splash
+            // ── SPLASH ────────────────────────────────────────────────────────
             composable("splash") {
+                val context = LocalContext.current
+                val estaLogeado = usuarioViewModel.estaLogeado
+                val sesionVerificada = usuarioViewModel.sesionVerificada
 
-                SplashScreen(
-                    onDone = {
-                        navController.navigate("login") {
-                            popUpTo("splash") {
-                                inclusive = true
+                LaunchedEffect(Unit) {
+                    usuarioViewModel.verificarSesion(context)
+                }
+
+                SplashScreen(onDone = { })
+
+                LaunchedEffect(sesionVerificada) {
+                    if (sesionVerificada) {
+                        if (estaLogeado) {
+                            navController.navigate("home") {
+                                popUpTo("splash") { inclusive = true }
+                            }
+                        } else {
+                            navController.navigate("login") {
+                                popUpTo("splash") { inclusive = true }
                             }
                         }
                     }
-                )
+                }
             }
 
-            // Login
+            // ── LOGIN ─────────────────────────────────────────────────────────
             composable("login") {
-
                 LogIn(
                     navController = navController,
                     usuarioViewModel = usuarioViewModel,
                     onLogin = {
-
                         navController.navigate("home") {
-
-                            popUpTo("login") {
-                                inclusive = true
-                            }
+                            popUpTo("login") { inclusive = true }
                         }
                     }
                 )
             }
 
-            // Create Account
+            // ── CREAR CUENTA ──────────────────────────────────────────────────
             composable("createAccount") {
                 CreateAccountScreen(
                     usuarioViewModel = usuarioViewModel,
                     onAccountCreated = {
                         navController.navigate("home") {
-                            popUpTo("createAccount") {
-                                inclusive = true
-                            }
+                            popUpTo("createAccount") { inclusive = true }
                         }
                     },
-                    onBackToLogin = {
-                        navController.popBackStack()
-                    }
+                    onBackToLogin = { navController.popBackStack() }
                 )
             }
 
-
-            // Home
+            // ── HOME ──────────────────────────────────────────────────────────
             composable("home") {
                 HomeScreen(
-                    usuarioViewModel = usuarioViewModel
+                    navController = navController,
+                    usuarioViewModel = usuarioViewModel,
+                    viajeViewModel = viajeViewModel
                 )
             }
 
-            // Search
+            // ── SEARCH ────────────────────────────────────────────────────────
             composable("search") {
                 SearchScreen(usuarioViewModel = usuarioViewModel)
             }
 
-            // My Rides
+            // ── MY RIDES ─────────────────────────────────────────────────────
             composable("my_rides") {
                 MyRidesScreen(
                     viajeViewModel = viajeViewModel,
+                    usuarioViewModel = usuarioViewModel,
+                    navController = navController
+                )
+            }
+
+            // ── CREATE RIDE ───────────────────────────────────────────────────
+            composable("create") {
+                CreateRideScreen(
+                    navController = navController,
                     usuarioViewModel = usuarioViewModel
                 )
             }
 
-            // Create Ride
-            composable("create") {
-                CreateRideScreen(
-                    viajeViewModel = viajeViewModel,
-                    onViajeCreado = {
-                        // Al publicar con éxito, vamos a ver la lista de Mis Viajes
-                        navController.navigate("my_rides") {
-                            popUpTo("create") { inclusive = true }
-                        }
-                    }
-                )
-            }
-
-            // Messages
+            // ── MESSAGES ──────────────────────────────────────────────────────
             composable("messages") {
                 MessagesScreen()
             }
 
-            // Profile
+            // ── PROFILE ───────────────────────────────────────────────────────
             composable("profile") {
-
                 ProfileScreen(
                     navController = navController,
                     usuarioViewModel = usuarioViewModel,
@@ -176,15 +208,20 @@ fun UamLiftApp() {
                 )
             }
 
-            // Edit Profile
+            // ── EDIT PROFILE (con onBack correcto → regresa a "profile") ──────
             composable("edit_profile") {
-
                 EditProfileScreen(
-                    usuarioViewModel = usuarioViewModel
+                    usuarioViewModel = usuarioViewModel,
+                    onBack = {
+                        // Siempre regresa a la pantalla principal de perfil
+                        navController.navigate("profile") {
+                            popUpTo("profile") { inclusive = true }
+                        }
+                    }
                 )
             }
 
-            // Add Car
+            // ── ADD CAR ───────────────────────────────────────────────────────
             composable("add_car") {
                 AddCarScreen(
                     navController = navController,
@@ -192,11 +229,21 @@ fun UamLiftApp() {
                 )
             }
 
-            // My Cars
+            // ── MY CARS ───────────────────────────────────────────────────────
             composable("my_cars") {
                 MyCarsScreen(
                     navController = navController,
                     usuarioViewModel = usuarioViewModel
+                )
+            }
+
+            // ── MAPA DEL VIAJE ACTIVO ─────────────────────────────────────────
+            composable("active_ride/{viajeId}") { backStackEntry ->
+                val viajeId = backStackEntry.arguments?.getString("viajeId")?.toLongOrNull() ?: 0L
+                ActiveRideMapScreen(
+                    viajeId = viajeId,
+                    viajeViewModel = viajeViewModel,
+                    onBack = { navController.popBackStack() }
                 )
             }
         }

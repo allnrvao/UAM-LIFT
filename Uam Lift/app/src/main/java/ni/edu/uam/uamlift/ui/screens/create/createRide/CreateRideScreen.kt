@@ -36,6 +36,7 @@ import kotlinx.coroutines.launch
 import ni.edu.uam.uamlift.data.enums.DepartamentosPacifico
 import ni.edu.uam.uamlift.data.models.Carro
 import ni.edu.uam.uamlift.data.models.Destino
+import ni.edu.uam.uamlift.data.viewmodels.AppViewModelFactory
 import ni.edu.uam.uamlift.data.viewmodels.CarroViewModel
 import ni.edu.uam.uamlift.data.viewmodels.DestinoViewModel
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
@@ -53,7 +54,7 @@ fun CreateRideScreen(
     navController: NavController,
     usuarioViewModel: UsuarioViewModel,
     modifier: Modifier = Modifier,
-    viajeViewModel: ViajeViewModel = viewModel(),
+    viajeViewModel: ViajeViewModel = viewModel(factory = AppViewModelFactory()),
     carroViewModel: CarroViewModel = viewModel(),
     destinoViewModel: DestinoViewModel = viewModel(),
     onViajeCreado: () -> Unit = {}
@@ -99,18 +100,18 @@ fun CreateRideScreen(
     val sdfDate = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US) }
     val sdfTime = remember { SimpleDateFormat("HH:mm", Locale.US) }
     val sdfDateTime = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US) }
-    
+
     val calendarInitial = remember { Calendar.getInstance() }
     var date by remember { mutableStateOf(sdfDate.format(calendarInitial.time)) }
-    var departureTime by remember { 
+    var departureTime by remember {
         val cal = Calendar.getInstance().apply { add(Calendar.MINUTE, 5) }
-        mutableStateOf(sdfTime.format(cal.time)) 
+        mutableStateOf(sdfTime.format(cal.time))
     }
-    var arrivalTime by remember { 
+    var arrivalTime by remember {
         val cal = Calendar.getInstance().apply { add(Calendar.MINUTE, 40) }
-        mutableStateOf(sdfTime.format(cal.time)) 
+        mutableStateOf(sdfTime.format(cal.time))
     }
-    
+
     var selectedCar by remember { mutableStateOf<Carro?>(null) }
     var seats by remember { mutableIntStateOf(1) }
     var price by remember { mutableStateOf("") }
@@ -137,7 +138,22 @@ fun CreateRideScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(snackbarHostState) { data ->
+                Snackbar(
+                    modifier = Modifier.padding(16.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    containerColor = Color.White,
+                    contentColor = Color.DarkGray
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Info, contentDescription = null, tint = UAMColor, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(text = data.visuals.message, color = Color.DarkGray, fontWeight = FontWeight.Medium)
+                    }
+                }
+            }
+        },
         containerColor = Gray
     ) { padding ->
         Column(
@@ -602,7 +618,7 @@ fun Step2Schedule(
                     set(Calendar.SECOND, 0)
                     set(Calendar.MILLISECOND, 0)
                 }.time
-                
+
                 val dep = sdfDateTime.parse("$date $departureTime") ?: return@remember false
                 val arr = sdfDateTime.parse("$date $arrivalTime") ?: return@remember false
 
@@ -621,9 +637,9 @@ fun Step2Schedule(
 
         Box(modifier = Modifier.fillMaxWidth().clickable { datePickerDialog.show() }) {
             OutlinedTextField(
-                value = date, onValueChange = {}, label = { Text("Fecha del viaje") }, 
+                value = date, onValueChange = {}, label = { Text("Fecha del viaje") },
                 readOnly = true, enabled = false, modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = UAMColor, disabledTextColor = Color.Black, disabledContainerColor = Color.White, disabledLabelColor = UAMColor), 
+                colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = UAMColor, disabledTextColor = Color.Black, disabledContainerColor = Color.White, disabledLabelColor = UAMColor),
                 leadingIcon = { Icon(Icons.Default.DateRange, null, tint = UAMColor) }
             )
         }
@@ -641,7 +657,7 @@ fun Step2Schedule(
                 OutlinedTextField(
                     value = arrivalTime, onValueChange = {}, label = { Text("Llegada Estimada") },
                     readOnly = true, enabled = false, modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = Color(0xFFE65100), disabledTextColor = Color.Black, disabledContainerColor = Color.White, disabledLabelColor = Color(0xFFE65100), disabledLeadingIconColor = Color(0xFFE65100)),
+                    colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = UAMColor, disabledTextColor = Color.Black, disabledContainerColor = Color.White, disabledLabelColor = UAMColor, disabledLeadingIconColor = UAMColor),
                     leadingIcon = { Icon(Icons.Default.Timer, null) }
                 )
             }
@@ -748,7 +764,7 @@ fun Step3Price(
 fun SummaryRow(label: String, value: String, isHighlight: Boolean = false) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, color = Color.Gray, modifier = Modifier.weight(0.35f), fontSize = 14.sp)
-        Text(text = value, fontWeight = if (isHighlight) FontWeight.Bold else FontWeight.Medium, color = if (isHighlight) Color(0xFF019AA8) else UAMColor, modifier = Modifier.weight(0.65f), textAlign = TextAlign.End, fontSize = 14.sp)
+        Text(text = value, fontWeight = if (isHighlight) FontWeight.Bold else FontWeight.Medium, color = UAMColor, modifier = Modifier.weight(0.65f), textAlign = TextAlign.End, fontSize = 14.sp)
     }
 }
 

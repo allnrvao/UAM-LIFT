@@ -2,6 +2,7 @@ package ni.edu.uam.uamlift.data.api
 
 import ni.edu.uam.uamlift.data.dto.EmailVerificationConfirm
 import ni.edu.uam.uamlift.data.dto.EmailVerificationRequest
+import ni.edu.uam.uamlift.data.dto.EstadisticasUsuario
 import ni.edu.uam.uamlift.data.models.Usuario
 import okhttp3.ResponseBody
 import retrofit2.http.*
@@ -18,19 +19,13 @@ interface UsuarioApiService {
     suspend fun obtenerPorId(@Path("id") id: Long): Usuario
 
     @GET("api/usuarios/cif/{cif}")
-    suspend fun obtenerPorCif(
-        @Path("cif") cif: String
-    ): Usuario
+    suspend fun obtenerPorCif(@Path("cif") cif: String): Usuario
 
     @GET("api/usuarios/correo/{correo}")
-    suspend fun obtenerPorCorreo(
-        @Path("correo") correo: String
-    ): Usuario
+    suspend fun obtenerPorCorreo(@Path("correo") correo: String): Usuario
 
     @GET("api/usuarios/nombreUsuario/{nombreUsuario}")
-    suspend fun obtenerPorNombreUsuario(
-        @Path("nombreUsuario") nombreUsuario: String
-    ): Usuario
+    suspend fun obtenerPorNombreUsuario(@Path("nombreUsuario") nombreUsuario: String): Usuario
 
     @PUT("api/usuarios/{cif}")
     suspend fun actualizarUsuario(
@@ -39,17 +34,14 @@ interface UsuarioApiService {
     ): Boolean
 
     @DELETE("api/usuarios/{cif}")
-    suspend fun eliminarUsuario(
-        @Path("cif") cif: String?
-    ): Boolean
+    suspend fun eliminarUsuario(@Path("cif") cif: String?): Boolean
 
     @POST("api/usuarios/verificacion/solicitar")
-    suspend fun solicitarVerificacion(
-        @Body request: EmailVerificationRequest
-    ): Boolean
+    suspend fun solicitarVerificacion(@Body request: EmailVerificationRequest): Boolean
 
     @POST("api/usuarios/verificacion/confirmar")
-    suspend fun confirmarVerificacion(
-        @Body request: EmailVerificationConfirm
-    ): Boolean
+    suspend fun confirmarVerificacion(@Body request: EmailVerificationConfirm): Boolean
+
+    @GET("api/usuarios/{id}/estadisticas")
+    suspend fun obtenerEstadisticas(@Path("id") id: Long): EstadisticasUsuario
 }

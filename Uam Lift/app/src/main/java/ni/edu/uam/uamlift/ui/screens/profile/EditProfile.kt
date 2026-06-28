@@ -38,37 +38,33 @@ import java.io.FileOutputStream
 @Composable
 fun EditProfileScreen(
     usuarioViewModel: UsuarioViewModel,
+    // onBack es llamado tanto por el botón "<-- Editar perfil" como por el diálogo de éxito
     onBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val usuarioActual = usuarioViewModel.usuario
 
-    // Estados para los campos
     var nombreActual by remember { mutableStateOf(usuarioActual.nombre ?: "") }
     var apellidoActual by remember { mutableStateOf(usuarioActual.apellido ?: "") }
     var nombreUsuarioActual by remember { mutableStateOf(usuarioActual.nombreUsuario ?: "") }
     var correoActual by remember { mutableStateOf(usuarioActual.correo ?: "") }
 
-    // Estados de validación asíncrona
     var nombreUsuarioUnico by remember { mutableStateOf(true) }
     var correoUnico by remember { mutableStateOf(true) }
     var verificandoUnicidad by remember { mutableStateOf(false) }
 
-    // Estados de UI (Diálogos)
     var mostrarDialogoConfirmacion by remember { mutableStateOf(false) }
     var mostrarDialogoExito by remember { mutableStateOf(false) }
     var imagenUri by remember { mutableStateOf<Uri?>(null) }
 
-    // Lógica interactiva para el Nombre de Usuario (Te dice exactamente qué falla)
     val errorUsuarioTexto = when {
         nombreUsuarioActual.length < 4 -> "Mínimo 4 caracteres"
         nombreUsuarioActual.contains(" ") -> "No puede contener espacios"
         verificandoUnicidad -> "Verificando disponibilidad..."
         !nombreUsuarioUnico -> "Este usuario ya está ocupado"
-        else -> "" // Si está vacío, todo está perfecto
+        else -> ""
     }
 
-    // Lógica interactiva para el Correo
     val errorCorreoTexto = when {
         !android.util.Patterns.EMAIL_ADDRESS.matcher(correoActual).matches() -> "Formato inválido"
         !correoActual.endsWith("@uamv.edu.ni") -> "Debe ser correo institucional @uamv.edu.ni"
@@ -76,19 +72,19 @@ fun EditProfileScreen(
         else -> ""
     }
 
-    // Validaciones booleanas simples
     val nombreUsuarioValido = errorUsuarioTexto.isEmpty()
     val correoValido = errorCorreoTexto.isEmpty()
     val nombreValido = nombreActual.trim().length >= 3
     val apellidoValido = apellidoActual.trim().length >= 3
 
-    // Efecto para verificar unicidad con debounce (No saturar el servidor)
     LaunchedEffect(nombreUsuarioActual, correoActual) {
         if (nombreUsuarioActual != usuarioActual.nombreUsuario || correoActual != usuarioActual.correo) {
             verificandoUnicidad = true
-            delay(500) // Debounce de medio segundo
+            delay(500)
 
-            if (nombreUsuarioActual != usuarioActual.nombreUsuario && nombreUsuarioActual.length >= 4 && !nombreUsuarioActual.contains(" ")) {
+            if (nombreUsuarioActual != usuarioActual.nombreUsuario &&
+                nombreUsuarioActual.length >= 4 && !nombreUsuarioActual.contains(" ")
+            ) {
                 usuarioViewModel.verificarNombreUsuarioUnico(nombreUsuarioActual) { unico ->
                     nombreUsuarioUnico = unico
                 }
@@ -110,7 +106,6 @@ fun EditProfileScreen(
         }
     }
 
-    // Botón habilitado solo si TODO está perfecto
     val formularioValido = nombreValido && apellidoValido && correoValido &&
             nombreUsuarioValido && !verificandoUnicidad
 
@@ -124,140 +119,174 @@ fun EditProfileScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Gray)
-            .padding(24.dp)
-            .verticalScroll(rememberScrollState()) // Añadido scroll para pantallas pequeñas
+            .verticalScroll(rememberScrollState())
     ) {
-        // --- TOP BAR ---
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        // ── TOP BAR (botón funcional "<- Editar perfil") ──────────────────────
+        Surface(
+            color = Color.White,
+            shadowElevation = 2.dp,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            IconButton(onClick = onBack) {
-                Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Regresar", tint = Color.Black)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Botón que regresa a la pantalla principal de perfil
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Regresar al perfil",
+                        tint = UAMColor
+                    )
+                }
+                Text(
+                    text = "Editar perfil",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    modifier = Modifier.weight(1f)
+                )
             }
-            Text(
-                text = "Editar perfil",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                modifier = Modifier.weight(1f)
-            )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp)
+        ) {
+            Spacer(modifier = Modifier.height(8.dp))
 
-        // --- FOTO DE PERFIL ---
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Box(modifier = Modifier.size(110.dp), contentAlignment = Alignment.Center) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    shape = CircleShape,
-                    color = UAMColor.copy(alpha = 0.1f),
-                    onClick = { launcher.launch("image/*") }
-                ) {
-                    if (imagenUri != null) {
-                        AsyncImage(model = imagenUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    } else if (!usuarioActual.imagenUrl.isNullOrEmpty()) {
-                        AsyncImage(model = File(usuarioActual.imagenUrl!!), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    } else {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(imageVector = Icons.Default.Edit, contentDescription = null, tint = UAMColor, modifier = Modifier.size(36.dp))
+            // ── FOTO DE PERFIL ───────────────────────────────────────────────
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.size(110.dp), contentAlignment = Alignment.Center) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        shape = CircleShape,
+                        color = UAMColor.copy(alpha = 0.1f),
+                        onClick = { launcher.launch("image/*") }
+                    ) {
+                        if (imagenUri != null) {
+                            AsyncImage(
+                                model = imagenUri,
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else if (!usuarioActual.imagenUrl.isNullOrEmpty()) {
+                            AsyncImage(
+                                model = File(usuarioActual.imagenUrl!!),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = null,
+                                    tint = UAMColor,
+                                    modifier = Modifier.size(36.dp)
+                                )
+                            }
                         }
                     }
-                }
-                FloatingActionButton(
-                    onClick = { launcher.launch("image/*") },
-                    containerColor = UAMColor,
-                    contentColor = Color.White,
-                    shape = CircleShape,
-                    modifier = Modifier.size(36.dp).align(Alignment.BottomEnd)
-                ) {
-                    Icon(imageVector = Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                    FloatingActionButton(
+                        onClick = { launcher.launch("image/*") },
+                        containerColor = UAMColor,
+                        contentColor = Color.White,
+                        shape = CircleShape,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .align(Alignment.BottomEnd)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-        // --- CAMPOS DE FORMULARIO ---
+            // ── CAMPOS ───────────────────────────────────────────────────────
 
-        // 1. Nombre (BLOQUEADO)
-        ValidatableField(
-            value = nombreActual,
-            onValueChange = {},
-            label = "Nombre",
-            isValid = true,
-            errorText = "",
-            readOnly = true // Ya no se puede escribir aquí
-        )
+            ValidatableField(
+                value = nombreActual,
+                onValueChange = {},
+                label = "Nombre",
+                isValid = true,
+                errorText = "",
+                readOnly = true
+            )
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
+            ValidatableField(
+                value = apellidoActual,
+                onValueChange = {},
+                label = "Apellido",
+                isValid = true,
+                errorText = "",
+                readOnly = true
+            )
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // 2. Apellido (BLOQUEADO)
-        ValidatableField(
-            value = apellidoActual,
-            onValueChange = {},
-            label = "Apellido",
-            isValid = true,
-            errorText = "",
-            readOnly = true // Ya no se puede escribir aquí
-        )
+            ValidatableField(
+                value = nombreUsuarioActual,
+                onValueChange = { nombreUsuarioActual = it },
+                label = "Nombre de Usuario",
+                isValid = nombreUsuarioValido,
+                errorText = errorUsuarioTexto
+            )
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
+            ValidatableField(
+                value = correoActual,
+                onValueChange = {},
+                label = "Correo UAM",
+                isValid = true,
+                errorText = "",
+                readOnly = true
+            )
+            Spacer(modifier = Modifier.height(32.dp))
 
-        // 3. Nombre de Usuario (INTERACTIVO)
-        ValidatableField(
-            value = nombreUsuarioActual,
-            onValueChange = { nombreUsuarioActual = it },
-            label = "Nombre de Usuario",
-            isValid = nombreUsuarioValido,
-            errorText = errorUsuarioTexto
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 4. Correo (BLOQUEADO)
-        ValidatableField(
-            value = correoActual,
-            onValueChange = {},
-            label = "Correo UAM",
-            isValid = true,
-            errorText = "",
-            readOnly = true
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // --- BOTÓN GUARDAR ---
-        Button(
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (formularioValido) UAMColor else Color.Gray
-            ),
-            modifier = Modifier.fillMaxWidth().height(50.dp),
-            enabled = formularioValido && !usuarioViewModel.cargando,
-            onClick = { mostrarDialogoConfirmacion = true }
-        ) {
-            if (usuarioViewModel.cargando) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-            } else {
-                Text("Guardar cambios", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            // ── BOTÓN GUARDAR ────────────────────────────────────────────────
+            Button(
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (formularioValido) UAMColor else Color.Gray
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                enabled = formularioValido && !usuarioViewModel.cargando,
+                onClick = { mostrarDialogoConfirmacion = true }
+            ) {
+                if (usuarioViewModel.cargando) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                } else {
+                    Text("Guardar cambios", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
             }
+            Spacer(modifier = Modifier.height(24.dp))
         }
-        Spacer(modifier = Modifier.height(24.dp))
     }
 
-    // --- DIÁLOGO 1: CONFIRMAR CAMBIOS ---
+    // ── DIÁLOGO 1: CONFIRMAR ─────────────────────────────────────────────────
     if (mostrarDialogoConfirmacion) {
         AlertDialog(
             onDismissRequest = { mostrarDialogoConfirmacion = false },
+            containerColor = Color.White,
             title = { Text("Confirmar cambios") },
             text = { Text("¿Estás seguro de que deseas actualizar tu perfil con estos datos?") },
             confirmButton = {
                 Button(
                     colors = ButtonDefaults.buttonColors(containerColor = UAMColor),
                     onClick = {
-                        val pathImagen = imagenUri?.let { guardarUriEnAlmacenamientoInterno(context, it) }
-
+                        val pathImagen =
+                            imagenUri?.let { guardarUriEnAlmacenamientoInterno(context, it) }
                         usuarioViewModel.actualizarPerfil(
                             nuevoNombre = nombreActual,
                             nuevoApellido = apellidoActual,
@@ -268,26 +297,38 @@ fun EditProfileScreen(
                         ) { exito ->
                             mostrarDialogoConfirmacion = false
                             if (exito) {
-                                mostrarDialogoExito = true // Lanza el diálogo bonito de éxito
+                                mostrarDialogoExito = true
                             } else {
-                                Toast.makeText(context, "Error al actualizar en el servidor", Toast.LENGTH_LONG).show()
+                                Toast.makeText(
+                                    context,
+                                    "Error al actualizar en el servidor",
+                                    Toast.LENGTH_LONG
+                                ).show()
                             }
                         }
                     }
                 ) { Text("Guardar") }
             },
             dismissButton = {
-                TextButton(onClick = { mostrarDialogoConfirmacion = false }) { Text("Cancelar") }
+                TextButton(onClick = { mostrarDialogoConfirmacion = false }) {
+                    Text("Cancelar")
+                }
             }
         )
     }
 
-    // --- DIÁLOGO 2: MENSAJE DE ÉXITO (El que te regresa al perfil) ---
+    // ── DIÁLOGO 2: ÉXITO → navega a ProfileScreen ────────────────────────────
     if (mostrarDialogoExito) {
         AlertDialog(
-            onDismissRequest = { }, // No se cierra tocando afuera, obliga a darle OK
+            onDismissRequest = { /* no cerrar tocando afuera */ },
+            containerColor = Color.White,
             icon = {
-                Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(48.dp))
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF4CAF50),
+                    modifier = Modifier.size(48.dp)
+                )
             },
             title = { Text("¡Perfil Actualizado!") },
             text = { Text("Tus cambios se han guardado exitosamente.") },
@@ -297,7 +338,8 @@ fun EditProfileScreen(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
                         mostrarDialogoExito = false
-                        onBack() // AQUÍ TE MANDA DE UNA AL PERFIL
+                        // Regresa a ProfileScreen (la pantalla principal de perfil)
+                        onBack()
                     }
                 ) {
                     Text("Continuar", fontWeight = FontWeight.Bold)
@@ -307,7 +349,7 @@ fun EditProfileScreen(
     }
 }
 
-// --- COMPONENTE VALIDATABLE FIELD (CORREGIDO PARA ACEPTAR READONLY) ---
+// ── Componente ValidatableField (sin cambios) ─────────────────────────────────
 @Composable
 fun ValidatableField(
     value: String,
@@ -315,10 +357,11 @@ fun ValidatableField(
     label: String,
     isValid: Boolean,
     errorText: String,
-    readOnly: Boolean = false // <--- SE AÑADIÓ ESTO PARA QUE NO DE ERROR AL BLOQUEAR
+    readOnly: Boolean = false
 ) {
-    // Si es readOnly, lo ponemos gris para que el usuario sepa que no se toca
-    val colorEstado = if (readOnly) Color.Gray else if (isValid) Color(0xFF4CAF50) else Color.Red
+    val colorEstado = if (readOnly) Color.Gray
+    else if (isValid) Color(0xFF4CAF50)
+    else Color.Red
 
     OutlinedTextField(
         value = value,
@@ -327,7 +370,7 @@ fun ValidatableField(
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         isError = !isValid && !readOnly,
-        readOnly = readOnly, // <--- SE APLICA AQUÍ
+        readOnly = readOnly,
         trailingIcon = {
             if (!readOnly) {
                 if (isValid) {
@@ -358,8 +401,10 @@ fun ValidatableField(
 fun guardarUriEnAlmacenamientoInterno(context: Context, uri: Uri): String? {
     return try {
         val streamEntrada = context.contentResolver.openInputStream(uri) ?: return null
-        val carpetaFotos = File(context.filesDir, "uam_photos").apply { if (!exists()) mkdirs() }
-        val archivoSalida = File(carpetaFotos, "perfil_${System.currentTimeMillis()}.jpg")
+        val carpetaFotos =
+            File(context.filesDir, "uam_photos").apply { if (!exists()) mkdirs() }
+        val archivoSalida =
+            File(carpetaFotos, "perfil_${System.currentTimeMillis()}.jpg")
         FileOutputStream(archivoSalida).use { output ->
             streamEntrada.use { input -> input.copyTo(output) }
         }

@@ -15,8 +15,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import kotlinx.coroutines.delay
 import ni.edu.uam.uamlift.data.enums.EstadoViaje
+import ni.edu.uam.uamlift.data.viewmodels.AppViewModelFactory
 import ni.edu.uam.uamlift.data.viewmodels.UbicacionViewModel
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
@@ -28,30 +30,32 @@ import ni.edu.uam.uamlift.ui.theme.UAMColor
 fun MyRidesScreen(
     viajeViewModel: ViajeViewModel,
     usuarioViewModel: UsuarioViewModel,
-    ubicacionViewModel: UbicacionViewModel = viewModel()
+    navController: NavController? = null,
+    ubicacionViewModel: UbicacionViewModel = viewModel(factory = AppViewModelFactory())
 ) {
     val viajes by viajeViewModel.viajes.collectAsState()
     val cargando by viajeViewModel.isLoading.collectAsState()
     val userCif = usuarioViewModel.usuario.cif ?: ""
     val userId = usuarioViewModel.usuario.id ?: 0L
 
-    // Cargar viajes al entrar para asegurar que la lista esté actualizada
     LaunchedEffect(userId) {
         viajeViewModel.cargarViajesDesdeBackend(userId)
     }
 
+    // LIFO: más reciente primero
     val misViajes = remember(viajes) {
-        viajes.filter { it.conductor?.cif == userCif }
+        viajes.filter { it.conductor?.cif == userCif }.reversed()
     }
 
-    // Lógica para enviar ubicación si el conductor tiene un viaje en curso
-    val viajeActivo = misViajes.find { it.estadoViaje == EstadoViaje.EN_CURSO }
-    
+    // Solo viajes activos (no finalizados ni cancelados) para enviar ubicación
+    val viajeActivo = misViajes.find {
+        it.estadoViaje == EstadoViaje.EN_CURSO
+    }
+
     LaunchedEffect(viajeActivo) {
         if (viajeActivo != null) {
             ubicacionViewModel.conectar(viajeActivo.id!!)
             while (true) {
-                // Simulación de coordenadas (UAM)
                 val latSimulada = 12.1276
                 val lngSimulada = -86.2713
                 ubicacionViewModel.enviar(viajeActivo.id!!, latSimulada, lngSimulada)
@@ -62,16 +66,16 @@ fun MyRidesScreen(
 
     Column(modifier = Modifier.fillMaxSize().background(Gray)) {
         Surface(color = Color.White, shadowElevation = 4.dp) {
-            Column(modifier = Modifier.padding(20.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
                 Text(
                     "Mis Viajes",
-                    fontSize = 28.sp,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Black,
                     color = UAMColor
                 )
                 Text(
                     "Gestiona tus rutas publicadas",
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     color = Color.Gray
                 )
             }
@@ -91,27 +95,30 @@ fun MyRidesScreen(
                         tint = Color.LightGray
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Aún no has creado ningún viaje", color = Color.Gray)
+                    Text("Aún no has creado ningún viaje", color = Color.Gray, fontSize = 14.sp)
                 }
             }
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                item { Spacer(modifier = Modifier.height(16.dp)) }
+                item { Spacer(modifier = Modifier.height(12.dp)) }
                 items(misViajes) { viaje ->
                     RideCard(
                         viaje = viaje,
                         usuarioIdActual = userId,
                         esConductor = true,
+                        onCardEnCursoClick = { viajeEnCurso ->
+                            navController?.navigate("active_ride/${viajeEnCurso.id}")
+                        },
                         onIniciarViaje = { id ->
                             viajeViewModel.iniciarViaje(
                                 viajeId = id,
                                 conductorId = userId,
-                                onExito = {
-                                    ubicacionViewModel.conectar(id)
-                                }
+                                onExito = { ubicacionViewModel.conectar(id) }
                             )
                         },
                         onFinalizarViaje = { id ->

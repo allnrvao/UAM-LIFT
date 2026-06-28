@@ -37,7 +37,6 @@ fun BottomNavigationBar(
         val items = listOf(
             BottomNavItem.Home,
             BottomNavItem.Search,
-            BottomNavItem.MyRides,
             BottomNavItem.Create,
             BottomNavItem.Messages,
             BottomNavItem.Profile
@@ -90,8 +89,17 @@ fun BottomNavigationBar(
                     selected = selected,
                     onClick = { onTabSelected(item.route) },
                     icon = {
+                        // Se evalúa la ruta de cada item para asignarle su icono de Material Design correspondiente
+                        val iconToDisplay = when (item.route) {
+                            "home" -> Icons.Default.Home
+                            "search" -> Icons.Default.Search
+                            "messages" -> Icons.Default.Email
+                            "profile" -> Icons.Default.Person
+                            else -> Icons.Default.List // Icono por defecto en caso de no coincidir
+                        }
+
                         Icon(
-                            imageVector = item.icon,
+                            imageVector = iconToDisplay,
                             contentDescription = null,
                             modifier = Modifier.size(24.dp)
                         )
