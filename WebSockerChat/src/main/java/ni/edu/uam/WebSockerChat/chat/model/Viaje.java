@@ -39,7 +39,6 @@ public class Viaje {
     @Column(nullable = false)
     private LocalDateTime fechaHoraSalida;
 
-    // 💡 CORREGIDO: Se removió @FutureOrPresent para permitir consultas de registros existentes
     @Column(nullable = false)
     private LocalDateTime fechaHoraLlegada;
 

@@ -1,7 +1,6 @@
 package ni.edu.uam.uamlift
 
 import android.annotation.SuppressLint
-import android.net.http.SslCertificate.restoreState
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -61,7 +60,7 @@ fun UamLiftApp() {
             if (currentRoute in bottomBarRoutes) {
                 BottomNavigationBar(currentTab) { newTab ->
                     if (newTab == "create") {
-                        val usuarioId = usuarioViewModel.usuario?.id ?: 0L
+                        val usuarioId = usuarioViewModel.usuario.id ?: 0L
                         if (usuarioId != 0L) {
                             viajeViewModel.validarNumViajes(usuarioId) { esValido ->
                                 if (esValido) {
@@ -97,8 +96,6 @@ fun UamLiftApp() {
                             launchSingleTop = true
                             restoreState = true
                         }
-                        launchSingleTop = true
-                        restoreState = true
                     }
                 }
             }
@@ -182,8 +179,7 @@ fun UamLiftApp() {
             composable("my_rides") {
                 MyRidesScreen(
                     viajeViewModel = viajeViewModel,
-                    usuarioViewModel = usuarioViewModel,
-                    navController = navController
+                    usuarioViewModel = usuarioViewModel
                 )
             }
 

@@ -15,16 +15,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.datastore.preferences.protobuf.LazyStringArrayList.emptyList
 import androidx.lifecycle.viewmodel.compose.viewModel
-import ni.edu.uam.uamlift.data.models.Viaje
 import ni.edu.uam.uamlift.data.viewmodels.AppViewModelFactory
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
 import ni.edu.uam.uamlift.ui.components.RideCard
 import ni.edu.uam.uamlift.ui.theme.Gray
 import ni.edu.uam.uamlift.ui.theme.UAMColor
-import kotlin.collections.emptyList
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,20 +34,42 @@ fun SearchScreen(
     var activeChip by remember { mutableStateOf("Todos") }
     val usuario = usuarioViewModel.usuario
 
-    // Estado para capturar lo que el estudiante escribe
     var searchQuery by remember { mutableStateOf("") }
 
-    // NOTA: Asumo que tienes estos states expuestos en tu ViajeViewModel.
-    // Si usas LiveData, cambia .collectAsState() por .observeAsState(initial = ...)
-    val viajesFiltrados by viajeViewModel.viajesFiltrados.collectAsState(initial = emptyList())
-    val cargando by viajeViewModel.cargando.collectAsState(initial = false)
+    val viajesOtros by viajeViewModel.viajesOtros.collectAsState()
+    val cargando by viajeViewModel.isLoading.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viajeViewModel.cargarViajesDesdeBackend()
+    val viajesFiltrados = remember(viajesOtros, searchQuery, activeChip) {
+        viajesOtros.filter { viaje ->
+            val matchesSearch = (viaje.origen?.nombre?.contains(searchQuery, ignoreCase = true) == true) ||
+                    (viaje.destino?.nombre?.contains(searchQuery, ignoreCase = true) == true) ||
+                    (viaje.conductor?.nombre?.contains(searchQuery, ignoreCase = true) == true) ||
+                    (viaje.conductor?.apellido?.contains(searchQuery, ignoreCase = true) == true) ||
+                    (viaje.conductor?.nombreUsuario?.contains(searchQuery, ignoreCase = true) == true)
+
+            val matchesChip = when (activeChip) {
+                "Mañana" -> {
+                    val hora = viaje.fechaHoraSalida?.substringAfter("T")?.take(2)?.toIntOrNull() ?: 0
+                    hora in 5..11
+                }
+                "Tarde" -> {
+                    val hora = viaje.fechaHoraSalida?.substringAfter("T")?.take(2)?.toIntOrNull() ?: 0
+                    hora in 12..18
+                }
+                "Económicos" -> viaje.precioPorPersona <= 30.0
+                else -> true
+            }
+            (searchQuery.isEmpty() || matchesSearch) && matchesChip
+        }
+    }
+
+    LaunchedEffect(usuario.id) {
+        usuario.id?.let {
+            viajeViewModel.cargarViajesDesdeBackend(it)
+        }
     }
 
     Column(modifier = modifier.fillMaxSize().background(Gray)) {
-        // Header + Search Bar
         Surface(
             color = Color.White,
             shadowElevation = 4.dp
@@ -105,7 +124,6 @@ fun SearchScreen(
             }
         }
 
-        // Bloque de contenido (Loading, Empty o Lista)
         if (cargando && viajesFiltrados.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = UAMColor)
@@ -124,9 +142,14 @@ fun SearchScreen(
                 items(viajesFiltrados) { miViaje ->
                     RideCard(
                         viaje = miViaje,
-                        esConductor = miViaje.conductor?.cif == usuario.cif,
+                        usuarioIdActual = usuario.id ?: 0L,
+                        esConductor = miViaje.conductor?.id == usuario.id,
                         onConfirmarClick = { idViaje ->
-                            viajeViewModel.unirseAlViaje(idViaje, usuario.cif)
+                            viajeViewModel.unirseAlViaje(
+                                viajeId = idViaje,
+                                usuarioId = usuario.id ?: 0L,
+                                usuarioCif = usuario.cif ?: ""
+                            )
                         }
                     )
                 }

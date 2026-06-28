@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,10 +31,15 @@ import java.util.*
 @Composable
 fun RideCard(
     viaje: Viaje,
+    usuarioIdActual: Long,
     esConductor: Boolean = false,
     onCardEnCursoClick: (Viaje) -> Unit = {},
     onConfirmarClick: (Long) -> Unit = {},
-    onIniciarViaje: (Long) -> Unit = {}
+    onIniciarViaje: (Long) -> Unit = {},
+    onFinalizarViaje: (Long) -> Unit = {},
+    onCancelarViaje: (Long) -> Unit = {},
+    onVerPasajeros: (Long) -> Unit = {},
+    onCancelarParticipacion: (Long) -> Unit = {}
 ) {
     var mostrarDialogo by remember { mutableStateOf(false) }
 
@@ -41,11 +48,12 @@ fun RideCard(
     val grayText = Color(0xFF424242)
 
     val esPasajero = remember(viaje.pasajeros) {
-        viaje.pasajeros.any { it.usuario?.id == usuarioIdActual }
+        viaje.pasajeros?.any { it.usuario?.id == usuarioIdActual } ?: false
     }
 
-    val asientosLibres = remember(viaje.numeroAsientosDisponibles, viaje.pasajeros.size) {
-        val libres = viaje.numeroAsientosDisponibles - viaje.pasajeros.size
+    val pasajerosCount = viaje.pasajeros?.size ?: 0
+    val asientosLibres = remember(viaje.numeroAsientosDisponibles, pasajerosCount) {
+        val libres = viaje.numeroAsientosDisponibles - pasajerosCount
         if (libres < 0) 0 else libres
     }
 
@@ -344,24 +352,32 @@ fun RideCard(
                     }
                 } else if (!estaTerminado) {
                     Surface(
-                        color = if (esPasajero)
+                        color = if (esPasajero && viaje.estadoViaje == EstadoViaje.EN_CURSO)
+                            UAMColor
+                        else if (esPasajero)
                             UAMColor.copy(alpha = 0.1f)
                         else
                             lightTealSeat.copy(alpha = 0.5f),
                         shape = RoundedCornerShape(8.dp)
                     ) {
+                        val textoPasajero = when {
+                            esPasajero && viaje.estadoViaje == EstadoViaje.EN_CURSO -> "📍 Ver Mapa en Vivo"
+                            esPasajero -> "Ya estás unido"
+                            else -> "$asientosLibres asientos libres"
+                        }
                         Text(
-                            text = if (esPasajero) "Ya estás unido"
-                            else "$asientosLibres asientos libres",
+                            text = textoPasajero,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = UAMColor
+                            color = if (esPasajero && viaje.estadoViaje == EstadoViaje.EN_CURSO)
+                                Color.White
+                            else
+                                UAMColor
                         )
                     }
                 }
             }
         }
     }
-    //comentario
 }

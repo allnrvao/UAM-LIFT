@@ -42,13 +42,25 @@ class ViajeViewModel(
     fun publicarViaje(
         usuarioId: Long,
         conductorCif: String,
+        origen: Destino?,
+        destino: Destino?,
+        fechaSalida: String,
+        fechaLlegada: String,
+        asientos: Int,
+        precio: Double,
+        carro: Carro?,
         onExito: () -> Unit,
         onError: (String) -> Unit = {}
     ) {
         viewModelScope.launch {
             _isLoading.value = true
-
             try {
+                // Validación para evitar el NPE en el backend
+                if (origen == null || destino == null) {
+                    onError("El origen y el destino son obligatorios.")
+                    return@launch
+                }
+
                 // 1. Validación: Ya tiene un viaje activo
                 val tieneViajeActivo = _misViajes.value.any { 
                     it.estadoViaje == EstadoViaje.PROPUESTO ||
@@ -60,32 +72,44 @@ class ViajeViewModel(
                     return@launch
                 }
 
-                if (viaje.precioPorPersona < 1.0) {
+                if (precio < 1.0) {
                     onError("El aporte debe ser al menos de C$ 1")
                     return@launch
                 }
                 
-                // 2. Validación: Conflicto de horario (al mismo tiempo)
+                // 2. Validación: Conflicto de horario
                 val fechasValidas = withContext(Dispatchers.IO) {
-                    apiService.validarFechas(usuarioId, viaje.fechaHoraSalida ?: "", viaje.fechaHoraLlegada ?: "")
+                    apiService.validarFechas(usuarioId, fechaSalida, fechaLlegada)
                 }
                 if (!fechasValidas) {
                     onError("Conflicto de horario: Ya tienes otro viaje programado en ese mismo horario.")
                     return@launch
                 }
 
-                val conductorSimulado = Usuario(cif = conductorCif)
-                val viajeAEnviar = viaje.copy(estadoViaje = EstadoViaje.PROPUESTO, conductor = conductorSimulado)
+                val viajeAEnviar = Viaje(
+                    origen = origen,
+                    destino = destino,
+                    fechaHoraSalida = fechaSalida,
+                    fechaHoraLlegada = fechaLlegada,
+                    numeroAsientosDisponibles = asientos,
+                    precioPorPersona = precio,
+                    conductor = Usuario(cif = conductorCif),
+                    carro = carro,
+                    estadoViaje = EstadoViaje.PROPUESTO
+                )
+
+                Log.d("ViajeViewModel", "Publicando viaje: ${origen.nombre} -> ${destino.nombre}")
+
                 val nuevoViaje = withContext(Dispatchers.IO) { apiService.crearViaje(conductorCif, viajeAEnviar) }
 
                 if (nuevoViaje != null) {
                     fetchViajesInternal(apiService, usuarioId)
-                    viaje = Viaje()
                     onExito()
                 } else {
                     onError("Error al procesar la solicitud.")
                 }
             } catch (e: Exception) {
+                Log.e("ViajeViewModel", "Error al publicar viaje", e)
                 onError("Error de conexión.")
             } finally {
                 _isLoading.value = false
@@ -114,7 +138,7 @@ class ViajeViewModel(
                     return@launch
                 }
 
-                // 2. Validación: Conflicto de horario (mismo tiempo)
+                // 2. Validación: Conflicto de horario
                 val viajeADeterminar = _viajesOtros.value.find { it.id == viajeId } ?: _viajes.value.find { it.id == viajeId }
                 if (viajeADeterminar != null) {
                     val fechasValidas = withContext(Dispatchers.IO) {
@@ -205,7 +229,6 @@ class ViajeViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Validación local para no iniciar un viaje que ya está en curso
                 val viajeActual = _misViajes.value.find { it.id == viajeId }
                 if (viajeActual?.estadoViaje == EstadoViaje.EN_CURSO) {
                     onExito()
@@ -257,15 +280,27 @@ class ViajeViewModel(
         }
     }
 
-    fun cancelarParticipacion(viajeId: Long, usuarioId: Long, usuarioCif: String, onExito: () -> Unit = {}) {
+    fun cancelarParticipacion(viajeId: Long, usuarioId: Long, usuarioCif: String, onExito: () -> Unit = {}, onError: (String) -> Unit = {}) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
+                // Validación: No se puede cancelar si el viaje ya inició o finalizó
+                val viajeActual = _misViajes.value.find { it.id == viajeId } ?: _viajes.value.find { it.id == viajeId }
+                if (viajeActual?.estadoViaje == EstadoViaje.EN_CURSO) {
+                    onError("No puedes cancelar tu participación una vez que el viaje ha iniciado.")
+                    return@launch
+                }
+
                 val exito = withContext(Dispatchers.IO) { apiService.cancelarParticipacion(viajeId, usuarioCif) }
-                if (exito) fetchViajesInternal(apiService, usuarioId)
-                onExito()
+                if (exito) {
+                    fetchViajesInternal(apiService, usuarioId)
+                    onExito()
+                } else {
+                    onError("No se pudo cancelar la participación.")
+                }
             } catch (e: Exception) {
                 Log.e("ViajeViewModel", "Error al cancelar participacion", e)
+                onError("Error de conexión.")
             } finally {
                 _isLoading.value = false
             }
@@ -289,5 +324,5 @@ class ViajeViewModel(
     fun actualizarFechaHoraLlegada(fecha: String) { viaje = viaje.copy(fechaHoraLlegada = fecha) }
     fun actualizarNumeroAsientos(numero: Int) { viaje = viaje.copy(numeroAsientosDisponibles = numero) }
     fun actualizarPrecio(precio: Double) { viaje = viaje.copy(precioPorPersona = precio) }
-    fun actualizarCarro(selectedCar: Carro?) {}
+    fun actualizarCarro(selectedCar: Carro?) { viaje = viaje.copy(carro = selectedCar) }
 }

@@ -16,7 +16,8 @@ data class MensajeUI(
     val usuarioNombre: String,
     val contenido: String,
     val fechaEnvio: String,
-    val isMe: Boolean
+    val isMe: Boolean,
+    val timestamp: Long = System.currentTimeMillis() // Para desempatar mensajes sin ID real
 )
 
 class ChatViewModel(
@@ -36,7 +37,7 @@ class ChatViewModel(
 
     fun iniciarChat(viajeId: Long, currentUserId: Long) {
         if (currentViajeId == viajeId) return
-        
+
         connectionJob?.cancel()
         currentViajeId = viajeId
         _mensajesUi.value = emptyList()
@@ -50,23 +51,29 @@ class ChatViewModel(
 
             // Escucha de mensajes en tiempo real
             launch {
-                ws.mensajes
-                    .filter { it.viajeId == viajeId }
-                    .collect { nuevo ->
+                ws.mensajes.collect { nuevo ->
+                    // Si el viajeId del mensaje es 0 o coincide con el actual, lo aceptamos
+                    if (nuevo.viajeId == 0L || nuevo.viajeId == viajeId) {
                         val nombre = resolveName(nuevo.usuarioId)
                         val nuevoUi = MensajeUI(
                             id = nuevo.id,
                             usuarioId = nuevo.usuarioId,
                             usuarioNombre = nombre,
                             contenido = nuevo.contenido,
-                            fechaEnvio = nuevo.fechaEnvio,
+                            fechaEnvio = nuevo.fechaEnvio.ifBlank { System.currentTimeMillis().toString() },
                             isMe = nuevo.usuarioId == currentUserId
                         )
-                        
+
                         _mensajesUi.update { actual ->
-                            if (actual.any { it.id == nuevoUi.id }) actual else actual + nuevoUi
+                            // Solo filtramos duplicados si el ID es válido (distinto de 0)
+                            if (nuevoUi.id != 0L && actual.any { it.id == nuevoUi.id }) {
+                                actual
+                            } else {
+                                (actual + nuevoUi).sortedWith(compareBy({ it.id }, { it.timestamp }))
+                            }
                         }
                     }
+                }
             }
 
             // Carga de historial
@@ -82,16 +89,14 @@ class ChatViewModel(
                         isMe = res.usuarioId == currentUserId
                     )
                 }
-                
+
                 _mensajesUi.update { actual ->
-                    val idsExistentes = actual.map { it.id }.toSet()
+                    val idsExistentes = actual.filter { it.id != 0L }.map { it.id }.toSet()
                     val historialFiltrado = listaHistorialUi.filter { it.id !in idsExistentes }
-                    (historialFiltrado + actual).sortedBy { it.id }
+                    (historialFiltrado + actual).sortedWith(compareBy({ it.id }, { it.timestamp }))
                 }
-                
-                // Intentar resolver nombres faltantes después de cargar
+
                 resolveMissingNames()
-                
             } catch (e: Exception) {
                 Log.e("ChatViewModel", "Error al cargar historial: ${e.message}")
             }
@@ -113,30 +118,24 @@ class ChatViewModel(
             if (fetchingIds.contains(id)) return
             fetchingIds.add(id)
         }
-        
+
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val u = usuarioApi.obtenerPorId(id)
                 val name = u.nombreUsuario?.takeIf { it.isNotBlank() }
                     ?: "${u.nombre ?: ""} ${u.apellido ?: ""}".trim().ifEmpty { "Usuario #$id" }
-                
-                synchronized(nombresCache) {
-                    nombresCache[id] = name
-                }
-                
+
+                synchronized(nombresCache) { nombresCache[id] = name }
+
                 withContext(Dispatchers.Main) {
                     _mensajesUi.update { actual ->
-                        actual.map { 
-                            if (it.usuarioId == id) it.copy(usuarioNombre = name) else it 
-                        }
+                        actual.map { if (it.usuarioId == id) it.copy(usuarioNombre = name) else it }
                     }
                 }
             } catch (e: Exception) {
-                Log.e("ChatViewModel", "Error fetching name for $id: ${e.message}")
+                Log.e("ChatViewModel", "Error fetching name: ${e.message}")
             } finally {
-                synchronized(fetchingIds) {
-                    fetchingIds.remove(id)
-                }
+                synchronized(fetchingIds) { fetchingIds.remove(id) }
             }
         }
     }
@@ -146,7 +145,6 @@ class ChatViewModel(
             .filter { it.usuarioNombre.startsWith("Usuario #") }
             .map { it.usuarioId }
             .distinct()
-        
         missingIds.forEach { fetchNameAsync(it) }
     }
 
@@ -155,16 +153,10 @@ class ChatViewModel(
             val id = u.id ?: return@forEach
             val name = u.nombreUsuario?.takeIf { it.isNotBlank() }
                 ?: "${u.nombre ?: ""} ${u.apellido ?: ""}".trim().ifEmpty { "Usuario #$id" }
-            
-            synchronized(nombresCache) {
-                nombresCache[id] = name
-            }
-            
-            // Actualizar mensajes existentes con este nombre precargado
+
+            synchronized(nombresCache) { nombresCache[id] = name }
             _mensajesUi.update { actual ->
-                actual.map { 
-                    if (it.usuarioId == id) it.copy(usuarioNombre = name) else it 
-                }
+                actual.map { if (it.usuarioId == id) it.copy(usuarioNombre = name) else it }
             }
         }
     }
@@ -176,6 +168,7 @@ class ChatViewModel(
     }
 
     override fun onCleared() {
+        super.onCleared()
         ws.desconectar()
     }
 }

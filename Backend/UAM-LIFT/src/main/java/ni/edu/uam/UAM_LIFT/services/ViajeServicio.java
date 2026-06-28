@@ -125,6 +125,7 @@ public class ViajeServicio implements InterfazViaje {
 
     public boolean LimitesDeViaje(Long usuarioId) {
         List<ViajeUsuario> viajesUsuario = repoViajeUsuario.findByUsuarioIdAndEstado(usuarioId, EstadoViajeUsuario.ACEPTADO);
+        viajesUsuario.removeIf(viajeUsuario -> viajeUsuario.getViaje().getEstadoViaje()== EstadoViaje.CANCELADO || viajeUsuario.getViaje().getEstadoViaje() == EstadoViaje.FINALIZADO);
         return viajesUsuario .size() <=2;
     }
 
@@ -164,6 +165,7 @@ public class ViajeServicio implements InterfazViaje {
         }
 
         List<Viaje> viajes = viajesPorUsuario(usuarioId);
+        viajes.removeIf(viaje -> viaje.getEstadoViaje() == EstadoViaje.CANCELADO || viaje.getEstadoViaje() == EstadoViaje.FINALIZADO);
 
         for (Viaje viaje : viajes) {
             LocalDateTime existenteSalida = viaje.getFechaHoraSalida();
@@ -188,7 +190,7 @@ public class ViajeServicio implements InterfazViaje {
         }
 
         List<Viaje> viajes = viajesPorConductor(usuarioId);
-
+        viajes.removeIf(viaje -> viaje.getEstadoViaje() == EstadoViaje.CANCELADO || viaje.getEstadoViaje() == EstadoViaje.FINALIZADO);
         for (Viaje viaje : viajes) {
             LocalDateTime existenteSalida = viaje.getFechaHoraSalida();
             LocalDateTime existenteLlegada = viaje.getFechaHoraLlegada();

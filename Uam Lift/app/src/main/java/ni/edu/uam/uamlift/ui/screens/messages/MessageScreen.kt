@@ -50,9 +50,9 @@ fun MessagesScreen(
     val chatsPermitidos = remember(misViajes, currentUserId) {
         misViajes.filter { viaje ->
             val esConductor = viaje.conductor?.id == currentUserId
-            val esPasajeroAceptado = viaje.pasajeros.any {
+            val esPasajeroAceptado = viaje.pasajeros?.any {
                 it.usuario?.id == currentUserId && it.estado == EstadoViajeUsuario.ACEPTADO
-            }
+            } ?: false
             esConductor || esPasajeroAceptado
         }
     }

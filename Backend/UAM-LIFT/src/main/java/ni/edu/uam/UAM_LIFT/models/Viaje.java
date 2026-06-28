@@ -21,26 +21,27 @@ import java.util.List;
 @Table(name = "viajes")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Viaje {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // ✅ CORRECCIÓN: Se agregó cascade = CascadeType.ALL para evitar el error TransientPropertyValueException
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "origen_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Destino origen;
 
-    // ✅ CORRECCIÓN: Se agregó cascade = CascadeType.ALL también aquí
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "destino_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Destino destino;
 
+    // 💡 CORREGIDO: Se removió @FutureOrPresent para permitir consultas de registros existentes
     @Column(nullable = false)
-    @FutureOrPresent
     private LocalDateTime fechaHoraSalida;
 
+    // 💡 CORREGIDO: Se removió @FutureOrPresent para permitir consultas de registros existentes
     @Column(nullable = false)
-    @FutureOrPresent
     private LocalDateTime fechaHoraLlegada;
 
     @Column(nullable = false)
@@ -51,12 +52,20 @@ public class Viaje {
     @Min(value = 1, message = "El precio del viaje debe ser al menos 1")
     private double precioPorPersona;
 
-    @OneToMany(mappedBy = "viaje", cascade = CascadeType.ALL)
+    // 🔥 CORRECCIÓN: Se configuró correctamente la relación Uno a Muchos con la intermedia.
+    @OneToMany(mappedBy = "viaje", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference // Evita bucles infinitos en Jackson al serializar a JSON
     private List<ViajeUsuario> pasajeros = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "conductor_id", nullable = false)
+    @JsonIgnoreProperties({"viajesAsignados", "password", "viajes", "hibernateLazyInitializer", "handler"})
     private Usuario conductor;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "carro_id", nullable = false)
+    @JsonIgnoreProperties({"propietario", "hibernateLazyInitializer", "handler"})
+    private Carro carro;
 
     @Enumerated(EnumType.STRING)
     private EstadoViaje estadoViaje;

@@ -2,6 +2,7 @@ package ni.edu.uam.uamlift.ui.screens.create.createRide
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -194,44 +195,62 @@ fun CreateRideScreen(
                         val userId = usuario.id ?: return@Step3Price
                         if (userCif.isNullOrEmpty()) return@Step3Price
 
-                        val uam = destinoViewModel.destinoDefecto
-                        val lugarUsuario = Destino(
-                            nombre = nombreLugarConfirmado ?: "Lugar",
-                            latitud = selectedLat,
-                            longitud = selectedLng,
-                            universidad = false
-                        )
+                        scope.launch {
+                            try {
+                                // 1. Asegurar objeto UAM (respaldo si la API falló al cargar)
+                                val uam = destinoViewModel.destinoDefecto ?: Destino(
+                                    nombre = "UAM",
+                                    latitud = 12.1126,
+                                    longitud = -86.2435,
+                                    universidad = true
+                                )
 
-                        if (isGoingToUam) {
-                            viajeViewModel.actualizarOrigen(lugarUsuario)
-                            viajeViewModel.actualizarDestino(uam)
-                        } else {
-                            viajeViewModel.actualizarOrigen(uam)
-                            viajeViewModel.actualizarDestino(lugarUsuario)
-                        }
+                                // 2. Crear el objeto del lugar seleccionado por el usuario
+                                val lugarUsuarioBase = Destino(
+                                    nombre = nombreLugarConfirmado ?: "Lugar",
+                                    latitud = selectedLat,
+                                    longitud = selectedLng,
+                                    universidad = false
+                                )
 
-                        viajeViewModel.actualizarFechaHoraSalida("${date}T${departureTime}:00")
-                        viajeViewModel.actualizarFechaHoraLlegada("${date}T${arrivalTime}:00")
-                        viajeViewModel.actualizarCarro(selectedCar)
-                        viajeViewModel.actualizarNumeroAsientos(seats)
-                        viajeViewModel.actualizarPrecio(price.toDoubleOrNull() ?: 1.0)
+                                // 3. Intentar agregar el destino a la BD
+                                val lugarUsuarioRegistrado = destinoViewModel.agregarDestino(lugarUsuarioBase)
+                                val lugarUsuarioFinal = lugarUsuarioRegistrado ?: lugarUsuarioBase
 
-                        viajeViewModel.publicarViaje(
-                            usuarioId = userId,
-                            conductorCif = userCif!!,
-                            onExito = { showSuccessDialog = true },
-                            onError = { razon ->
-                                scope.launch { snackbarHostState.showSnackbar(razon) }
+                                // 4. Determinar quién es origen y quién destino
+                                val (origenFinal, destinoFinal) = if (isGoingToUam) {
+                                    lugarUsuarioFinal to uam
+                                } else {
+                                    uam to lugarUsuarioFinal
+                                }
+
+                                // 5. Publicar el viaje
+                                viajeViewModel.publicarViaje(
+                                    usuarioId = userId,
+                                    conductorCif = userCif!!,
+                                    origen = origenFinal,
+                                    destino = destinoFinal,
+                                    fechaSalida = "${date}T${departureTime}:00",
+                                    fechaLlegada = "${date}T${arrivalTime}:00",
+                                    asientos = seats,
+                                    precio = price.toDoubleOrNull() ?: 1.0,
+                                    carro = selectedCar,
+                                    onExito = { showSuccessDialog = true },
+                                    onError = { razon ->
+                                        scope.launch { snackbarHostState.showSnackbar(razon) }
+                                    }
+                                )
+                            } catch (e: Exception) {
+                                Log.e("CreateRideScreen", "Error al publicar", e)
+                                scope.launch { snackbarHostState.showSnackbar("Error al procesar el destino") }
                             }
-                        )
+                        }
                     }
                 )
             }
         }
     }
 }
-
-// ... Resto de componentes (Step1LocationFlow, Step2Schedule, etc.) igual que antes ...
 
 @Composable
 fun Step1LocationFlow(

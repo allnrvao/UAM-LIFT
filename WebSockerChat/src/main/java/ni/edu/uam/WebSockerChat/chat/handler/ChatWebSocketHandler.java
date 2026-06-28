@@ -52,8 +52,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 );
             }
 
-            // CORREGIDO: Se agregó el '!' para verificar si el usuario NO pertenece al viaje
-            if (!chatService.usuariopertenceAlViaje(viajeId, request.usuarioId())) {
+            if (chatService.usuariopertenceAlViaje(viajeId, request.usuarioId())) {
                 throw new IllegalStateException(
                         "El usuario no pertenece al viaje"
                 );
@@ -87,14 +86,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
         } catch (Exception e) {
             e.printStackTrace();
-            // MEJORA: Informa el error al cliente WebSocket para evitar fallos silenciosos en la app móvil
-            try {
-                if (session.isOpen()) {
-                    session.sendMessage(new TextMessage("{\"error\": \"" + e.getMessage() + "\"}"));
-                }
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
         }
     }
 

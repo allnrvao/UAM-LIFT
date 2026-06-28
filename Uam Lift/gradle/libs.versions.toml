@@ -26,6 +26,7 @@ androidx-credentials = "1.2.2"
 google-identity = "1.1.1"
 datastore = "1.1.1"
 lifecycleViewmodelKtx = "2.11.0"
+playServicesLocation = "21.3.0"
 
 [libraries]
 maplibre-compose = { module = "org.maplibre.compose:maplibre-compose", version = "0.13.0" }
@@ -58,6 +59,7 @@ androidx-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "ui" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
 play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "androidx-credentials" }
 androidx-credentials-play-services = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "androidx-credentials" }
 google-identity-id = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "google-identity" }
