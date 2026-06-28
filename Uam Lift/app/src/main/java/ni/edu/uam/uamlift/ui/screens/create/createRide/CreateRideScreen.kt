@@ -3,13 +3,14 @@ package ni.edu.uam.uamlift.ui.screens.create.createRide
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -86,11 +87,6 @@ fun CreateRideScreen(
 
     var step by remember { mutableIntStateOf(1) }
     var showSuccessDialog by remember { mutableStateOf(false) }
-
-    val uamLat = 12.1126
-    val uamLng = -86.2435
-    val uamAddress = "UAM Campus Central"
-
     var isGoingToUam by remember { mutableStateOf(false) }
 
     var selectedLat by remember { mutableStateOf<Double?>(null) }
@@ -121,13 +117,6 @@ fun CreateRideScreen(
             selectedCar = carroViewModel.listaCarros.first()
         }
     }
-
-    Column(modifier = modifier.fillMaxSize().background(Gray)) {
-        Surface(modifier = Modifier.fillMaxWidth(), shadowElevation = 4.dp) {
-            Column(modifier = Modifier.background(Degradado2).padding(20.dp)) {
-                Text("Publicar viaje", style = MaterialTheme.typography.headlineLarge, color = Color.White, fontWeight = FontWeight.Bold)
-                Text("Crea una ruta compartida — Comunidad UAM", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.9f))
-                Spacer(modifier = Modifier.height(16.dp))
 
     if (showSuccessDialog) {
         SuccessRideDialog {
@@ -382,62 +371,16 @@ fun HeaderSteps(step: Int) {
     }
 }
 
-        when (step) {
-            1 -> Step1Map(
-                isToUam = isGoingToUam,
-                onToggleDirection = { isGoingToUam = !isGoingToUam; selectedLat = null; selectedLng = null },
-                uamLat = uamLat, uamLng = uamLng,
-                selLat = selectedLat, selLng = selectedLng,
-                onLocationSelected = { lat, lng ->
-                    selectedLat = lat; selectedLng = lng
-                    selectedAddressText = "Ubicación seleccionada"
-                },
-                onContinue = { step = 2 }
-            )
-            2 -> Step2Schedule(
-                date = date, onDateChange = { date = it },
-                time = time, onTimeChange = { time = it },
-                seats = seats, onSeatsChange = { seats = it },
-                onBack = { step = 1 },
-                onContinue = { step = 3 }
-            )
-            3 -> Step3Price(
-                from = if (isGoingToUam) selectedAddressText else uamAddress,
-                to = if (isGoingToUam) uamAddress else selectedAddressText,
-                date = date, time = time, seats = seats, price = price,
-                onPriceChange = { price = it },
-                onBack = { step = 2 },
-                onPublish = {
-                    val origenNombre = if (isGoingToUam) selectedAddressText else uamAddress
-                    val origenLat = if (isGoingToUam) selectedLat else uamLat
-                    val origenLng = if (isGoingToUam) selectedLng else uamLng
-
-                    val destinoNombre = if (isGoingToUam) uamAddress else selectedAddressText
-                    val destinoLat = if (isGoingToUam) uamLat else selectedLat
-                    val destinoLng = if (isGoingToUam) uamLng else selectedLng
-
-                    viajeViewModel.actualizarOrigen(nombre = origenNombre, lat = origenLat, lng = origenLng, esUam = !isGoingToUam)
-                    viajeViewModel.actualizarDestino(nombre = destinoNombre, lat = destinoLat, lng = destinoLng, esUam = isGoingToUam)
-
-                    viajeViewModel.actualizarFechaHoraSalida("${date}T${time}:00")
-
-                    try {
-                        val parts = time.split(":")
-                        val hour = parts[0].toInt()
-                        val min = parts[1].toInt()
-                        val arrivalHour = (hour + 1) % 24
-                        val arrivalTime = String.format("%02d:%02d", arrivalHour, min)
-                        viajeViewModel.actualizarFechaHoraLlegada("${date}T${arrivalTime}:00")
-                    } catch (e: Exception) {
-                        viajeViewModel.actualizarFechaHoraLlegada("${date}T23:59:00")
-                    }
-
-                    viajeViewModel.actualizarNumeroAsientos(seats)
-                    viajeViewModel.actualizarPrecio(price.toDoubleOrNull() ?: 0.0)
-
-                    viajeViewModel.publicarViaje(userCif) {
-                        showSuccessDialog = true
-                    }
+@Composable
+fun VehicleRequiredPlaceholder(onNavigate: () -> Unit) {
+    Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+        Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
+            Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Icon(Icons.Default.DirectionsCar, null, modifier = Modifier.size(64.dp), tint = UAMColor)
+                Text("Vehículo requerido", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = UAMColor)
+                Text("Para publicar un viaje, primero debes registrar un vehículo en tu perfil.", textAlign = TextAlign.Center, color = Color.Gray, fontSize = 14.sp)
+                Button(onClick = onNavigate, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = UAMColor)) {
+                    Text("Gestionar Vehículos")
                 }
             }
         }
@@ -445,134 +388,11 @@ fun HeaderSteps(step: Int) {
 }
 
 @Composable
-fun SuccessRideDialog(onDismiss: () -> Unit) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth(0.85f)
-                    .padding(16.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .background(UAMColor.copy(alpha = 0.1f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            modifier = Modifier.size(50.dp),
-                            tint = UAMColor
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Text(
-                        "¡Viaje Publicado!",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = UAMColor,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        "Tu ruta ha sido creada con éxito. Los estudiantes ahora pueden ver tu oferta.",
-                        fontSize = 14.sp,
-                        color = Color.Gray,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 20.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Button(
-                        onClick = onDismiss,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = UAMColor)
-                    ) {
-                        Text("Ver mis viajes", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun Step1Map(
-    isToUam: Boolean,
-    onToggleDirection: () -> Unit,
-    uamLat: Double, uamLng: Double,
-    selLat: Double?, selLng: Double?,
-    onLocationSelected: (Double, Double) -> Unit,
-    onContinue: () -> Unit
-) {
-    Column(modifier = Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("¿Hacia dónde vas?", fontWeight = FontWeight.Bold, color = UAMColor)
-
-        Row(
-            modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(12.dp)).padding(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val modifier = Modifier.weight(1f).height(40.dp)
-            Button(
-                onClick = { if (!isToUam) onToggleDirection() },
-                modifier = modifier,
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = if (isToUam) UAMColor else Color.Transparent, contentColor = if (isToUam) Color.White else Color.Gray)
-            ) { Text("Hacia UAM") }
-            Button(
-                onClick = { if (isToUam) onToggleDirection() },
-                modifier = modifier,
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = if (!isToUam) UAMColor else Color.Transparent, contentColor = if (!isToUam) Color.White else Color.Gray)
-            ) { Text("Desde UAM") }
-        }
-
-        Text(
-            text = if (isToUam) "Toca el mapa para marcar tu punto de SALIDA" else "Toca el mapa para marcar tu punto de DESTINO",
-            fontSize = 13.sp, color = Color.Gray
-        )
-
-        Box(modifier = Modifier.weight(1f).border(1.dp, Color.LightGray, RoundedCornerShape(16.dp)).padding(2.dp)) {
-            MapLibreView(
-                originLat = if (isToUam) selLat else uamLat,
-                originLng = if (isToUam) selLng else uamLng,
-                destLat = if (isToUam) uamLat else selLat,
-                destLng = if (isToUam) uamLng else selLng,
-                isSelectionEnabled = true,
-                onLocationSelected = onLocationSelected,
-            )
-        }
-
-        Button(
-            onClick = onContinue,
-            enabled = selLat != null,
-            modifier = Modifier.fillMaxWidth().height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = UAMColor)
-        ) {
-            Text("Siguiente", fontWeight = FontWeight.Bold)
+fun LocationBadge(label: String, name: String, isHighlight: Boolean) {
+    Card(shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)), elevation = CardDefaults.cardElevation(2.dp)) {
+        Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("$label: ", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = UAMColor)
+            Text(name, fontSize = 11.sp, color = if (isHighlight) Color.Red else Color.DarkGray)
         }
     }
 }

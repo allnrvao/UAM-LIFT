@@ -169,8 +169,8 @@ class ViajeViewModel(
                 val misViajesResult = (creados + misUnidosFiltrados).distinctBy { it.id }
                 val otrosResult = todos.filter { v ->
                     val esConductor = v.conductor?.id == usuarioId
-                    val esPasajero = v.pasajeros.any { it.usuario?.id == usuarioId }
-                    !esConductor && !esPasajero && v.estadoViaje != EstadoViaje.CANCELADO && v.estadoViaje != EstadoViaje.FINALIZADO
+                    val esPasajero = v.pasajeros?.any { it.usuario?.id == usuarioId }
+                    !esConductor && !esPasajero!! && v.estadoViaje != EstadoViaje.CANCELADO && v.estadoViaje != EstadoViaje.FINALIZADO
                 }
 
                 withContext(Dispatchers.Main) {
@@ -289,4 +289,5 @@ class ViajeViewModel(
     fun actualizarFechaHoraLlegada(fecha: String) { viaje = viaje.copy(fechaHoraLlegada = fecha) }
     fun actualizarNumeroAsientos(numero: Int) { viaje = viaje.copy(numeroAsientosDisponibles = numero) }
     fun actualizarPrecio(precio: Double) { viaje = viaje.copy(precioPorPersona = precio) }
+    fun actualizarCarro(selectedCar: Carro?) {}
 }

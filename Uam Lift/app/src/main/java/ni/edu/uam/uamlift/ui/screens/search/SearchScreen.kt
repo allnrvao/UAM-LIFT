@@ -1,4 +1,4 @@
-    package ni.edu.uam.uamlift.ui.screens.search
+package ni.edu.uam.uamlift.ui.screens.search
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.datastore.preferences.protobuf.LazyStringArrayList.emptyList
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ni.edu.uam.uamlift.data.models.Viaje
 import ni.edu.uam.uamlift.data.viewmodels.AppViewModelFactory
@@ -23,7 +24,9 @@ import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
 import ni.edu.uam.uamlift.ui.components.RideCard
 import ni.edu.uam.uamlift.ui.theme.Gray
 import ni.edu.uam.uamlift.ui.theme.UAMColor
+import kotlin.collections.emptyList
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
     modifier: Modifier = Modifier,
@@ -37,9 +40,13 @@ fun SearchScreen(
     // Estado para capturar lo que el estudiante escribe
     var searchQuery by remember { mutableStateOf("") }
 
-        LaunchedEffect(Unit) {
-            viajeViewModel.cargarViajesDesdeBackend()
-        }
+    // NOTA: Asumo que tienes estos states expuestos en tu ViajeViewModel.
+    // Si usas LiveData, cambia .collectAsState() por .observeAsState(initial = ...)
+    val viajesFiltrados by viajeViewModel.viajesFiltrados.collectAsState(initial = emptyList())
+    val cargando by viajeViewModel.cargando.collectAsState(initial = false)
+
+    LaunchedEffect(Unit) {
+        viajeViewModel.cargarViajesDesdeBackend()
     }
 
     Column(modifier = modifier.fillMaxSize().background(Gray)) {
@@ -50,8 +57,10 @@ fun SearchScreen(
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text(
-                    "Buscar viaje", fontSize = 30.sp,
-                    fontWeight = FontWeight.Black, color = UAMColor,
+                    text = "Buscar viaje",
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Black,
+                    color = UAMColor
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -96,28 +105,33 @@ fun SearchScreen(
             }
         }
 
-            if (cargando && viajesFiltrados.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = UAMColor)
+        // Bloque de contenido (Loading, Empty o Lista)
+        if (cargando && viajesFiltrados.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = UAMColor)
+            }
+        } else if (viajesFiltrados.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                Text("No se encontraron viajes", color = Color.Gray, fontSize = 16.sp)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item { Spacer(modifier = Modifier.height(16.dp)) }
+
+                items(viajesFiltrados) { miViaje ->
+                    RideCard(
+                        viaje = miViaje,
+                        esConductor = miViaje.conductor?.cif == usuario.cif,
+                        onConfirmarClick = { idViaje ->
+                            viajeViewModel.unirseAlViaje(idViaje, usuario.cif)
+                        }
+                    )
                 }
-            } else if (viajesFiltrados.isEmpty()) {
-                item {
-                    Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                        Text("No se encontraron viajes", color = Color.Gray, fontSize = 16.sp)
-                    }
-                }
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    item { Spacer(modifier = Modifier.height(16.dp)) }
-                    items(viajesFiltrados) { miViaje ->
-                        RideCard(
-                            viaje = miViaje,
-                            esConductor = miViaje.conductor?.cif == usuarioViewModel.usuario.cif,
-                            onConfirmarClick = { idViaje -> viajeViewModel.unirseAlViaje(idViaje, userCif) }
-                        )
-                    }
-                    item { Spacer(modifier = Modifier.height(80.dp)) }
-                }
+
+                item { Spacer(modifier = Modifier.height(80.dp)) }
             }
         }
     }

@@ -1,6 +1,10 @@
 package ni.edu.uam.uamlift.data.dto
 
 import com.google.gson.annotations.SerializedName
+
+/**
+ * Mapea la respuesta del endpoint GET /api/usuarios/{id}/estadisticas
+ */
 data class EstadisticasUsuario(
     @SerializedName("totalViajes")
     val totalViajes: Int = 0,

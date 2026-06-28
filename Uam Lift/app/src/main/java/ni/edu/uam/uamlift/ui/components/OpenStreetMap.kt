@@ -7,7 +7,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
-import ni.edu.uam.uamlift.ui.theme.UAMColor
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -153,28 +154,6 @@ fun MapLibreView(
             } catch (e: Exception) {
                 e.printStackTrace()
             }
-
-            // Dibujar la ruta si tenemos ambos puntos
-            if (originLat != null && originLng != null && destLat != null && destLng != null) {
-                val line = Polyline(view)
-                line.setPoints(listOf(GeoPoint(originLat, originLng), GeoPoint(destLat, destLng)))
-                line.outlinePaint.color = android.graphics.Color.parseColor("#00796B") // Color UAM o similar
-                line.outlinePaint.strokeWidth = 8f
-                view.overlays.add(line)
-            }
-
-            // Ajustar la vista para mostrar los puntos
-            if (points.isNotEmpty()) {
-                if (points.size == 1) {
-                    view.controller.animateTo(points[0])
-                } else {
-                    // Zoom para mostrar ambos puntos
-                    val boundingBox = BoundingBox.fromGeoPoints(points)
-                    view.zoomToBoundingBox(boundingBox, true, 100)
-                }
-            }
-            
-            view.invalidate()
         }
     )
 }

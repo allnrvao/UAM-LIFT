@@ -42,6 +42,7 @@ interface UsuarioApiService {
     @POST("api/usuarios/verificacion/confirmar")
     suspend fun confirmarVerificacion(@Body request: EmailVerificationConfirm): Boolean
 
+    /** Nuevo: estadísticas calculadas en el servidor */
     @GET("api/usuarios/{id}/estadisticas")
     suspend fun obtenerEstadisticas(@Path("id") id: Long): EstadisticasUsuario
 }
