@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import ni.edu.uam.uamlift.data.enums.EstadoViaje
 import ni.edu.uam.uamlift.data.models.Viaje
 import ni.edu.uam.uamlift.ui.theme.UAMColor
 
@@ -41,14 +42,17 @@ fun TakeRideDialog(
         }
     }
 
-    val asientosLibres = remember(viaje.numeroAsientosDisponibles, viaje.pasajeros.size) {
-        val libres = viaje.numeroAsientosDisponibles - viaje.pasajeros.size
+    val asientosLibres = remember(viaje.numeroAsientosDisponibles, viaje.pasajeros?.size) {
+        val pasajerosCount = viaje.pasajeros?.size ?: 0
+        val libres = viaje.numeroAsientosDisponibles - pasajerosCount
         if (libres < 0) 0 else libres
     }
 
     // Priorizamos nombreUsuario sobre el nombre real
     val nombreConductor = viaje.conductor?.nombreUsuario?.takeIf { it.isNotBlank() }
         ?: "${viaje.conductor?.nombre ?: "Conductor"} ${viaje.conductor?.apellido ?: ""}".trim()
+
+    val viajeEnCurso = viaje.estadoViaje == EstadoViaje.EN_CURSO
 
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -117,12 +121,27 @@ fun TakeRideDialog(
                         Button(
                             onClick = onCancelarParticipacion,
                             modifier = Modifier.fillMaxWidth().height(56.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEBEE), contentColor = Color.Red),
+                            enabled = !viajeEnCurso,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (viajeEnCurso) Color.LightGray else Color(0xFFFFEBEE),
+                                contentColor = if (viajeEnCurso) Color.Gray else Color.Red
+                            ),
                             shape = RoundedCornerShape(16.dp)
                         ) {
                             Icon(Icons.Default.Cancel, null)
                             Spacer(Modifier.width(8.dp))
-                            Text(text = "Cancelar participación", fontWeight = FontWeight.Bold)
+                            Text(
+                                text = if (viajeEnCurso) "Viaje en curso" else "Cancelar participación",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        if (viajeEnCurso) {
+                            Text(
+                                text = "No puedes cancelar una vez iniciado el viaje",
+                                color = Color.Red,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(top = 8.dp).align(Alignment.CenterHorizontally)
+                            )
                         }
                     } else {
                         Button(
@@ -130,10 +149,10 @@ fun TakeRideDialog(
                             modifier = Modifier.fillMaxWidth().height(56.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = UAMColor, contentColor = Color.White),
                             shape = RoundedCornerShape(16.dp),
-                            enabled = asientosLibres > 0
+                            enabled = asientosLibres > 0 && !viajeEnCurso
                         ) {
                             Text(
-                                text = if (asientosLibres > 0) "Tomar Viaje" else "Viaje Lleno",
+                                text = if (viajeEnCurso) "Viaje en curso" else if (asientosLibres > 0) "Tomar Viaje" else "Viaje Lleno",
                                 fontWeight = FontWeight.Bold
                             )
                         }

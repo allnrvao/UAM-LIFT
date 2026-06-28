@@ -16,69 +16,70 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import ni.edu.uam.uamlift.data.models.Viaje
+import ni.edu.uam.uamlift.data.viewmodels.AppViewModelFactory
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
 import ni.edu.uam.uamlift.ui.components.RideCard
 import ni.edu.uam.uamlift.ui.theme.Gray
 import ni.edu.uam.uamlift.ui.theme.UAMColor
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
     modifier: Modifier = Modifier,
-    viajeViewModel: ViajeViewModel = viewModel(),
+    viajeViewModel: ViajeViewModel = viewModel(factory = AppViewModelFactory()),
     usuarioViewModel: UsuarioViewModel
 ) {
     val chips = listOf("Todos", "Mañana", "Tarde", "Económicos")
     var activeChip by remember { mutableStateOf("Todos") }
     val usuario = usuarioViewModel.usuario
 
-    // Estado para capturar lo que el estudiante escribe
     var searchQuery by remember { mutableStateOf("") }
 
-    // Al iniciar la pantalla o cuando el usuario esté cargado, refrescamos los viajes
-    // pasando el ID para que el ViewModel separe "Mis Viajes" de "Otros Viajes"
-    LaunchedEffect(usuario.id) {
-        viajeViewModel.cargarViajesDesdeBackend(usuario.id)
-    }
-
-    // Observamos los viajes de OTROS conductores (los que el usuario puede tomar)
-    val viajesBackend by viajeViewModel.viajesOtros.collectAsState()
+    val viajesOtros by viajeViewModel.viajesOtros.collectAsState()
     val cargando by viajeViewModel.isLoading.collectAsState()
 
-    // Lógica de filtrado en tiempo real sobre la lista de otros conductores
-    val viajesFiltrados = remember(viajesBackend, searchQuery, activeChip) {
-        viajesBackend.filter { viaje ->
-            val nombreConductor = viaje.conductor?.nombre.orEmpty()
-            val origen = viaje.origen?.nombre.orEmpty()
-            val destino = viaje.destino?.nombre.orEmpty()
+    val viajesFiltrados = remember(viajesOtros, searchQuery, activeChip) {
+        viajesOtros.filter { viaje ->
+            val matchesSearch = (viaje.origen?.nombre?.contains(searchQuery, ignoreCase = true) == true) ||
+                    (viaje.destino?.nombre?.contains(searchQuery, ignoreCase = true) == true) ||
+                    (viaje.conductor?.nombre?.contains(searchQuery, ignoreCase = true) == true) ||
+                    (viaje.conductor?.apellido?.contains(searchQuery, ignoreCase = true) == true) ||
+                    (viaje.conductor?.nombreUsuario?.contains(searchQuery, ignoreCase = true) == true)
 
-            val matchesQuery = nombreConductor.contains(searchQuery, ignoreCase = true) ||
-                    origen.contains(searchQuery, ignoreCase = true) ||
-                    destino.contains(searchQuery, ignoreCase = true)
-
-            val horaSalida = viaje.fechaHoraSalida?.substringAfter("T")?.take(5).orEmpty()
             val matchesChip = when (activeChip) {
-                "Mañana" -> horaSalida in "00:00".."11:59"
-                "Tarde" -> horaSalida in "12:00".."18:59"
-                "Económicos" -> viaje.precioPorPersona <= 50.0
+                "Mañana" -> {
+                    val hora = viaje.fechaHoraSalida?.substringAfter("T")?.take(2)?.toIntOrNull() ?: 0
+                    hora in 5..11
+                }
+                "Tarde" -> {
+                    val hora = viaje.fechaHoraSalida?.substringAfter("T")?.take(2)?.toIntOrNull() ?: 0
+                    hora in 12..18
+                }
+                "Económicos" -> viaje.precioPorPersona <= 30.0
                 else -> true
             }
+            (searchQuery.isEmpty() || matchesSearch) && matchesChip
+        }
+    }
 
-            matchesQuery && matchesChip
+    LaunchedEffect(usuario.id) {
+        usuario.id?.let {
+            viajeViewModel.cargarViajesDesdeBackend(it)
         }
     }
 
     Column(modifier = modifier.fillMaxSize().background(Gray)) {
-        // Header + Search Bar
         Surface(
             color = Color.White,
             shadowElevation = 4.dp
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text(
-                    "Buscar viaje", fontSize = 30.sp,
-                    fontWeight = FontWeight.Black, color = UAMColor,
+                    text = "Buscar viaje",
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Black,
+                    color = UAMColor
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -123,35 +124,21 @@ fun SearchScreen(
             }
         }
 
-        // Listado Dinámico
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = if (searchQuery.isEmpty() && activeChip == "Todos") "Disponibles hoy" else "Resultados de búsqueda",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.Black
-                )
+        if (cargando && viajesFiltrados.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = UAMColor)
             }
+        } else if (viajesFiltrados.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                Text("No se encontraron viajes", color = Color.Gray, fontSize = 16.sp)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item { Spacer(modifier = Modifier.height(16.dp)) }
 
-            if (cargando) {
-                item {
-                    Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = UAMColor)
-                    }
-                }
-            } else if (viajesFiltrados.isEmpty()) {
-                item {
-                    Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                        Text("No se encontraron viajes", color = Color.Gray, fontSize = 16.sp)
-                    }
-                }
-            } else {
                 items(viajesFiltrados) { miViaje ->
                     RideCard(
                         viaje = miViaje,
@@ -166,6 +153,8 @@ fun SearchScreen(
                         }
                     )
                 }
+
+                item { Spacer(modifier = Modifier.height(80.dp)) }
             }
         }
     }

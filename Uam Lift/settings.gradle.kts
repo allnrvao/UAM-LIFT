@@ -19,10 +19,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://jitpack.io")
+        maven { url = uri("https://jitpack.io") }
     }
 }
-
 rootProject.name = "Uam Lift"
-include(":app")}
- 
+include(":app")

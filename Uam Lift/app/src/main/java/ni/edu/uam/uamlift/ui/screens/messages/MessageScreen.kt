@@ -15,13 +15,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ni.edu.uam.uamlift.data.enums.EstadoViajeUsuario
+import ni.edu.uam.uamlift.data.viewmodels.AppViewModelFactory
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
 
 @Composable
 fun MessagesScreen(
     modifier: Modifier = Modifier,
-    viajeViewModel: ViajeViewModel = viewModel(),
+    viajeViewModel: ViajeViewModel = viewModel(factory = AppViewModelFactory()),
     usuarioViewModel: UsuarioViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -43,15 +44,15 @@ fun MessagesScreen(
         }
     }
 
-    // Filtrar chats permitidos: 
+    // Filtrar chats permitidos:
     // - El usuario es el conductor (creador)
     // - O el usuario es un pasajero ya ACEPTADO (está participando)
     val chatsPermitidos = remember(misViajes, currentUserId) {
         misViajes.filter { viaje ->
             val esConductor = viaje.conductor?.id == currentUserId
-            val esPasajeroAceptado = viaje.pasajeros.any { 
-                it.usuario?.id == currentUserId && it.estado == EstadoViajeUsuario.ACEPTADO 
-            }
+            val esPasajeroAceptado = viaje.pasajeros?.any {
+                it.usuario?.id == currentUserId && it.estado == EstadoViajeUsuario.ACEPTADO
+            } ?: false
             esConductor || esPasajeroAceptado
         }
     }

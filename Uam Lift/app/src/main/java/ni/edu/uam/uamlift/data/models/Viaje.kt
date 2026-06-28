@@ -26,7 +26,7 @@ data class Viaje(
     val precioPorPersona: Double = 1.0,
 
     @SerializedName("pasajeros")
-    val pasajeros: List<ViajeUsuario> = emptyList(),
+    val pasajeros: List<ViajeUsuario>? = emptyList(), // 💡 Permitir que sea anulable si Jackson manda null
 
     @SerializedName("conductor")
     val conductor: Usuario? = null,

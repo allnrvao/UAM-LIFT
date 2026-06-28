@@ -26,6 +26,8 @@ object RetrofitClient {
         .addInterceptor(loggingInterceptor)
         .build()
 
+    fun getHttpClient(): OkHttpClient = httpClient
+
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)

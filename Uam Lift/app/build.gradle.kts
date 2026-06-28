@@ -1,5 +1,3 @@
-import com.android.tools.r8.internal.kt
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -7,22 +5,19 @@ plugins {
 
 android {
     namespace = "ni.edu.uam.uamlift"
-    compileSdk {
-        version = release(37) {
-            minorApiLevel = 0
-        }
-    }
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "ni.edu.uam.uamlift"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        var wsUrl = project.findProperty("WEBSOCKET_URL") as String? ?: ""
-        buildConfigField("String", "WEBSOCKET_URL", "\"$wsUrl\"")    }
+        val wsUrl = project.findProperty("WEBSOCKET_URL") as String? ?: ""
+        buildConfigField("String", "WEBSOCKET_URL", "\"$wsUrl\"")
+    }
 
     buildTypes {
         release {
@@ -49,6 +44,7 @@ configurations.all {
         exclude(group = "androidx.datastore", module = "datastore-core-jvm")
     }
 }
+
 dependencies {
     implementation(libs.androidx.datastore)
     implementation(libs.androidx.credentials)
@@ -63,7 +59,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(platform(libs.androidx.compose.bom))
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
@@ -77,8 +72,6 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("com.github.NaikSoftware:StompProtocolAndroid:1.6.6")
     implementation("org.java-websocket:Java-WebSocket:1.5.3")
-    implementation("com.google.code.gson:gson:2.13.1")
-    implementation("com.github.NaikSoftware:StompProtocolAndroid:1.6.6")
     implementation("io.reactivex.rxjava2:rxjava:2.2.21")
     implementation("io.reactivex.rxjava2:rxandroid:2.1.1")
     implementation("com.google.code.gson:gson:2.10.1")
@@ -86,9 +79,10 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.play.services.maps)
-    implementation(libs.play.services.maps)
+    implementation(libs.play.services.location)
     implementation("org.osmdroid:osmdroid-android:6.1.18")
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -96,5 +90,4 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-
 }

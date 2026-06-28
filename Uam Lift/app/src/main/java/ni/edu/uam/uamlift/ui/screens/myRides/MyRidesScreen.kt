@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 import ni.edu.uam.uamlift.data.enums.EstadoViaje
+import ni.edu.uam.uamlift.data.viewmodels.AppViewModelFactory
 import ni.edu.uam.uamlift.data.viewmodels.UbicacionViewModel
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
@@ -28,7 +29,7 @@ import ni.edu.uam.uamlift.ui.theme.UAMColor
 fun MyRidesScreen(
     viajeViewModel: ViajeViewModel,
     usuarioViewModel: UsuarioViewModel,
-    ubicacionViewModel: UbicacionViewModel = viewModel()
+    ubicacionViewModel: UbicacionViewModel = viewModel(factory = AppViewModelFactory())
 ) {
     val viajes by viajeViewModel.viajes.collectAsState()
     val cargando by viajeViewModel.isLoading.collectAsState()
@@ -46,7 +47,7 @@ fun MyRidesScreen(
 
     // Lógica para enviar ubicación si el conductor tiene un viaje en curso
     val viajeActivo = misViajes.find { it.estadoViaje == EstadoViaje.EN_CURSO }
-    
+
     LaunchedEffect(viajeActivo) {
         if (viajeActivo != null) {
             ubicacionViewModel.conectar(viajeActivo.id!!)

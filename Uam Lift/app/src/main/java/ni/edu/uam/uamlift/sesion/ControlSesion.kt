@@ -8,8 +8,8 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-
 val Context.dataStore by preferencesDataStore(name = "ControlSesion")
+
 class ControlSesion (private val context: Context){
     companion object{
         val EstaLogeado = booleanPreferencesKey("estaLogeado")
@@ -33,11 +33,6 @@ class ControlSesion (private val context: Context){
     val obtenerCif: Flow<String> = context.dataStore.data.map { preferencias ->
         preferencias[cif] ?: ""
     }
-
-    val obtenerId: Flow<String> = context.dataStore.data.map { preferencias ->
-        preferencias[cif] ?: ""
-    }
-
 
     suspend fun guardarSesion(estaLogeado: Boolean, correo: String, nombre: String, cifUsuario: String) {
         context.dataStore.edit { preferencias ->

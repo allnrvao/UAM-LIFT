@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ni.edu.uam.uamlift.data.RetrofitClient
 import ni.edu.uam.uamlift.data.RetrofitClient2
+import ni.edu.uam.uamlift.data.viewmodels.AppViewModelFactory
 import ni.edu.uam.uamlift.data.viewmodels.ChatViewModel
 import ni.edu.uam.uamlift.data.viewmodels.ChatViewModelFactory
 import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
@@ -47,7 +48,7 @@ fun ChatScreen(
             RetrofitClient.usuarioApi
         )
     ),
-    viajeViewModel: ViajeViewModel = viewModel()
+    viajeViewModel: ViajeViewModel = viewModel(factory = AppViewModelFactory())
 ) {
     val messagesList by viewModel.mensajesUi.collectAsState()
     var textState by remember { mutableStateOf("") }
@@ -60,7 +61,7 @@ fun ChatScreen(
     }
 
     val pasajeros by viajeViewModel.pasajerosViaje.collectAsState()
-    
+
     // Precarga de nombres mejorada: Incluye a pasajeros y al conductor
     LaunchedEffect(pasajeros, viajeActual) {
         val todosLosUsuarios = pasajeros.toMutableList()
@@ -82,7 +83,7 @@ fun ChatScreen(
     if (mostrarPasajeros) {
         PassengersDialog(
             conductor = viajeActual?.conductor,
-            pasajeros = pasajeros, 
+            pasajeros = pasajeros,
             onDismissRequest = { mostrarPasajeros = false }
         )
     }
@@ -135,8 +136,8 @@ fun ChatScreen(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     FilledIconButton(
-                        onClick = { 
-                            if (textState.isNotBlank()) { 
+                        onClick = {
+                            if (textState.isNotBlank()) {
                                 viewModel.enviarMensaje(viajeId, currentUserId, textState)
                                 textState = "" 
                             } 
@@ -161,18 +162,18 @@ fun ChatScreen(
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = if (isMe) Alignment.End else Alignment.Start) {
                     if (!isMe) {
                         Text(
-                            text = message.usuarioNombre, 
-                            fontSize = 12.sp, 
-                            fontWeight = FontWeight.Bold, 
-                            color = UAMColor, 
+                            text = message.usuarioNombre,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = UAMColor,
                             modifier = Modifier.padding(start = 12.dp, bottom = 4.dp)
                         )
                     }
                     Surface(
                         shape = RoundedCornerShape(
-                            topStart = 16.dp, 
-                            topEnd = 16.dp, 
-                            bottomStart = if (isMe) 16.dp else 2.dp, 
+                            topStart = 16.dp,
+                            topEnd = 16.dp,
+                            bottomStart = if (isMe) 16.dp else 2.dp,
                             bottomEnd = if (isMe) 2.dp else 16.dp
                         ),
                         color = if (isMe) UAMColor else Color.White,

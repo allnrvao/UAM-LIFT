@@ -30,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -43,12 +42,11 @@ import kotlinx.coroutines.delay
 enum class SplashPhase { ENTER, LOADING, EXIT }
 
 @Composable
-fun SplashScreen(onDone: () -> Unit) {
+fun SplashScreen(onDone: () -> Unit) { // CORREGIDO: Ahora es un callback estándar () -> Unit
     var phase by remember { mutableStateOf(SplashPhase.ENTER) }
     val progress = remember { Animatable(0f) }
 
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-
 
     LaunchedEffect(Unit) {
         // Reducimos los tiempos para que la navegación a login sea más rápida
@@ -80,7 +78,7 @@ fun SplashScreen(onDone: () -> Unit) {
         label = "ExitTransition"
     )
 
-    // CORREGIDO: Estructura limpia del if/else de Kotlin y cierre de paréntesis de la función
+    // Estructura limpia del if/else de Kotlin y cierre de paréntesis de la función
     val logoAlpha by animateFloatAsState(
         targetValue = if (phase == SplashPhase.ENTER) 0f else 1f,
         animationSpec = tween(durationMillis = 500),
@@ -126,8 +124,7 @@ fun SplashScreen(onDone: () -> Unit) {
             modifier = Modifier
                 .offset(x = 60.dp, y = (-60).dp)
                 .size(192.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.05f))
+                .background(Color.White.copy(alpha = 0.05f), shape = CircleShape)
                 .align(Alignment.TopEnd)
         )
 
@@ -136,8 +133,7 @@ fun SplashScreen(onDone: () -> Unit) {
             modifier = Modifier
                 .offset(x = (-40).dp, y = 40.dp)
                 .size(144.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.05f))
+                .background(Color.White.copy(alpha = 0.05f), shape = CircleShape)
                 .align(Alignment.BottomStart)
         )
 

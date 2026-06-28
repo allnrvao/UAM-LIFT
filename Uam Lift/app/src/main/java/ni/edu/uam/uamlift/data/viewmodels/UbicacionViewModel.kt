@@ -8,9 +8,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import ni.edu.uam.uamlift.data.dto.Ubicacion
 import ni.edu.uam.uamlift.repository.ViajeRepository
-import javax.inject.Inject
 
-class UbicacionViewModel @Inject constructor(private val repository: ViajeRepository) : ViewModel() {
+class UbicacionViewModel(private val repository: ViajeRepository) : ViewModel() {
 
     private val _ubicacion = MutableStateFlow<Ubicacion?>(null)
     val ubicacion = _ubicacion.asStateFlow()

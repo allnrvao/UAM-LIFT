@@ -2,6 +2,7 @@ package ni.edu.uam.uamlift.ui.screens.create.createRide
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -37,6 +38,7 @@ import kotlinx.coroutines.launch
 import ni.edu.uam.uamlift.data.enums.DepartamentosPacifico
 import ni.edu.uam.uamlift.data.models.Carro
 import ni.edu.uam.uamlift.data.models.Destino
+import ni.edu.uam.uamlift.data.viewmodels.AppViewModelFactory
 import ni.edu.uam.uamlift.data.viewmodels.CarroViewModel
 import ni.edu.uam.uamlift.data.viewmodels.DestinoViewModel
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
@@ -54,7 +56,7 @@ fun CreateRideScreen(
     navController: NavController,
     usuarioViewModel: UsuarioViewModel,
     modifier: Modifier = Modifier,
-    viajeViewModel: ViajeViewModel = viewModel(),
+    viajeViewModel: ViajeViewModel = viewModel(factory = AppViewModelFactory()),
     carroViewModel: CarroViewModel = viewModel(),
     destinoViewModel: DestinoViewModel = viewModel(),
     onViajeCreado: () -> Unit = {}
@@ -95,18 +97,18 @@ fun CreateRideScreen(
     val sdfDate = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US) }
     val sdfTime = remember { SimpleDateFormat("HH:mm", Locale.US) }
     val sdfDateTime = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US) }
-    
+
     val calendarInitial = remember { Calendar.getInstance() }
     var date by remember { mutableStateOf(sdfDate.format(calendarInitial.time)) }
-    var departureTime by remember { 
+    var departureTime by remember {
         val cal = Calendar.getInstance().apply { add(Calendar.MINUTE, 5) }
-        mutableStateOf(sdfTime.format(cal.time)) 
+        mutableStateOf(sdfTime.format(cal.time))
     }
-    var arrivalTime by remember { 
+    var arrivalTime by remember {
         val cal = Calendar.getInstance().apply { add(Calendar.MINUTE, 40) }
-        mutableStateOf(sdfTime.format(cal.time)) 
+        mutableStateOf(sdfTime.format(cal.time))
     }
-    
+
     var selectedCar by remember { mutableStateOf<Carro?>(null) }
     var seats by remember { mutableIntStateOf(1) }
     var price by remember { mutableStateOf("") }
@@ -126,7 +128,22 @@ fun CreateRideScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(snackbarHostState) { data ->
+                Snackbar(
+                    modifier = Modifier.padding(16.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    containerColor = Color.White,
+                    contentColor = Color.DarkGray
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Info, contentDescription = null, tint = UAMColor, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(text = data.visuals.message, color = Color.DarkGray, fontWeight = FontWeight.Medium)
+                    }
+                }
+            }
+        },
         containerColor = Gray
     ) { padding ->
         Column(
@@ -178,36 +195,56 @@ fun CreateRideScreen(
                         val userId = usuario.id ?: return@Step3Price
                         if (userCif.isNullOrEmpty()) return@Step3Price
 
-                        val uam = destinoViewModel.destinoDefecto
-                        val lugarUsuario = Destino(
-                            nombre = nombreLugarConfirmado ?: "Lugar",
-                            latitud = selectedLat,
-                            longitud = selectedLng,
-                            universidad = false
-                        )
+                        scope.launch {
+                            try {
+                                // 1. Asegurar objeto UAM (respaldo si la API falló al cargar)
+                                val uam = destinoViewModel.destinoDefecto ?: Destino(
+                                    nombre = "UAM",
+                                    latitud = 12.1126,
+                                    longitud = -86.2435,
+                                    universidad = true
+                                )
 
-                        if (isGoingToUam) {
-                            viajeViewModel.actualizarOrigen(lugarUsuario)
-                            viajeViewModel.actualizarDestino(uam)
-                        } else {
-                            viajeViewModel.actualizarOrigen(uam)
-                            viajeViewModel.actualizarDestino(lugarUsuario)
-                        }
+                                // 2. Crear el objeto del lugar seleccionado por el usuario
+                                val lugarUsuarioBase = Destino(
+                                    nombre = nombreLugarConfirmado ?: "Lugar",
+                                    latitud = selectedLat,
+                                    longitud = selectedLng,
+                                    universidad = false
+                                )
 
-                        viajeViewModel.actualizarFechaHoraSalida("${date}T${departureTime}:00")
-                        viajeViewModel.actualizarFechaHoraLlegada("${date}T${arrivalTime}:00")
-                        viajeViewModel.actualizarCarro(selectedCar)
-                        viajeViewModel.actualizarNumeroAsientos(seats)
-                        viajeViewModel.actualizarPrecio(price.toDoubleOrNull() ?: 1.0)
+                                // 3. Intentar agregar el destino a la BD
+                                val lugarUsuarioRegistrado = destinoViewModel.agregarDestino(lugarUsuarioBase)
+                                val lugarUsuarioFinal = lugarUsuarioRegistrado ?: lugarUsuarioBase
 
-                        viajeViewModel.publicarViaje(
-                            usuarioId = userId,
-                            conductorCif = userCif!!,
-                            onExito = { showSuccessDialog = true },
-                            onError = { razon ->
-                                scope.launch { snackbarHostState.showSnackbar(razon) }
+                                // 4. Determinar quién es origen y quién destino
+                                val (origenFinal, destinoFinal) = if (isGoingToUam) {
+                                    lugarUsuarioFinal to uam
+                                } else {
+                                    uam to lugarUsuarioFinal
+                                }
+
+                                // 5. Publicar el viaje
+                                viajeViewModel.publicarViaje(
+                                    usuarioId = userId,
+                                    conductorCif = userCif!!,
+                                    origen = origenFinal,
+                                    destino = destinoFinal,
+                                    fechaSalida = "${date}T${departureTime}:00",
+                                    fechaLlegada = "${date}T${arrivalTime}:00",
+                                    asientos = seats,
+                                    precio = price.toDoubleOrNull() ?: 1.0,
+                                    carro = selectedCar,
+                                    onExito = { showSuccessDialog = true },
+                                    onError = { razon ->
+                                        scope.launch { snackbarHostState.showSnackbar(razon) }
+                                    }
+                                )
+                            } catch (e: Exception) {
+                                Log.e("CreateRideScreen", "Error al publicar", e)
+                                scope.launch { snackbarHostState.showSnackbar("Error al procesar el destino") }
                             }
-                        )
+                        }
                     }
                 )
             }
@@ -422,7 +459,7 @@ fun Step2Schedule(
                     set(Calendar.SECOND, 0)
                     set(Calendar.MILLISECOND, 0)
                 }.time
-                
+
                 val dep = sdfDateTime.parse("$date $departureTime") ?: return@remember false
                 val arr = sdfDateTime.parse("$date $arrivalTime") ?: return@remember false
 
@@ -441,9 +478,9 @@ fun Step2Schedule(
 
         Box(modifier = Modifier.fillMaxWidth().clickable { datePickerDialog.show() }) {
             OutlinedTextField(
-                value = date, onValueChange = {}, label = { Text("Fecha del viaje") }, 
+                value = date, onValueChange = {}, label = { Text("Fecha del viaje") },
                 readOnly = true, enabled = false, modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = UAMColor, disabledTextColor = Color.Black, disabledContainerColor = Color.White, disabledLabelColor = UAMColor), 
+                colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = UAMColor, disabledTextColor = Color.Black, disabledContainerColor = Color.White, disabledLabelColor = UAMColor),
                 leadingIcon = { Icon(Icons.Default.DateRange, null, tint = UAMColor) }
             )
         }
@@ -461,7 +498,7 @@ fun Step2Schedule(
                 OutlinedTextField(
                     value = arrivalTime, onValueChange = {}, label = { Text("Llegada Estimada") },
                     readOnly = true, enabled = false, modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = Color(0xFFE65100), disabledTextColor = Color.Black, disabledContainerColor = Color.White, disabledLabelColor = Color(0xFFE65100), disabledLeadingIconColor = Color(0xFFE65100)),
+                    colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = UAMColor, disabledTextColor = Color.Black, disabledContainerColor = Color.White, disabledLabelColor = UAMColor, disabledLeadingIconColor = UAMColor),
                     leadingIcon = { Icon(Icons.Default.Timer, null) }
                 )
             }
@@ -568,7 +605,7 @@ fun Step3Price(
 fun SummaryRow(label: String, value: String, isHighlight: Boolean = false) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, color = Color.Gray, modifier = Modifier.weight(0.35f), fontSize = 14.sp)
-        Text(text = value, fontWeight = if (isHighlight) FontWeight.Bold else FontWeight.Medium, color = if (isHighlight) Color(0xFF019AA8) else UAMColor, modifier = Modifier.weight(0.65f), textAlign = TextAlign.End, fontSize = 14.sp)
+        Text(text = value, fontWeight = if (isHighlight) FontWeight.Bold else FontWeight.Medium, color = UAMColor, modifier = Modifier.weight(0.65f), textAlign = TextAlign.End, fontSize = 14.sp)
     }
 }
 

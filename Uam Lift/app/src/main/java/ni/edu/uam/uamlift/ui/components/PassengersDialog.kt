@@ -16,11 +16,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import coil.compose.AsyncImage
 import ni.edu.uam.uamlift.data.models.Usuario
 import ni.edu.uam.uamlift.ui.theme.UAMColor
 
@@ -41,9 +43,7 @@ fun PassengersDialog(
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
-            Column(
-                modifier = Modifier.padding(24.dp)
-            ) {
+            Column(modifier = Modifier.padding(24.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -66,7 +66,6 @@ fun PassengersDialog(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // --- SECCIÓN CONDUCTOR ---
                     item {
                         Text(
                             text = "CONDUCTOR",
@@ -85,7 +84,6 @@ fun PassengersDialog(
                         Spacer(modifier = Modifier.height(8.dp))
                     }
 
-                    // --- SECCIÓN PASAJEROS ---
                     item {
                         Text(
                             text = "PASAJEROS",
@@ -130,11 +128,11 @@ fun PassengersDialog(
 @Composable
 fun PassengerItem(usuario: Usuario, esConductor: Boolean) {
     val initials = (usuario.nombre?.take(1) ?: "") + (usuario.apellido?.take(1) ?: "")
-    
-    // Priorizamos nombreUsuario
+    val foto = usuario.imagenUrl
+
     val displayName = when {
         !usuario.nombreUsuario.isNullOrEmpty() -> usuario.nombreUsuario!!
-        "${usuario.nombre ?: ""} ${usuario.apellido ?: ""}".trim().isNotEmpty() -> 
+        "${usuario.nombre ?: ""} ${usuario.apellido ?: ""}".trim().isNotEmpty() ->
             "${usuario.nombre ?: ""} ${usuario.apellido ?: ""}".trim()
         else -> "Usuario #${usuario.id}"
     }
@@ -143,12 +141,13 @@ fun PassengerItem(usuario: Usuario, esConductor: Boolean) {
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                if (esConductor) UAMColor.copy(alpha = 0.05f) else Color(0xFFF8F9FA), 
+                if (esConductor) UAMColor.copy(alpha = 0.05f) else Color(0xFFF8F9FA),
                 RoundedCornerShape(12.dp)
             )
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // ── AVATAR CON FOTO DE PERFIL ──
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -156,7 +155,14 @@ fun PassengerItem(usuario: Usuario, esConductor: Boolean) {
                 .background(if (esConductor) UAMColor else Color(0xFFE2E8F0)),
             contentAlignment = Alignment.Center
         ) {
-            if (initials.isNotEmpty()) {
+            if (!foto.isNullOrEmpty()) {
+                AsyncImage(
+                    model = foto,
+                    contentDescription = "Foto de perfil",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else if (initials.isNotEmpty()) {
                 Text(
                     text = initials.uppercase(),
                     color = if (esConductor) Color.White else Color.Gray,
@@ -165,15 +171,15 @@ fun PassengerItem(usuario: Usuario, esConductor: Boolean) {
                 )
             } else {
                 Icon(
-                    Icons.Default.Person, 
-                    contentDescription = null, 
+                    Icons.Default.Person,
+                    contentDescription = null,
                     tint = if (esConductor) Color.White else Color.Gray
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.width(14.dp))
-        
+
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = displayName,
@@ -190,8 +196,8 @@ fun PassengerItem(usuario: Usuario, esConductor: Boolean) {
 
         if (esConductor) {
             Icon(
-                Icons.Default.Stars, 
-                contentDescription = "Conductor", 
+                Icons.Default.Stars,
+                contentDescription = "Conductor",
                 tint = UAMColor,
                 modifier = Modifier.size(20.dp)
             )

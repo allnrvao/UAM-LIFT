@@ -5,7 +5,6 @@ import ni.edu.uam.uamlift.data.models.Viaje
 import retrofit2.http.*
 
 interface ViajeApiService {
-
     @GET("api/viajes")
     suspend fun obtenerTodosLosViajes(): List<Viaje>
 

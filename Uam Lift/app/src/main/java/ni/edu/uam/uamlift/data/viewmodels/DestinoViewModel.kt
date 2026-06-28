@@ -36,6 +36,15 @@ class DestinoViewModel : ViewModel() {
         }
     }
 
+    suspend fun agregarDestino(destinoParaAgregar: Destino): Destino? {
+        return try {
+            RetrofitClient.destinoApi.agregarDestino(destinoParaAgregar)
+        } catch (e: Exception) {
+            Log.e("DestinoViewModel", "Error al agregar destino", e)
+            null
+        }
+    }
+
     fun cargarDestino(destinoBD: Destino) {
         destino = destinoBD
     }

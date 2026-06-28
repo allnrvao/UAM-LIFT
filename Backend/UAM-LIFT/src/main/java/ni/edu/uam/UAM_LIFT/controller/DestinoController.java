@@ -23,9 +23,4 @@ public class DestinoController {
     public boolean eliminarDestino(@PathVariable String nombre) {
         return destinoServicio.eliminarDestino(nombre);
     }
-
-    @GetMapping("/defecto")
-    public Destino obtenerDestinoDefecto() {
-        return destinoServicio.darDestinoDefecto();
-    }
 }

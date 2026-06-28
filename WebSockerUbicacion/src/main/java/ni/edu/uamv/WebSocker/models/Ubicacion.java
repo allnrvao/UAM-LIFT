@@ -11,7 +11,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class    Ubicacion {
     private Long idViaje;
-    private double lat;
-    private double lon;
+    private double latitud;
+    private double longitud;
     private String tipo; // "SUSCRIBIR" o "ACTUALIZAR"
 }
