@@ -16,11 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import coil.compose.AsyncImage
+import ni.edu.uam.uamlift.data.RetrofitClient
 import ni.edu.uam.uamlift.data.enums.EstadoViaje
 import ni.edu.uam.uamlift.data.models.Viaje
 import ni.edu.uam.uamlift.ui.theme.UAMColor
@@ -51,6 +54,13 @@ fun TakeRideDialog(
     // Priorizamos nombreUsuario sobre el nombre real
     val nombreConductor = viaje.conductor?.nombreUsuario?.takeIf { it.isNotBlank() }
         ?: "${viaje.conductor?.nombre ?: "Conductor"} ${viaje.conductor?.apellido ?: ""}".trim()
+
+    val fotoConductor = viaje.conductor?.imagenUrl
+    val modelFoto = remember(fotoConductor) {
+        if (fotoConductor.isNullOrBlank()) null
+        else if (fotoConductor.startsWith("http")) fotoConductor
+        else "${RetrofitClient.BASE_URL.trimEnd('/')}/${fotoConductor.trimStart('/')}"
+    }
 
     val viajeEnCurso = viaje.estadoViaje == EstadoViaje.EN_CURSO
 
@@ -87,7 +97,16 @@ fun TakeRideDialog(
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(54.dp).clip(CircleShape).background(UAMColor.copy(alpha = 0.1f)), Alignment.Center) {
-                            Icon(Icons.Default.Person, null, tint = UAMColor, modifier = Modifier.size(30.dp))
+                            if (modelFoto != null) {
+                                AsyncImage(
+                                    model = modelFoto,
+                                    contentDescription = "Foto del conductor",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(Icons.Default.Person, null, tint = UAMColor, modifier = Modifier.size(30.dp))
+                            }
                         }
                         Spacer(Modifier.width(16.dp))
                         Column {

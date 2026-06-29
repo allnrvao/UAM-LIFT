@@ -100,6 +100,7 @@ fun MessagesScreen(
                         val initials = if (destino.isNotEmpty()) destino.take(1).uppercase() else "V"
 
                         MessageItem(
+                            imageUrl = viaje.conductor?.imagenUrl,
                             initials = initials,
                             name = chatName,
                             lastMessage = "Chat grupal del viaje",

@@ -7,18 +7,23 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import ni.edu.uam.uamlift.data.RetrofitClient
 import ni.edu.uam.uamlift.ui.theme.Gray
 
 @Composable
 fun MessageItem(
+    imageUrl: String? = null,
     initials: String,
     name: String,
     lastMessage: String,
@@ -31,6 +36,12 @@ fun MessageItem(
     val avatarBgColor = Color(0xFFE4F2F3)  // Celeste/gris muy suave para el fondo del avatar
     val grayTextColor = Color(0xFF757575)  // Gris para la hora y mensajes leídos
     val onlineGreen = Color(0xFF00E676)    // Verde brillante de conectado
+
+    val modelFoto = remember(imageUrl) {
+        if (imageUrl.isNullOrBlank()) null
+        else if (imageUrl.startsWith("http")) imageUrl
+        else "${RetrofitClient.BASE_URL.trimEnd('/')}/${imageUrl.trimStart('/')}"
+    }
 
     Card(
         modifier = Modifier
@@ -64,12 +75,21 @@ fun MessageItem(
                         .background(avatarBgColor),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = initials,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = uamColor
-                    )
+                    if (modelFoto != null) {
+                        AsyncImage(
+                            model = modelFoto,
+                            contentDescription = "Foto de perfil",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            text = initials,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = uamColor
+                        )
+                    }
                 }
 
                 // Punto verde indicador (Solo aparece si el usuario tiene mensajes pendientes/está activo)

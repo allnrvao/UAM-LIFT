@@ -17,7 +17,7 @@ data class Usuario(
     var correo: String? = null,
     @SerializedName("contrasenia")
     var contrasenia: String? = null,
-    @SerializedName("imagenUrl")
+    @SerializedName(value = "imagenUrl", alternate = ["imagen_url"])
     var imagenUrl: String? = null,
     @SerializedName("estado")
     var estado: Boolean = true,

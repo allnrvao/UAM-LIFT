@@ -8,10 +8,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
+import ni.edu.uam.uamlift.data.RetrofitClient
 import ni.edu.uam.uamlift.data.models.Usuario
 import ni.edu.uam.uamlift.ui.theme.UAMColor
 
@@ -30,6 +33,8 @@ import ni.edu.uam.uamlift.ui.theme.UAMColor
 fun PassengersDialog(
     conductor: Usuario?,
     pasajeros: List<Usuario>,
+    esConductorActual: Boolean = false,
+    onEliminarPasajero: (String) -> Unit = {},
     onDismissRequest: () -> Unit
 ) {
     Dialog(
@@ -105,7 +110,12 @@ fun PassengersDialog(
                         }
                     } else {
                         items(pasajeros) { pasajero ->
-                            PassengerItem(pasajero, esConductor = false)
+                            PassengerItem(
+                                usuario = pasajero,
+                                esConductor = false,
+                                puedeEliminar = esConductorActual,
+                                onEliminar = { onEliminarPasajero(pasajero.cif ?: "") }
+                            )
                         }
                     }
                 }
@@ -126,9 +136,20 @@ fun PassengersDialog(
 }
 
 @Composable
-fun PassengerItem(usuario: Usuario, esConductor: Boolean) {
+fun PassengerItem(
+    usuario: Usuario,
+    esConductor: Boolean,
+    puedeEliminar: Boolean = false,
+    onEliminar: () -> Unit = {}
+) {
     val initials = (usuario.nombre?.take(1) ?: "") + (usuario.apellido?.take(1) ?: "")
     val foto = usuario.imagenUrl
+
+    val modelFoto = remember(foto) {
+        if (foto.isNullOrBlank()) null
+        else if (foto.startsWith("http")) foto
+        else "${RetrofitClient.BASE_URL.trimEnd('/')}/${foto.trimStart('/')}"
+    }
 
     val displayName = when {
         !usuario.nombreUsuario.isNullOrEmpty() -> usuario.nombreUsuario!!
@@ -155,9 +176,9 @@ fun PassengerItem(usuario: Usuario, esConductor: Boolean) {
                 .background(if (esConductor) UAMColor else Color(0xFFE2E8F0)),
             contentAlignment = Alignment.Center
         ) {
-            if (!foto.isNullOrEmpty()) {
+            if (modelFoto != null) {
                 AsyncImage(
-                    model = foto,
+                    model = modelFoto,
                     contentDescription = "Foto de perfil",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -201,6 +222,14 @@ fun PassengerItem(usuario: Usuario, esConductor: Boolean) {
                 tint = UAMColor,
                 modifier = Modifier.size(20.dp)
             )
+        } else if (puedeEliminar) {
+            IconButton(onClick = onEliminar) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Eliminar pasajero",
+                    tint = Color.Red.copy(alpha = 0.7f)
+                )
+            }
         }
     }
 }

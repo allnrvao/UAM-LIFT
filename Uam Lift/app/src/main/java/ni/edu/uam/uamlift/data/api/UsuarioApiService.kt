@@ -4,6 +4,7 @@ import ni.edu.uam.uamlift.data.dto.EmailVerificationConfirm
 import ni.edu.uam.uamlift.data.dto.EmailVerificationRequest
 import ni.edu.uam.uamlift.data.dto.EstadisticasUsuario
 import ni.edu.uam.uamlift.data.models.Usuario
+import okhttp3.MultipartBody
 import okhttp3.ResponseBody
 import retrofit2.http.*
 
@@ -27,10 +28,12 @@ interface UsuarioApiService {
     @GET("api/usuarios/nombreUsuario/{nombreUsuario}")
     suspend fun obtenerPorNombreUsuario(@Path("nombreUsuario") nombreUsuario: String): Usuario
 
+    @Multipart
     @PUT("api/usuarios/{cif}")
     suspend fun actualizarUsuario(
         @Path("cif") cif: String?,
-        @Body usuario: Usuario
+        @Part("usuario") usuario: Usuario,
+        @Part imagen: MultipartBody.Part?
     ): Boolean
 
     @DELETE("api/usuarios/{cif}")

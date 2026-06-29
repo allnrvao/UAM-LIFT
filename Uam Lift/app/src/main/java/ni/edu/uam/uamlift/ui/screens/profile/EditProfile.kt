@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
+import ni.edu.uam.uamlift.data.RetrofitClient
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.ui.theme.Gray
 import ni.edu.uam.uamlift.ui.theme.UAMColor
@@ -167,16 +168,26 @@ fun EditProfileScreen(
                         color = UAMColor.copy(alpha = 0.1f),
                         onClick = { launcher.launch("image/*") }
                     ) {
-                        if (imagenUri != null) {
+                        val model = remember(imagenUri, usuarioActual.imagenUrl) {
+                            if (imagenUri != null) {
+                                imagenUri
+                            } else if (!usuarioActual.imagenUrl.isNullOrEmpty()) {
+                                val url = usuarioActual.imagenUrl!!
+                                when {
+                                    url.startsWith("http") -> url
+                                    url.startsWith("C:") || url.contains("uam_photos") -> File(url)
+                                    else -> {
+                                        val base = RetrofitClient.BASE_URL.trimEnd('/')
+                                        val relative = url.trimStart('/')
+                                        "$base/$relative"
+                                    }
+                                }
+                            } else null
+                        }
+
+                        if (model != null) {
                             AsyncImage(
-                                model = imagenUri,
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else if (!usuarioActual.imagenUrl.isNullOrEmpty()) {
-                            AsyncImage(
-                                model = File(usuarioActual.imagenUrl!!),
+                                model = model,
                                 contentDescription = null,
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop

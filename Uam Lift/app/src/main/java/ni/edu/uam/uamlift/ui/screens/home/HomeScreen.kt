@@ -1,32 +1,32 @@
 package ni.edu.uam.uamlift.ui.screens.home
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ni.edu.uam.uamlift.data.enums.EstadoViaje
@@ -36,7 +36,6 @@ import ni.edu.uam.uamlift.data.viewmodels.UbicacionViewModel
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
 import ni.edu.uam.uamlift.ui.components.RideCard
-import ni.edu.uam.uamlift.ui.theme.Degradado2
 import ni.edu.uam.uamlift.ui.theme.Gray
 import ni.edu.uam.uamlift.ui.theme.UAMColor
 import ni.edu.uam.uamlift.ui.components.PassengersDialog
@@ -53,6 +52,7 @@ fun HomeScreen(
     val usuario = usuarioViewModel.usuario
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(usuario?.id) {
         val idUsuario = usuario?.id
@@ -66,33 +66,89 @@ fun HomeScreen(
     val cargando by viajeViewModel.isLoading.collectAsState()
     val pasajerosViaje by viajeViewModel.pasajerosViaje.collectAsState()
 
-    // Solo viajes EN_CURSO activos (no finalizados ni cancelados)
     val viajeActivo = misViajes.find {
         it.estadoViaje == EstadoViaje.EN_CURSO && it.conductor?.id == usuario?.id
     }
 
-    LaunchedEffect(viajeActivo) {
+    // GESTIÓN DE PERMISOS: Solo pedir una vez
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    var hasLocationPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    
+    // Bandera para no repetir la solicitud si ya se intentó
+    var permissionRequested by rememberSaveable { mutableStateOf(false) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        hasLocationPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+    }
+
+    LaunchedEffect(viajeActivo, hasLocationPermission) {
         val idViaje = viajeActivo?.id
         if (viajeActivo != null && idViaje != null) {
-            ubicacionViewModel.conectar(idViaje)
-            while (true) {
-                val latSimulada = 12.1276
-                val lngSimulada = -86.2713
-                ubicacionViewModel.enviar(idViaje, latSimulada, lngSimulada)
-                delay(5000)
+            if (!hasLocationPermission) {
+                // SOLO LANZAR SI NO HEMOS PEDIDO EN ESTE CICLO
+                if (!permissionRequested) {
+                    permissionRequested = true
+                    permissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                        )
+                    )
+                }
+            } else {
+                ubicacionViewModel.conectar(idViaje)
+                val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
+                    .setMinUpdateIntervalMillis(3000)
+                    .build()
+                val locationCallback = object : LocationCallback() {
+                    override fun onLocationResult(p0: LocationResult) {}
+                }
+                try {
+                    fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, android.os.Looper.getMainLooper())
+                    while (true) {
+                        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                            if (location != null) {
+                                ubicacionViewModel.enviar(idViaje, location.latitude, location.longitude)
+                            }
+                        }
+                        delay(5000)
+                    }
+                } catch (e: SecurityException) {
+                } finally {
+                    fusedLocationClient.removeLocationUpdates(locationCallback)
+                }
             }
+        } else {
+            // Si no hay viaje activo, reseteamos la bandera para la próxima vez
+            permissionRequested = false
         }
     }
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("Explorar", "Mis Viajes")
-
     var selectedViaje by remember { mutableStateOf<Viaje?>(null) }
 
     if (selectedViaje != null) {
         PassengersDialog(
             conductor = selectedViaje?.conductor,
             pasajeros = pasajerosViaje,
+            esConductorActual = selectedViaje?.conductor?.id == usuario?.id,
+            onEliminarPasajero = { usuarioCif ->
+                viajeViewModel.eliminarPasajero(
+                    viajeId = selectedViaje?.id ?: 0L,
+                    usuarioId = usuario?.id ?: 0L,
+                    usuarioCif = usuarioCif,
+                    onExito = { scope.launch { snackbarHostState.showSnackbar("Asiento liberado") } },
+                    onError = { error -> scope.launch { snackbarHostState.showSnackbar(error) } }
+                )
+            },
             onDismissRequest = { selectedViaje = null }
         )
     }
@@ -109,150 +165,36 @@ fun HomeScreen(
             ) {
                 item {
                     Column {
-                        // Cabecera
                         Surface(
                             color = Color.White,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .wrapContentHeight()
+                            modifier = Modifier.fillMaxWidth().wrapContentHeight()
                         ) {
                             Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
                                 verticalArrangement = Arrangement.Center
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.Start
                                 ) {
-                                    Text(
-                                        text = "UAM ",
-                                        fontSize = 26.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color = Color.Black
-                                    )
-                                    Text(
-                                        text = "LIFT",
-                                        fontSize = 26.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color = Color(0xFF019AA8)
-                                    )
+                                    Text(text = "UAM ", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Color.Black)
+                                    Text(text = "LIFT", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Color(0xFF019AA8))
                                 }
-                                Text(
-                                    text = "Movilidad colaborativa",
-                                    color = Color.Gray,
-                                    fontSize = 14.sp
-                                )
+                                Text(text = "Movilidad colaborativa", color = Color.Gray, fontSize = 14.sp)
                             }
                         }
-
-                        // Saludo + búsqueda
                         Box(modifier = Modifier.fillMaxWidth().wrapContentHeight()) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(220.dp)
-                                    .background(UAMColor)
-                            )
-
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 12.dp, bottom = 16.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 20.dp)
-                                ) {
+                            Box(modifier = Modifier.fillMaxWidth().height(110.dp).background(UAMColor))
+                            Column(modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 16.dp)) {
+                                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
                                     val nombreEstudiante = usuario?.nombre ?: "Estudiante"
-                                    Text(
-                                        text = "¡Hola, $nombreEstudiante! 👋",
-                                        fontSize = 22.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
+                                    Text(text = "¡Hola, $nombreEstudiante! 👋", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "Encuentra o comparte un viaje hoy",
-                                        fontSize = 14.sp,
-                                        color = Color.White.copy(alpha = 0.85f)
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp),
-                                    shape = RoundedCornerShape(24.dp),
-                                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(14.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        OutlinedTextField(
-                                            value = "",
-                                            onValueChange = {},
-                                            placeholder = { Text("¿Desde dónde sales?", fontSize = 14.sp) },
-                                            leadingIcon = {
-                                                Icon(Icons.Default.Search, null, modifier = Modifier.size(20.dp))
-                                            },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            singleLine = true,
-                                            shape = RoundedCornerShape(14.dp),
-                                            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp)
-                                        )
-
-                                        Spacer(modifier = Modifier.height(8.dp))
-
-                                        Button(
-                                            contentPadding = PaddingValues(vertical = 4.dp),
-                                            onClick = { },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(48.dp),
-                                            shape = RoundedCornerShape(14.dp),
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .background(brush = Degradado2, shape = RoundedCornerShape(14.dp)),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.Center
-                                                ) {
-                                                    Icon(
-                                                        Icons.Default.Search,
-                                                        null,
-                                                        tint = Color.White,
-                                                        modifier = Modifier.size(18.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(6.dp))
-                                                    Text(
-                                                        text = "Buscar viajes",
-                                                        fontSize = 14.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = Color.White
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
+                                    Text(text = "Encuentra o comparte un viaje hoy", fontSize = 14.sp, color = Color.White.copy(alpha = 0.85f))
                                 }
                             }
                         }
-
                         Spacer(modifier = Modifier.height(8.dp))
-
-                        // Tabs
                         TabRow(
                             selectedTabIndex = selectedTabIndex,
                             containerColor = Color.White,
@@ -270,144 +212,73 @@ fun HomeScreen(
                                 Tab(
                                     selected = selectedTabIndex == index,
                                     onClick = { selectedTabIndex = index },
-                                    text = {
-                                        Text(
-                                            text = title,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp
-                                        )
-                                    }
+                                    text = { Text(text = title, fontWeight = FontWeight.Bold, fontSize = 13.sp) }
                                 )
                             }
                         }
                     }
                 }
 
-                // Lista de viajes
                 if (cargando) {
                     item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(24.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(color = UAMColor)
                         }
                     }
                 } else {
-                    // LIFO: el más reciente primero (reversed)
-                    val listaAMostrar = if (selectedTabIndex == 0)
-                        viajesOtros.reversed()
-                    else
-                        misViajes.reversed()
-
+                    val listaAMostrar = if (selectedTabIndex == 0) viajesOtros.reversed() else misViajes.reversed()
                     if (listaAMostrar.isEmpty()) {
                         item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(40.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
+                            Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
                                 Text(
-                                    text = if (selectedTabIndex == 0)
-                                        "No hay viajes disponibles de otros usuarios"
-                                    else
-                                        "No has creado ningún viaje aún",
-                                    color = Color.Gray,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                    fontSize = 14.sp
+                                    text = if (selectedTabIndex == 0) "No hay viajes disponibles" else "No has creado viajes aún",
+                                    color = Color.Gray, textAlign = androidx.compose.ui.text.style.TextAlign.Center, fontSize = 14.sp
                                 )
                             }
                         }
                     } else {
                         items(listaAMostrar) { viaje ->
-                            val idUsuarioActual = usuario?.id ?: 0L
-                            val cifUsuarioActual = usuario?.cif ?: ""
-
                             Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                                 RideCard(
                                     viaje = viaje,
-                                    usuarioIdActual = idUsuarioActual,
-                                    esConductor = viaje.conductor?.id == idUsuarioActual,
-                                    onCardEnCursoClick = { viajeEnCurso ->
-                                        // Navegar a pantalla de mapa del viaje en curso
-                                        navController?.navigate("active_ride/${viajeEnCurso.id}")
+                                    usuarioIdActual = usuario?.id ?: 0L,
+                                    esConductor = viaje.conductor?.id == usuario?.id,
+                                    onCardEnCursoClick = { navController?.navigate("active_ride/${it.id}") },
+                                    onConfirmarClick = { id ->
+                                        viajeViewModel.unirseAlViaje(id, usuario?.id ?: 0L, usuario?.cif ?: "",
+                                            onExito = { scope.launch { snackbarHostState.showSnackbar("¡Te has unido!") } },
+                                            onError = { scope.launch { snackbarHostState.showSnackbar(it) } }
+                                        )
                                     },
-                                    onConfirmarClick = { idViaje ->
-                                        viajeViewModel.unirseAlViaje(
-                                            viajeId = idViaje,
-                                            usuarioId = idUsuarioActual,
-                                            usuarioCif = cifUsuarioActual,
+                                    onCancelarParticipacion = { id ->
+                                        viajeViewModel.cancelarParticipacion(id, usuario?.id ?: 0L, usuario?.cif ?: "",
+                                            onExito = { scope.launch { snackbarHostState.showSnackbar("Cancelado") } }
+                                        )
+                                    },
+                                    onIniciarViaje = { id ->
+                                        viajeViewModel.iniciarViaje(id, usuario?.id ?: 0L,
                                             onExito = {
-                                                scope.launch {
-                                                    snackbarHostState.showSnackbar("¡Te has unido al viaje!")
-                                                }
+                                                scope.launch { snackbarHostState.showSnackbar("¡Viaje iniciado!") }
+                                                ubicacionViewModel.conectar(id)
                                             },
-                                            onError = {
-                                                scope.launch { snackbarHostState.showSnackbar(it) }
-                                            }
+                                            onError = { scope.launch { snackbarHostState.showSnackbar(it) } }
                                         )
                                     },
-                                    onCancelarParticipacion = { idViaje ->
-                                        viajeViewModel.cancelarParticipacion(
-                                            viajeId = idViaje,
-                                            usuarioId = idUsuarioActual,
-                                            usuarioCif = cifUsuarioActual,
-                                            onExito = {
-                                                scope.launch {
-                                                    snackbarHostState.showSnackbar("Has cancelado tu participación")
-                                                }
-                                            }
+                                    onFinalizarViaje = { id ->
+                                        viajeViewModel.finalizarViaje(id, usuario?.id ?: 0L,
+                                            onExito = { scope.launch { snackbarHostState.showSnackbar("Finalizado") } },
+                                            onError = { scope.launch { snackbarHostState.showSnackbar(it) } }
                                         )
                                     },
-                                    onIniciarViaje = { idViaje ->
-                                        viajeViewModel.iniciarViaje(
-                                            viajeId = idViaje,
-                                            conductorId = idUsuarioActual,
-                                            onExito = {
-                                                scope.launch {
-                                                    snackbarHostState.showSnackbar("¡Viaje iniciado!")
-                                                }
-                                                ubicacionViewModel.conectar(idViaje)
-                                            },
-                                            onError = {
-                                                scope.launch { snackbarHostState.showSnackbar(it) }
-                                            }
+                                    onCancelarViaje = { id ->
+                                        viajeViewModel.cancelarViaje(id, usuario?.id ?: 0L,
+                                            onExito = { scope.launch { snackbarHostState.showSnackbar("Viaje cancelado") } },
+                                            onError = { scope.launch { snackbarHostState.showSnackbar(it) } }
                                         )
                                     },
-                                    onFinalizarViaje = { idViaje ->
-                                        viajeViewModel.finalizarViaje(
-                                            viajeId = idViaje,
-                                            usuarioId = idUsuarioActual,
-                                            onExito = {
-                                                scope.launch {
-                                                    snackbarHostState.showSnackbar("Viaje finalizado con éxito")
-                                                }
-                                            },
-                                            onError = {
-                                                scope.launch { snackbarHostState.showSnackbar(it) }
-                                            }
-                                        )
-                                    },
-                                    onCancelarViaje = { idViaje ->
-                                        viajeViewModel.cancelarViaje(
-                                            viajeId = idViaje,
-                                            usuarioId = idUsuarioActual,
-                                            onExito = {
-                                                scope.launch {
-                                                    snackbarHostState.showSnackbar("Viaje cancelado")
-                                                }
-                                            },
-                                            onError = {
-                                                scope.launch { snackbarHostState.showSnackbar(it) }
-                                            }
-                                        )
-                                    },
-                                    onVerPasajeros = { idViaje ->
+                                    onVerPasajeros = { id ->
                                         selectedViaje = viaje
-                                        viajeViewModel.obtenerPasajeros(idViaje)
+                                        viajeViewModel.obtenerPasajeros(id)
                                     }
                                 )
                             }

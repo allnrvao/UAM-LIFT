@@ -12,11 +12,17 @@ import ni.edu.uam.UAM_LIFT.repositories.RepoUsuario;
 import ni.edu.uam.UAM_LIFT.repositories.RepoViaje;
 import ni.edu.uam.UAM_LIFT.repositories.RepoViajeUsuario;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
 
 @Service
 public class UsuarioServicio implements InterfazUsuario {
@@ -73,14 +79,36 @@ public class UsuarioServicio implements InterfazUsuario {
         return true;
     }
 
-    public boolean UpdateUsuario(Usuario usuario) {
+    public boolean updateUsuario(Usuario usuario, MultipartFile imagen) {
         try {
+
+            if (imagen != null && !imagen.isEmpty()) {
+
+                // Crear carpeta si no existe
+                Path carpeta = Paths.get("imagesProfiles");
+                Files.createDirectories(carpeta);
+
+                // Obtener extensión
+                String nombreOriginal = imagen.getOriginalFilename();
+                String extension = nombreOriginal.substring(nombreOriginal.lastIndexOf("."));
+
+                // Nombre único
+                String nombreArchivo = UUID.randomUUID() + extension;
+
+                // Guardar imagen
+                Path ruta = carpeta.resolve(nombreArchivo);
+                Files.copy(imagen.getInputStream(), ruta, StandardCopyOption.REPLACE_EXISTING);
+
+                // Guardar URL en la BD
+                usuario.setImagenUrl("/imagesProfiles/" + nombreArchivo);
+            }
             repoUsuario.save(usuario);
+            return true;
+
         } catch (Exception e) {
             System.out.println("Error al actualizar usuario: " + e.getMessage());
             return false;
         }
-        return true;
     }
 
     public boolean DeleteUsuario(Usuario usuario) {

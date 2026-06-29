@@ -38,6 +38,12 @@ interface ViajeApiService {
     @PUT("api/viajes/{viajeId}/cancelar")
     suspend fun cancelarViaje(@Path("viajeId") viajeId: Long): Boolean
 
+    @PUT("api/viajes/EliminarPasajero/{viajeId}/{usuarioCif}")
+    suspend fun eliminarPasajero(
+        @Path("viajeId") viajeId: Long,
+        @Path("usuarioCif") usuarioCif: String
+    ): Boolean
+
     @GET("api/viajes/validar/{usuarioId}/{fechaSalida}/{fechaLlegada}")
     suspend fun validarFechas(
         @Path("usuarioId") usuarioId: Long,

@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 import ni.edu.uam.uamlift.data.RetrofitClient
 import ni.edu.uam.uamlift.data.RetrofitClient2
 import ni.edu.uam.uamlift.data.viewmodels.AppViewModelFactory
@@ -54,6 +55,8 @@ fun ChatScreen(
     var textState by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     val chatBgColor = Color(0xFFF8FAFC)
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val misViajes by viajeViewModel.misViajes.collectAsState()
     val viajeActual = remember(misViajes, viajeId) {
@@ -62,7 +65,6 @@ fun ChatScreen(
 
     val pasajeros by viajeViewModel.pasajerosViaje.collectAsState()
 
-    // Precarga de nombres mejorada: Incluye a pasajeros y al conductor
     LaunchedEffect(pasajeros, viajeActual) {
         val todosLosUsuarios = pasajeros.toMutableList()
         viajeActual?.conductor?.let { todosLosUsuarios.add(it) }
@@ -84,6 +86,24 @@ fun ChatScreen(
         PassengersDialog(
             conductor = viajeActual?.conductor,
             pasajeros = pasajeros,
+            esConductorActual = viajeActual?.conductor?.id == currentUserId,
+            onEliminarPasajero = { usuarioCif ->
+                viajeViewModel.eliminarPasajero(
+                    viajeId = viajeId,
+                    usuarioId = currentUserId, // Refresca los asientos disponibles
+                    usuarioCif = usuarioCif,
+                    onExito = {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Pasajero eliminado y cupo liberado")
+                        }
+                    },
+                    onError = { error ->
+                        scope.launch {
+                            snackbarHostState.showSnackbar(error)
+                        }
+                    }
+                )
+            },
             onDismissRequest = { mostrarPasajeros = false }
         )
     }
@@ -95,6 +115,7 @@ fun ChatScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = chatBgColor,
         topBar = {
             Surface(color = Color.White, shadowElevation = 1.dp) {
