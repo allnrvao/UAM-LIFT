@@ -55,13 +55,11 @@ class ViajeViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Validación para evitar el NPE en el backend
                 if (origen == null || destino == null) {
                     onError("El origen y el destino son obligatorios.")
                     return@launch
                 }
 
-                // 1. Validación: Ya tiene un viaje activo
                 val tieneViajeActivo = _misViajes.value.any { 
                     it.estadoViaje == EstadoViaje.PROPUESTO ||
                     it.estadoViaje == EstadoViaje.PROGRAMADO || 
@@ -77,7 +75,6 @@ class ViajeViewModel(
                     return@launch
                 }
                 
-                // 2. Validación: Conflicto de horario
                 val fechasValidas = withContext(Dispatchers.IO) {
                     apiService.validarFechas(usuarioId, fechaSalida, fechaLlegada)
                 }
@@ -98,8 +95,6 @@ class ViajeViewModel(
                     estadoViaje = EstadoViaje.PROPUESTO
                 )
 
-                Log.d("ViajeViewModel", "Publicando viaje: ${origen.nombre} -> ${destino.nombre}")
-
                 val nuevoViaje = withContext(Dispatchers.IO) { apiService.crearViaje(conductorCif, viajeAEnviar) }
 
                 if (nuevoViaje != null) {
@@ -109,7 +104,6 @@ class ViajeViewModel(
                     onError("Error al procesar la solicitud.")
                 }
             } catch (e: Exception) {
-                Log.e("ViajeViewModel", "Error al publicar viaje", e)
                 onError("Error de conexión.")
             } finally {
                 _isLoading.value = false
@@ -127,7 +121,7 @@ class ViajeViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // 1. Validación: Ya participa en un viaje activo
+                // 1. Verificar si el usuario ya tiene un viaje activo
                 val tieneViajeActivo = _misViajes.value.any { 
                     it.estadoViaje == EstadoViaje.PROPUESTO || 
                     it.estadoViaje == EstadoViaje.PROGRAMADO || 
@@ -138,9 +132,19 @@ class ViajeViewModel(
                     return@launch
                 }
 
-                // 2. Validación: Conflicto de horario
+                // 2. Buscar el viaje y VERIFICAR ASIENTOS DISPONIBLES REALES
                 val viajeADeterminar = _viajesOtros.value.find { it.id == viajeId } ?: _viajes.value.find { it.id == viajeId }
+                
                 if (viajeADeterminar != null) {
+                    // VALIDACIÓN DE CUPO: Total - Pasajeros ya unidos
+                    val pasajerosActuales = viajeADeterminar.pasajeros?.size ?: 0
+                    val asientosLibres = viajeADeterminar.numeroAsientosDisponibles - pasajerosActuales
+                    
+                    if (asientosLibres <= 0) {
+                        onError("Lo sentimos, este viaje ya está lleno (0 asientos disponibles).")
+                        return@launch
+                    }
+                    
                     val fechasValidas = withContext(Dispatchers.IO) {
                         apiService.validarFechas(usuarioId, viajeADeterminar.fechaHoraSalida ?: "", viajeADeterminar.fechaHoraLlegada ?: "")
                     }
@@ -150,12 +154,13 @@ class ViajeViewModel(
                     }
                 }
 
+                // 3. Petición al backend
                 val exito = withContext(Dispatchers.IO) { apiService.agregarPasajero(viajeId, usuarioCif) }
                 if (exito) {
-                    fetchViajesInternal(apiService, usuarioId)
+                    fetchViajesInternal(apiService, usuarioId) // Sincronización inmediata
                     onExito()
                 } else {
-                    onError("No se pudo unir al viaje.")
+                    onError("No se pudo unir al viaje. Es posible que el cupo se haya completado justo ahora.")
                 }
             } catch (e: Exception) {
                 onError("Error de conexión.")
@@ -189,12 +194,16 @@ class ViajeViewModel(
                 val creados = condDef.await()
                 val unidos = userDef.await()
 
-                val misUnidosFiltrados = unidos.filter { it.estadoViaje != EstadoViaje.CANCELADO }
-                val misViajesResult = (creados + misUnidosFiltrados).distinctBy { it.id }
+                val estadosActivos = listOf(EstadoViaje.PROPUESTO, EstadoViaje.PROGRAMADO, EstadoViaje.EN_CURSO)
+                val misCreadosFiltrados = creados.filter { it.estadoViaje in estadosActivos }
+                val misUnidosFiltrados = unidos.filter { it.estadoViaje in estadosActivos }
+                val misViajesResult = (misCreadosFiltrados + misUnidosFiltrados).distinctBy { it.id }
+                
                 val otrosResult = todos.filter { v ->
                     val esConductor = v.conductor?.id == usuarioId
                     val esPasajero = v.pasajeros?.any { it.usuario?.id == usuarioId }
-                    !esConductor && !esPasajero!! && v.estadoViaje != EstadoViaje.CANCELADO && v.estadoViaje != EstadoViaje.FINALIZADO
+                    val esActivo = v.estadoViaje in estadosActivos
+                    !esConductor && !esPasajero!! && esActivo
                 }
 
                 withContext(Dispatchers.Main) {
@@ -280,11 +289,27 @@ class ViajeViewModel(
         }
     }
 
+    fun eliminarPasajero(viajeId: Long, usuarioId: Long, usuarioCif: String, onExito: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                val exito = withContext(Dispatchers.IO) { apiService.eliminarPasajero(viajeId, usuarioCif) }
+                if (exito) {
+                    obtenerPasajeros(viajeId)
+                    fetchViajesInternal(apiService, usuarioId) // ACTUALIZA EL CONTEO DE ASIENTOS
+                    onExito()
+                } else {
+                    onError("No se pudo eliminar al pasajero.")
+                }
+            } catch (e: Exception) {
+                onError("Error de conexión.")
+            }
+        }
+    }
+
     fun cancelarParticipacion(viajeId: Long, usuarioId: Long, usuarioCif: String, onExito: () -> Unit = {}, onError: (String) -> Unit = {}) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Validación: No se puede cancelar si el viaje ya inició o finalizó
                 val viajeActual = _misViajes.value.find { it.id == viajeId } ?: _viajes.value.find { it.id == viajeId }
                 if (viajeActual?.estadoViaje == EstadoViaje.EN_CURSO) {
                     onError("No puedes cancelar tu participación una vez que el viaje ha iniciado.")
@@ -293,13 +318,12 @@ class ViajeViewModel(
 
                 val exito = withContext(Dispatchers.IO) { apiService.cancelarParticipacion(viajeId, usuarioCif) }
                 if (exito) {
-                    fetchViajesInternal(apiService, usuarioId)
+                    fetchViajesInternal(apiService, usuarioId) // Sincronización inmediata al liberar asiento
                     onExito()
                 } else {
                     onError("No se pudo cancelar la participación.")
                 }
             } catch (e: Exception) {
-                Log.e("ViajeViewModel", "Error al cancelar participacion", e)
                 onError("Error de conexión.")
             } finally {
                 _isLoading.value = false

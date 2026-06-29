@@ -178,4 +178,18 @@ public class ViajeController {
             return null;
         }
     }
+
+    @PutMapping("EliminarPasajero/{viajeId}/{usuarioCif}")
+    public boolean eliminarPasajero(
+            @PathVariable Long viajeId,
+            @PathVariable String usuarioCif
+    ) {
+        try {
+            viajeServicio.quitarPasajero(viajeId, usuarioCif);
+            return true;
+        } catch (Exception e) {
+            System.out.println("Error al eliminar pasajero: " + e.getMessage());
+            return false;
+        }
+    }
 }

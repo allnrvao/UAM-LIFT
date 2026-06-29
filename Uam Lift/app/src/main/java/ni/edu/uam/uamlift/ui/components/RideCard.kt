@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import ni.edu.uam.uamlift.data.RetrofitClient
 import ni.edu.uam.uamlift.data.enums.EstadoViaje
 import ni.edu.uam.uamlift.data.models.Viaje
 import ni.edu.uam.uamlift.ui.theme.UAMColor
@@ -64,6 +65,12 @@ fun RideCard(
     val initials = (viaje.conductor?.nombre?.take(1) ?: "U") +
             (viaje.conductor?.apellido?.take(1) ?: "")
     val fotoConductor = viaje.conductor?.imagenUrl
+
+    val modelFoto = remember(fotoConductor) {
+        if (fotoConductor.isNullOrBlank()) null
+        else if (fotoConductor.startsWith("http")) fotoConductor
+        else "${RetrofitClient.BASE_URL.trimEnd('/')}/${fotoConductor.trimStart('/')}"
+    }
 
     val origenTexto = viaje.origen?.nombre ?: "Origen"
     val destinoTexto = viaje.destino?.nombre ?: "Destino"
@@ -154,9 +161,9 @@ fun RideCard(
                             .clip(CircleShape)
                             .background(lightTealBg)
                     ) {
-                        if (!fotoConductor.isNullOrEmpty()) {
+                        if (modelFoto != null) {
                             AsyncImage(
-                                model = fotoConductor,
+                                model = modelFoto,
                                 contentDescription = "Foto del conductor",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
@@ -295,7 +302,7 @@ fun RideCard(
                             if (viaje.estadoViaje != EstadoViaje.EN_CURSO) {
                                 TextButton(
                                     onClick = { onCancelarViaje(viaje.id ?: 0L) },
-                                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red),
+                                    colors = ButtonDefaults.buttonColors(contentColor = Color.Red),
                                     contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
                                     Text("Cancelar", fontSize = 11.sp)

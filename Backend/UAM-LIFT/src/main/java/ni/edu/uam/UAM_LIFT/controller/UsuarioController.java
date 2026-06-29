@@ -6,7 +6,9 @@ import ni.edu.uam.UAM_LIFT.dto.EmailVerificationRequest;
 import ni.edu.uam.UAM_LIFT.dto.EstadisticasUsuarioDTO;
 import ni.edu.uam.UAM_LIFT.models.Usuario;
 import ni.edu.uam.UAM_LIFT.services.UsuarioServicio;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/usuarios")
@@ -48,19 +50,23 @@ public class UsuarioController {
         return usuarioServicio.findByNombreUsuario(nombreUsuario);
     }
 
-    @PutMapping("/{cif}")
+    @PutMapping(
+            value = "/{cif}",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
     public boolean actualizarUsuario(
             @PathVariable String cif,
-            @RequestBody Usuario usuario) {
+            @RequestPart("usuario") Usuario usuario,
+            @RequestPart(value = "imagen", required = false) MultipartFile imagen) {
 
         Usuario usuarioExistente = usuarioServicio.findByCif(cif);
+
         usuarioExistente.setNombre(usuario.getNombre());
         usuarioExistente.setApellido(usuario.getApellido());
         usuarioExistente.setCorreo(usuario.getCorreo());
         usuarioExistente.setNombreUsuario(usuario.getNombreUsuario());
-        usuarioExistente.setImagenUrl(usuario.getImagenUrl());
 
-        return usuarioServicio.UpdateUsuario(usuarioExistente);
+        return usuarioServicio.updateUsuario(usuarioExistente, imagen);
     }
 
     @DeleteMapping("/{cif}")

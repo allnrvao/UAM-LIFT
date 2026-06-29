@@ -101,6 +101,8 @@ public class ViajeHandler extends TextWebSocketHandler {
         String ultima = ultimasUbicaciones.get(idViaje);
 
         if (ultima != null) {
+            log.info("Enviando última ubicación a {}: {}", session.getId(), ultima);
+            log.info("Latitud: {}, Longitud: {}", mapper.readTree(ultima).get("latitud"), mapper.readTree(ultima).get("longitud"));
             session.sendMessage(new TextMessage(ultima));
         }
 

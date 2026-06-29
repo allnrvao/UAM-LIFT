@@ -221,4 +221,17 @@ public class ViajeServicio implements InterfazViaje {
         return pasajeros;
     }
 
+    public boolean quitarPasajero(Long viajeId, String usuarioCif) {
+        Optional<ViajeUsuario> viajeUsuarioOpt = repoViajeUsuario.findByViajeIdAndUsuarioCif(viajeId, usuarioCif);
+        if (viajeUsuarioOpt.isPresent()) {
+            ViajeUsuario viajeUsuario = viajeUsuarioOpt.get();
+            if (viajeUsuario.getEstado() == EstadoViajeUsuario.ACEPTADO) {
+                viajeUsuario.setEstado(EstadoViajeUsuario.CANCELADO);
+                repoViajeUsuario.save(viajeUsuario);
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

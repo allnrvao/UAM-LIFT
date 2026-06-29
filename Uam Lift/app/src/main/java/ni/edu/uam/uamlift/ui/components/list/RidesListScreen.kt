@@ -38,15 +38,22 @@ fun RidesListScreen(
             val nombreConductor = viaje.conductor?.nombre ?: "Conductor UAM"
             val origen = viaje.origen?.nombre ?: "Origen"
             val destino = viaje.destino?.nombre ?: "Destino"
+            
+            // CÁLCULO REAL DE ASIENTOS LIBRES
+            val ocupados = viaje.pasajeros?.size ?: 0
+            val asientosLibres = (viaje.numeroAsientosDisponibles - ocupados).coerceAtLeast(0)
 
             AlertDialog(
                 onDismissRequest = { selectedViaje = null },
                 confirmButton = {
-                    TextButton(onClick = {
-                        viaje.id?.let { onReservarClick(it) }
-                        selectedViaje = null
-                    }) {
-                        Text("Reservar Asiento")
+                    TextButton(
+                        onClick = {
+                            viaje.id?.let { onReservarClick(it) }
+                            selectedViaje = null
+                        },
+                        enabled = asientosLibres > 0
+                    ) {
+                        Text(if (asientosLibres > 0) "Reservar Asiento" else "Viaje Lleno")
                     }
                 },
                 dismissButton = {
@@ -58,7 +65,7 @@ fun RidesListScreen(
                 text = {
                     Text(text = "Ruta: $origen -> $destino\n" +
                             "Precio: C$ ${viaje.precioPorPersona.toInt()}\n" +
-                            "Asientos disponibles: ${viaje.numeroAsientosDisponibles}")
+                            "Asientos disponibles: $asientosLibres de ${viaje.numeroAsientosDisponibles}")
                 }
             )
         }

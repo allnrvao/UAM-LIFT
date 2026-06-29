@@ -82,7 +82,8 @@ dependencies {
     implementation(libs.play.services.location)
     implementation("org.osmdroid:osmdroid-android:6.1.18")
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
-
+    implementation(libs.osmdroid.android)
+    implementation(libs.osmdroid.bonuspack)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

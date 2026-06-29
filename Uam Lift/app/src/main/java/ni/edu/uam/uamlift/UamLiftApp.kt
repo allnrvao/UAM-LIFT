@@ -193,7 +193,10 @@ fun UamLiftApp() {
 
             // ── MESSAGES ──────────────────────────────────────────────────────
             composable("messages") {
-                MessagesScreen()
+                MessagesScreen(
+                    usuarioViewModel = usuarioViewModel,
+                    viajeViewModel = viajeViewModel
+                )
             }
 
             // ── PROFILE ───────────────────────────────────────────────────────
@@ -240,6 +243,7 @@ fun UamLiftApp() {
                 ActiveRideMapScreen(
                     viajeId = viajeId,
                     viajeViewModel = viajeViewModel,
+                    usuarioViewModel = usuarioViewModel,
                     onBack = { navController.popBackStack() }
                 )
             }

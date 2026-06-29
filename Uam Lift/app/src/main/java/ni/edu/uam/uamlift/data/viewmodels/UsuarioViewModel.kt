@@ -15,6 +15,10 @@ import ni.edu.uam.uamlift.data.RetrofitClient
 import ni.edu.uam.uamlift.data.dto.EstadisticasUsuario
 import ni.edu.uam.uamlift.data.models.Usuario
 import ni.edu.uam.uamlift.sesion.ControlSesion
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
 
 class UsuarioViewModel : ViewModel() {
 
@@ -279,15 +283,33 @@ class UsuarioViewModel : ViewModel() {
                     apellido      = nuevoApellido,
                     nombreUsuario = nuevoNombreUsuario,
                     correo        = nuevoCorreo,
-                    imagenUrl     = nuevaImagenUrl ?: usuario.imagenUrl
+                    // No actualizamos imagenUrl localmente aquí, el servidor lo hará.
                 )
-                val exito = RetrofitClient.usuarioApi.actualizarUsuario(usuario.cif, usuarioActualizado)
+
+                // Preparar imagen para Multipart si existe una ruta nueva
+                val imagenPart = nuevaImagenUrl?.let { path ->
+                    val file = File(path)
+                    if (file.exists()) {
+                        val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+                        MultipartBody.Part.createFormData("imagen", file.name, requestFile)
+                    } else null
+                }
+
+                val exito = RetrofitClient.usuarioApi.actualizarUsuario(
+                    usuario.cif,
+                    usuarioActualizado,
+                    imagenPart
+                )
+
                 if (exito) {
-                    withContext(Dispatchers.Main) { usuario = usuarioActualizado }
+                    // Refrescamos los datos del servidor para obtener la nueva URL de imagen (Cloudinary/S3/Local)
+                    val usuarioServidor = RetrofitClient.usuarioApi.obtenerPorCif(usuario.cif!!)
+                    withContext(Dispatchers.Main) { usuario = usuarioServidor }
                     guardarSesionLocal(appContext)
                 }
                 withContext(Dispatchers.Main) { onResultado(exito) }
             } catch (e: Exception) {
+                Log.e("UPDATE_USER", "Error al actualizar perfil: ${e.localizedMessage}")
                 withContext(Dispatchers.Main) {
                     mensajeError = "Error al actualizar: ${e.localizedMessage}"
                     onResultado(false)

@@ -1,9 +1,9 @@
 package ni.edu.uam.uamlift.ui.screens.profile
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,13 +15,12 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +28,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
+import ni.edu.uam.uamlift.data.RetrofitClient
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.ui.components.WhyCard
 import ni.edu.uam.uamlift.ui.theme.Gray
@@ -55,11 +57,9 @@ fun ProfileScreen(
     val scrollState      = rememberScrollState()
     val context          = LocalContext.current
 
-    // Estado para manejar qué tarjeta está seleccionada en el diálogo
     var tarjetaSeleccionada by remember { mutableStateOf<WhyCardData?>(null) }
     var mostrarLogoutConfirm by remember { mutableStateOf(false) }
 
-    // Lista de datos para las descripciones detalladas de las WhyCards
     val listaWhyCards = remember {
         listOf(
             WhyCardData("💰", "Ahorra", "Comparte gastos", "Reduce tus gastos mensuales compartiendo los costos de combustible y parqueo con otros estudiantes que llevan tu misma ruta."),
@@ -69,7 +69,6 @@ fun ProfileScreen(
         )
     }
 
-    // Refrescar estadísticas cada vez que se entra al perfil
     LaunchedEffect(estudiante.id) {
         if (estudiante.id != null) {
             usuarioViewModel.cargarEstadisticas()
@@ -82,7 +81,6 @@ fun ProfileScreen(
             .background(Gray)
             .verticalScroll(scrollState)
     ) {
-        // ── TARJETA PRINCIPAL ────────────────────────────────────────────────
         Card(
             colors    = CardDefaults.cardColors(containerColor = Color.White),
             shape     = RoundedCornerShape(24.dp),
@@ -114,14 +112,48 @@ fun ProfileScreen(
                             modifier          = Modifier.padding(4.dp).clip(CircleShape).background(Color(0xFFF1F5F9)),
                             contentAlignment  = Alignment.Center
                         ) {
-                            if (!estudiante.imagenUrl.isNullOrEmpty()) {
-                                val model = if (estudiante.imagenUrl!!.startsWith("/"))
-                                    File(estudiante.imagenUrl!!) else estudiante.imagenUrl
+                            val model = remember(estudiante.imagenUrl) {
+                                val path = estudiante.imagenUrl
+                                if (path.isNullOrBlank()) {
+                                    Log.d("ProfileImage", "URL vacía")
+                                    null
+                                } else {
+                                    val finalUrl: Any = when {
+                                        path.startsWith("http") -> path
+                                        path.startsWith("C:") || path.contains("uam_photos") -> File(path)
+                                        else -> {
+                                            // Si viene del back (ej: "/uploads/foto.jpg") lo concatenamos con la BASE_URL
+                                            val base = RetrofitClient.BASE_URL.trimEnd('/')
+                                            val relative = path.trimStart('/')
+                                            "$base/$relative"
+                                        }
+                                    }
+                                    Log.d("ProfileImage", "URL generada: $finalUrl")
+                                    finalUrl
+                                }
+                            }
+
+                            if (model != null) {
                                 AsyncImage(
-                                    model            = model,
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(model)
+                                        .crossfade(true)
+                                        .diskCachePolicy(CachePolicy.ENABLED)
+                                        .memoryCachePolicy(CachePolicy.ENABLED)
+                                        .listener(
+                                            onError = { _, result ->
+                                                Log.e("ProfileImage", "Error Coil: ${result.throwable.message}")
+                                            },
+                                            onSuccess = { _, _ ->
+                                                Log.d("ProfileImage", "Imagen cargada con éxito")
+                                            }
+                                        )
+                                        .build(),
                                     contentDescription = "Foto de perfil",
                                     modifier         = Modifier.fillMaxSize(),
-                                    contentScale     = ContentScale.Crop
+                                    contentScale     = ContentScale.Crop,
+                                    error = rememberVectorPainter(Icons.Default.Person),
+                                    placeholder = rememberVectorPainter(Icons.Default.Person)
                                 )
                             } else {
                                 Icon(
@@ -164,7 +196,6 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ── MÉTRICAS EN TIEMPO REAL ──────────────────────────────────────────
         if (cargandoStats) {
             Box(
                 modifier         = Modifier.fillMaxWidth().height(80.dp),
@@ -177,174 +208,81 @@ fun ProfileScreen(
                 modifier              = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                StatItem(
-                    label = "Viajes",
-                    value = "${estadisticas.totalViajes}",
-                    icon  = Icons.AutoMirrored.Filled.Send
-                )
-                StatItem(
-                    label = "Km",
-                    value = String.format("%.1f", estadisticas.kilometrosTotales),
-                    icon  = Icons.Default.Route
-                )
-                StatItem(
-                    label = "CO₂ kg",
-                    value = String.format("%.1f", estadisticas.co2Ahorrado),
-                    icon  = Icons.Default.Eco
-                )
+                StatItem(label = "Viajes", value = "${estadisticas.totalViajes}", icon  = Icons.AutoMirrored.Filled.Send)
+                StatItem(label = "Km", value = String.format("%.1f", estadisticas.kilometrosTotales), icon  = Icons.Default.Route)
+                StatItem(label = "CO₂ kg", value = String.format("%.1f", estadisticas.co2Ahorrado), icon  = Icons.Default.Eco)
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ── BADGE VERIFICADO ─────────────────────────────────────────────────
-        val esDominioUAM = estudiante.correo?.run {
-            endsWith("@uamv.edu.ni") || endsWith("@uam.edu.ni")
-        } ?: false
+        val esDominioUAM = estudiante.correo?.run { endsWith("@uamv.edu.ni") || endsWith("@uam.edu.ni") } ?: false
         if (estudiante.correoVerificado || esDominioUAM) {
             VerificationBadge()
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // ── MENÚ DE OPCIONES ─────────────────────────────────────────────────
         Card(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             colors   = CardDefaults.cardColors(containerColor = Color.White),
             shape    = RoundedCornerShape(16.dp)
         ) {
             Column {
-                ProfileMenuItem("Mi Vehículo", "Gestionar mis autos", Icons.Default.DirectionsCar) {
-                    navController.navigate("my_cars")
-                }
+                ProfileMenuItem("Mi Vehículo", "Gestionar mis autos", Icons.Default.DirectionsCar) { navController.navigate("my_cars") }
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Gray)
-
-                ProfileMenuItem("Historial de Viajes", "Ver viajes pasados", Icons.Default.History) {
-                    navController.navigate("my_rides")
-                }
+                ProfileMenuItem("Historial de Viajes", "Ver viajes pasados", Icons.Default.History) { navController.navigate("my_rides") }
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Gray)
-
-                ProfileMenuItem(
-                    title     = "Cerrar Sesión",
-                    icon      = Icons.AutoMirrored.Filled.ExitToApp,
-                    iconTint  = Color.Red,
-                    showArrow = false
-                ) { mostrarLogoutConfirm = true }
+                ProfileMenuItem("Cerrar Sesión", icon = Icons.AutoMirrored.Filled.ExitToApp, iconTint = Color.Red, showArrow = false) { mostrarLogoutConfirm = true }
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-
-        // ── ¿POR QUÉ UAM LIFT? ───────────────────────────────────────────────
-        Text(
-            text       = "¿Por qué UAM LIFT?",
-            style      = MaterialTheme.typography.titleMedium,
-            modifier   = Modifier.padding(horizontal = 16.dp),
-            color      = Color.Black,
-            fontWeight = FontWeight.Bold
-        )
+        Text(text = "¿Por qué UAM LIFT?", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 16.dp), color = Color.Black, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(12.dp))
-
-        Column(
-            modifier            = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                WhyCard("💰", "Ahorra", "Comparte gastos", Modifier.weight(1f)) {
-                    tarjetaSeleccionada = listaWhyCards[0]
-                }
-                WhyCard("🌱", "Eco", "Reduce emisiones", Modifier.weight(1f)) {
-                    tarjetaSeleccionada = listaWhyCards[1]
-                }
+                WhyCard("💰", "Ahorra", "Comparte gastos", Modifier.weight(1f)) { tarjetaSeleccionada = listaWhyCards[0] }
+                WhyCard("🌱", "Eco", "Reduce emisiones", Modifier.weight(1f)) { tarjetaSeleccionada = listaWhyCards[1] }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                WhyCard("🤝", "Social", "Nuevos amigos", Modifier.weight(1f)) {
-                    tarjetaSeleccionada = listaWhyCards[2]
-                }
-                WhyCard("🔒", "Seguro", "Solo comunidad UAM", Modifier.weight(1f)) {
-                    tarjetaSeleccionada = listaWhyCards[3]
-                }
+                WhyCard("🤝", "Social", "Nuevos amigos", Modifier.weight(1f)) { tarjetaSeleccionada = listaWhyCards[2] }
+                WhyCard("🔒", "Seguro", "Solo comunidad UAM", Modifier.weight(1f)) { tarjetaSeleccionada = listaWhyCards[3] }
             }
         }
     }
 
-    // ── DIÁLOGOS ─────────────────────────────────────────────────────────────
-
-    // Diálogo dinámico de Impacto (WhyCards) con fondo Blanco
     tarjetaSeleccionada?.let { tarjeta ->
         AlertDialog(
             onDismissRequest = { tarjetaSeleccionada = null },
-            containerColor = Color.White, // Fondo Blanco
-            title   = {
-                Text(
-                    text = "${tarjeta.emoji} ${tarjeta.titulo}",
-                    color = UAMColor,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleLarge // Título un poco más grande y jerárquico
-                )
-            },
-            text    = {
-                Text(
-                    text = tarjeta.descripcionDetallada,
-                    color = Color(0xFF334155),
-                    style = MaterialTheme.typography.bodyLarge,
-                    lineHeight = 22.sp,
-                    fontWeight = FontWeight.Normal
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = { tarjetaSeleccionada = null },
-                    colors = ButtonDefaults.textButtonColors(contentColor = UAMColor)
-                ) {
-                    Text(
-                        text = "Entendido",
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
+            containerColor = Color.White,
+            title   = { Text(text = "${tarjeta.emoji} ${tarjeta.titulo}", color = UAMColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) },
+            text    = { Text(text = tarjeta.descripcionDetallada, color = Color(0xFF334155), style = MaterialTheme.typography.bodyLarge, lineHeight = 22.sp, fontWeight = FontWeight.Normal) },
+            confirmButton = { TextButton(onClick = { tarjetaSeleccionada = null }, colors = ButtonDefaults.textButtonColors(contentColor = UAMColor)) { Text(text = "Entendido", fontWeight = FontWeight.SemiBold) } }
         )
     }
 
-    // Diálogo de confirmación de salida con fondo Blanco
     if (mostrarLogoutConfirm) {
         AlertDialog(
             onDismissRequest = { mostrarLogoutConfirm = false },
-            containerColor = Color.White, // Fondo Blanco asignado
+            containerColor = Color.White,
             title   = { Text("Cerrar Sesión") },
             text    = { Text("¿Estás seguro de que deseas salir de tu cuenta?") },
             confirmButton = {
-                Button(
-                    onClick = {
+                Button(onClick = {
                         mostrarLogoutConfirm = false
-                        usuarioViewModel.cerrarSesion(context) {
-                            navController.navigate("login") {
-                                popUpTo(0) { inclusive = true }
-                            }
-                        }
+                        usuarioViewModel.cerrarSesion(context) { navController.navigate("login") { popUpTo(0) { inclusive = true } } }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                 ) { Text("Salir", color = Color.White) }
             },
-            dismissButton = {
-                TextButton(
-                    onClick = { mostrarLogoutConfirm = false },
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Gray)
-                ) { Text("Cancelar") }
-            }
+            dismissButton = { TextButton(onClick = { mostrarLogoutConfirm = false }, colors = ButtonDefaults.textButtonColors(contentColor = Color.Gray)) { Text("Cancelar") } }
         )
     }
 }
 
-// ── Componentes auxiliares ───────────────────────────────────────────────────
-
 @Composable
 fun VerificationBadge() {
-    Surface(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        color    = Color(0xFFECFDF5),
-        shape    = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.2f))
-    ) {
+    Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), color = Color(0xFFECFDF5), shape = RoundedCornerShape(12.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.2f))) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.CheckCircle, "Verificado", tint = Color(0xFF10B981))
             Spacer(modifier = Modifier.width(12.dp))
@@ -357,43 +295,21 @@ fun VerificationBadge() {
 }
 
 @Composable
-fun ProfileMenuItem(
-    title    : String,
-    subtitle : String = "",
-    icon     : ImageVector,
-    iconTint : Color  = UAMColor,
-    showArrow: Boolean = true,
-    onClick  : () -> Unit
-) {
-    Row(
-        modifier          = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier         = Modifier.size(40.dp).background(iconTint.copy(alpha = 0.1f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, null, tint = iconTint, modifier = Modifier.size(20.dp))
-        }
+fun ProfileMenuItem(title: String, subtitle: String = "", icon: ImageVector, iconTint: Color = UAMColor, showArrow: Boolean = true, onClick: () -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(modifier = Modifier.size(40.dp).background(iconTint.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) { Icon(icon, null, tint = iconTint, modifier = Modifier.size(20.dp)) }
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(title, fontWeight = FontWeight.SemiBold, color = Color.Black)
-            if (subtitle.isNotEmpty()) {
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-            }
+            if (subtitle.isNotEmpty()) { Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.Gray) }
         }
-        if (showArrow) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.LightGray)
-        }
+        if (showArrow) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.LightGray) }
     }
 }
 
 @Composable
 fun StatItem(label: String, value: String, icon: ImageVector) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier            = Modifier.width(90.dp)
-    ) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(90.dp)) {
         Icon(icon, null, tint = UAMColor, modifier = Modifier.size(24.dp))
         Text(value, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color.Black)
         Text(label, fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
