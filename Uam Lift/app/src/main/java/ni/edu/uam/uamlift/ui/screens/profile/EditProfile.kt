@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,18 +46,19 @@ fun EditProfileScreen(
     val context = LocalContext.current
     val usuarioActual = usuarioViewModel.usuario
 
-    var nombreActual by remember { mutableStateOf(usuarioActual.nombre ?: "") }
-    var apellidoActual by remember { mutableStateOf(usuarioActual.apellido ?: "") }
-    var nombreUsuarioActual by remember { mutableStateOf(usuarioActual.nombreUsuario ?: "") }
-    var correoActual by remember { mutableStateOf(usuarioActual.correo ?: "") }
+    // Usamos rememberSaveable para que los cambios no se pierdan al rotar el teléfono
+    var nombreActual by rememberSaveable { mutableStateOf(usuarioActual.nombre ?: "") }
+    var apellidoActual by rememberSaveable { mutableStateOf(usuarioActual.apellido ?: "") }
+    var nombreUsuarioActual by rememberSaveable { mutableStateOf(usuarioActual.nombreUsuario ?: "") }
+    var correoActual by rememberSaveable { mutableStateOf(usuarioActual.correo ?: "") }
 
-    var nombreUsuarioUnico by remember { mutableStateOf(true) }
-    var correoUnico by remember { mutableStateOf(true) }
-    var verificandoUnicidad by remember { mutableStateOf(false) }
+    var nombreUsuarioUnico by rememberSaveable { mutableStateOf(true) }
+    var correoUnico by rememberSaveable { mutableStateOf(true) }
+    var verificandoUnicidad by rememberSaveable { mutableStateOf(false) }
 
-    var mostrarDialogoConfirmacion by remember { mutableStateOf(false) }
-    var mostrarDialogoExito by remember { mutableStateOf(false) }
-    var imagenUri by remember { mutableStateOf<Uri?>(null) }
+    var mostrarDialogoConfirmacion by rememberSaveable { mutableStateOf(false) }
+    var mostrarDialogoExito by rememberSaveable { mutableStateOf(false) }
+    var imagenUri by rememberSaveable { mutableStateOf<Uri?>(null) }
 
     val errorUsuarioTexto = when {
         nombreUsuarioActual.length < 4 -> "Mínimo 4 caracteres"

@@ -16,8 +16,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,23 +45,24 @@ fun CreateAccountScreen(
     val context = LocalContext.current
     val sesionGoogle: SesionGoogle = viewModel()
 
-    var confirmPassword by remember { mutableStateOf("") }
-    var showPassword by remember { mutableStateOf(false) }
-    var showConfirmPassword by remember { mutableStateOf(false) }
-    var mostrarDialogo by remember { mutableStateOf(false) }
+    // Usamos rememberSaveable para persistir datos ante rotaciones
+    var confirmPassword by rememberSaveable { mutableStateOf("") }
+    var showPassword by rememberSaveable { mutableStateOf(false) }
+    var showConfirmPassword by rememberSaveable { mutableStateOf(false) }
+    var mostrarDialogo by rememberSaveable { mutableStateOf(false) }
 
     // Estados para alertas de correo duplicado
-    var mostrarAlertaExistente by remember { mutableStateOf(false) }
-    var mensajeAlerta by remember { mutableStateOf("") }
+    var mostrarAlertaExistente by rememberSaveable { mutableStateOf(false) }
+    var mensajeAlerta by rememberSaveable { mutableStateOf("") }
 
     // Estados para manejar errores de validación local
-    var errorNombre by remember { mutableStateOf<String?>(null) }
-    var errorApellido by remember { mutableStateOf<String?>(null) }
-    var errorUsuario by remember { mutableStateOf<String?>(null) }
-    var errorCorreo by remember { mutableStateOf<String?>(null) }
-    var errorCif by remember { mutableStateOf<String?>(null) }
-    var errorContrasenia by remember { mutableStateOf<String?>(null) }
-    var errorConfirmacion by remember { mutableStateOf<String?>(null) }
+    var errorNombre by rememberSaveable { mutableStateOf<String?>(null) }
+    var errorApellido by rememberSaveable { mutableStateOf<String?>(null) }
+    var errorUsuario by rememberSaveable { mutableStateOf<String?>(null) }
+    var errorCorreo by rememberSaveable { mutableStateOf<String?>(null) }
+    var errorCif by rememberSaveable { mutableStateOf<String?>(null) }
+    var errorContrasenia by rememberSaveable { mutableStateOf<String?>(null) }
+    var errorConfirmacion by rememberSaveable { mutableStateOf<String?>(null) }
 
     val passwordActual = usuarioViewModel.usuario.contrasenia ?: ""
     val tieneLongitud = passwordActual.length >= 8

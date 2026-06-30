@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,18 +46,19 @@ fun LogIn(
     usuarioViewModel: UsuarioViewModel,
     onLogin: () -> Unit
 ){
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var showPassword by remember { mutableStateOf(false) }
+    // Usamos rememberSaveable para que los datos no se borren al girar el teléfono
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var showPassword by rememberSaveable { mutableStateOf(false) }
 
-    var errorMessage by remember { mutableStateOf("") }
-    var showError by remember { mutableStateOf(false) }
+    var errorMessage by rememberSaveable { mutableStateOf("") }
+    var showError by rememberSaveable { mutableStateOf(false) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val sesionGoogle: SesionGoogle = viewModel()
 
-    var googleVerificado by remember { mutableStateOf(false) }
+    var googleVerificado by rememberSaveable { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
     fun manejarLoginGoogle() {

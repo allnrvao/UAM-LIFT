@@ -80,6 +80,7 @@ fun ActiveRideMapScreen(
     val viajesOtros by viajeViewModel.viajesOtros.collectAsState()
     val pasajeros by viajeViewModel.pasajerosViaje.collectAsState()
     val ubicacion by ubicacionViewModel.ubicacion.collectAsState()
+    val isLoadingRides by viajeViewModel.isLoading.collectAsState()
 
     val roadManager: RoadManager = remember { OSRMRoadManager(context, "UamLift") }
 
@@ -94,9 +95,10 @@ fun ActiveRideMapScreen(
         if (total - ocupados < 0) 0 else total - ocupados
     }
 
-    var cardExpandida by remember { mutableStateOf(false) }
+    // Usamos rememberSaveable para que el estado sobreviva a la rotación
+    var cardExpandida by rememberSaveable { mutableStateOf(false) }
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
-    var hasLocationPermission by remember {
+    var hasLocationPermission by rememberSaveable {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         )
@@ -112,9 +114,31 @@ fun ActiveRideMapScreen(
                 permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
     }
 
-    LaunchedEffect(viajeId) {
-        ubicacionViewModel.conectar(viajeId)
-        viajeViewModel.obtenerPasajeros(viajeId)
+    LaunchedEffect(viajeId, usuarioActual.id) {
+        if (usuarioActual.id != null) {
+            ubicacionViewModel.conectar(viajeId)
+            viajeViewModel.obtenerPasajeros(viajeId)
+            viajeViewModel.cargarViajesDesdeBackend(usuarioActual.id)
+        }
+    }
+
+    // Monitorear expulsión en tiempo real a través del socket de ubicación
+    LaunchedEffect(ubicacion) {
+        if (ubicacion?.tipo == "ELIMINADO") {
+            viajeViewModel.obtenerPasajeros(viajeId)
+            usuarioActual.id?.let { viajeViewModel.cargarViajesDesdeBackend(it) }
+        }
+    }
+
+    // Lógica para sacar al usuario si ya no es parte del viaje
+    LaunchedEffect(misViajes, isLoadingRides) {
+        val myId = usuarioActual.id ?: return@LaunchedEffect
+        if (!isLoadingRides && viaje != null && viaje.conductor?.id != myId) {
+            val sigueUnido = misViajes.any { it.id == viajeId }
+            if (!sigueUnido) {
+                onBack()
+            }
+        }
     }
 
     LaunchedEffect(viaje, hasLocationPermission) {
@@ -327,15 +351,23 @@ private fun dibujarRuta(mapView: MapView, viaje: Viaje, roadManager: RoadManager
 
 private fun actualizarPosicionCarro(mapView: MapView, lat: Double, lng: Double, context: Context) {
     val existingMarker = mapView.overlays.filterIsInstance<Marker>().find { it.title == "Carro" }
-    if (existingMarker != null) existingMarker.position = GeoPoint(lat, lng)
-    else {
+    val point = GeoPoint(lat, lng)
+    if (existingMarker != null) {
+        existingMarker.position = point
+    } else {
         val marker = Marker(mapView).apply {
-            position = GeoPoint(lat, lng); setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-            val drawable = ContextCompat.getDrawable(context, android.R.drawable.ic_menu_compass)
-            if (drawable != null) icon = drawable
+            position = point
+            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+            // Cambiado a ic_menu_mylocation y color ROJO para máxima visibilidad
+            val drawable = ContextCompat.getDrawable(context, android.R.drawable.ic_menu_mylocation)?.mutate()
+            drawable?.setTint(AndroidColor.RED)
+            icon = drawable
             title = "Carro"
+            setInfoWindow(null)
         }
         mapView.overlays.add(marker)
+        // La primera vez que aparece, centramos el mapa en la ubicación
+        mapView.controller.animateTo(point)
     }
     mapView.invalidate()
 }

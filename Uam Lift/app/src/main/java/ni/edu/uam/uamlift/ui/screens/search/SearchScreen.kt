@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,10 +32,12 @@ fun SearchScreen(
     usuarioViewModel: UsuarioViewModel
 ) {
     val chips = listOf("Todos", "Mañana", "Tarde", "Económicos")
-    var activeChip by remember { mutableStateOf("Todos") }
+    // Usamos rememberSaveable para que el chip seleccionado no se pierda al rotar
+    var activeChip by rememberSaveable { mutableStateOf("Todos") }
     val usuario = usuarioViewModel.usuario
 
-    var searchQuery by remember { mutableStateOf("") }
+    // Usamos rememberSaveable para que la búsqueda no se borre al rotar
+    var searchQuery by rememberSaveable { mutableStateOf("") }
 
     val viajesOtros by viajeViewModel.viajesOtros.collectAsState()
     val cargando by viajeViewModel.isLoading.collectAsState()

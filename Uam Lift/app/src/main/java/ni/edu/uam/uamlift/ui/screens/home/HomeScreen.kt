@@ -131,7 +131,8 @@ fun HomeScreen(
         }
     }
 
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    // Actualizamos a rememberSaveable para que la pestaña no se reinicie al rotar
+    var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
     val tabs = listOf("Explorar", "Mis Viajes")
     var selectedViaje by remember { mutableStateOf<Viaje?>(null) }
 

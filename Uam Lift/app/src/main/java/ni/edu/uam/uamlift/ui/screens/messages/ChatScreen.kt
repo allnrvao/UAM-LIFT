@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,7 +53,7 @@ fun ChatScreen(
     viajeViewModel: ViajeViewModel = viewModel(factory = AppViewModelFactory())
 ) {
     val messagesList by viewModel.mensajesUi.collectAsState()
-    var textState by remember { mutableStateOf("") }
+    var textState by rememberSaveable { mutableStateOf("") }
     val listState = rememberLazyListState()
     val chatBgColor = Color(0xFFF8FAFC)
     val scope = rememberCoroutineScope()
@@ -80,7 +81,7 @@ fun ChatScreen(
         }
     }
 
-    var mostrarPasajeros by remember { mutableStateOf(false) }
+    var mostrarPasajeros by rememberSaveable { mutableStateOf(false) }
 
     if (mostrarPasajeros) {
         PassengersDialog(

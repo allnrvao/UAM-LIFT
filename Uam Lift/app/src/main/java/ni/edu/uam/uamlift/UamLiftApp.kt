@@ -6,6 +6,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -36,7 +37,8 @@ import ni.edu.uam.uamlift.ui.screens.search.SearchScreen
 @Composable
 fun UamLiftApp() {
 
-    var currentTab by remember { mutableStateOf("home") }
+    // Usamos rememberSaveable para que la pestaña actual se mantenga al rotar el teléfono
+    var currentTab by rememberSaveable { mutableStateOf("home") }
 
     val navController = rememberNavController()
     val scope = rememberCoroutineScope()

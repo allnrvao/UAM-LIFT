@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -86,32 +87,33 @@ fun CreateRideScreen(
     val session = remember { ControlSesion(context) }
     val userCif by session.obtenerCif.collectAsState(initial = "")
 
-    var step by remember { mutableIntStateOf(1) }
-    var showSuccessDialog by remember { mutableStateOf(false) }
-    var isGoingToUam by remember { mutableStateOf(false) }
+    // Estados persistentes ante rotación
+    var step by rememberSaveable { mutableIntStateOf(1) }
+    var showSuccessDialog by rememberSaveable { mutableStateOf(false) }
+    var isGoingToUam by rememberSaveable { mutableStateOf(false) }
 
-    var selectedLat by remember { mutableStateOf<Double?>(null) }
-    var selectedLng by remember { mutableStateOf<Double?>(null) }
-    var nombreLugarConfirmado by remember { mutableStateOf<String?>(null) }
+    var selectedLat by rememberSaveable { mutableStateOf<Double?>(null) }
+    var selectedLng by rememberSaveable { mutableStateOf<Double?>(null) }
+    var nombreLugarConfirmado by rememberSaveable { mutableStateOf<String?>(null) }
 
     val sdfDate = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US) }
     val sdfTime = remember { SimpleDateFormat("HH:mm", Locale.US) }
     val sdfDateTime = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US) }
 
     val calendarInitial = remember { Calendar.getInstance() }
-    var date by remember { mutableStateOf(sdfDate.format(calendarInitial.time)) }
-    var departureTime by remember {
+    var date by rememberSaveable { mutableStateOf(sdfDate.format(calendarInitial.time)) }
+    var departureTime by rememberSaveable {
         val cal = Calendar.getInstance().apply { add(Calendar.MINUTE, 5) }
         mutableStateOf(sdfTime.format(cal.time))
     }
-    var arrivalTime by remember {
+    var arrivalTime by rememberSaveable {
         val cal = Calendar.getInstance().apply { add(Calendar.MINUTE, 40) }
         mutableStateOf(sdfTime.format(cal.time))
     }
 
     var selectedCar by remember { mutableStateOf<Carro?>(null) }
-    var seats by remember { mutableIntStateOf(1) }
-    var price by remember { mutableStateOf("") }
+    var seats by rememberSaveable { mutableIntStateOf(1) }
+    var price by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(carroViewModel.listaCarros) {
         if (selectedCar == null && carroViewModel.listaCarros.isNotEmpty()) {
@@ -159,14 +161,15 @@ fun CreateRideScreen(
                     isToUam = isGoingToUam,
                     onToggleDirection = {
                         isGoingToUam = !isGoingToUam
-                        selectedLat = null; selectedLng = null; nombreLugarConfirmado = null
+                        // Al cambiar de dirección no borramos las coordenadas para no perder el avance
                     },
                     nombreConfirmado = nombreLugarConfirmado,
                     onNombreConfirmado = { name ->
                         nombreLugarConfirmado = name
+                        // Si no hay coordenadas, inicializar con UAM para que el mapa no empiece en el mar
                         if (selectedLat == null) {
-                            selectedLat = destinoViewModel.destinoDefecto?.latitud
-                            selectedLng = destinoViewModel.destinoDefecto?.longitud
+                            selectedLat = 12.1126
+                            selectedLng = -86.2435
                         }
                     },
                     selLat = selectedLat, selLng = selectedLng,
@@ -197,7 +200,6 @@ fun CreateRideScreen(
 
                         scope.launch {
                             try {
-                                // 1. Asegurar objeto UAM (respaldo si la API falló al cargar)
                                 val uam = destinoViewModel.destinoDefecto ?: Destino(
                                     nombre = "UAM",
                                     latitud = 12.1126,
@@ -205,7 +207,6 @@ fun CreateRideScreen(
                                     universidad = true
                                 )
 
-                                // 2. Crear el objeto del lugar seleccionado por el usuario
                                 val lugarUsuarioBase = Destino(
                                     nombre = nombreLugarConfirmado ?: "Lugar",
                                     latitud = selectedLat,
@@ -213,18 +214,15 @@ fun CreateRideScreen(
                                     universidad = false
                                 )
 
-                                // 3. Intentar agregar el destino a la BD
                                 val lugarUsuarioRegistrado = destinoViewModel.agregarDestino(lugarUsuarioBase)
                                 val lugarUsuarioFinal = lugarUsuarioRegistrado ?: lugarUsuarioBase
 
-                                // 4. Determinar quién es origen y quién destino
                                 val (origenFinal, destinoFinal) = if (isGoingToUam) {
                                     lugarUsuarioFinal to uam
                                 } else {
                                     uam to lugarUsuarioFinal
                                 }
 
-                                // 5. Publicar el viaje
                                 viajeViewModel.publicarViaje(
                                     usuarioId = userId,
                                     conductorCif = userCif!!,
@@ -264,8 +262,8 @@ fun Step1LocationFlow(
     destinoDefecto: Destino?,
     onContinue: () -> Unit
 ) {
-    var customName by remember { mutableStateOf("") }
-    var isCustomMode by remember { mutableStateOf(false) }
+    var customName by rememberSaveable { mutableStateOf("") }
+    var isCustomMode by rememberSaveable { mutableStateOf(false) }
     val options = DepartamentosPacifico.values().map { it.name }
 
     Column(
@@ -311,17 +309,22 @@ fun Step1LocationFlow(
                         Text("Lugar seleccionado", fontSize = 11.sp, color = Color.Gray)
                         Text(nombreConfirmado, fontWeight = FontWeight.Bold, color = Color.DarkGray, fontSize = 16.sp)
                     }
-                    TextButton(onClick = { onToggleDirection() }) { Text("Cambiar", color = UAMColor, fontWeight = FontWeight.Bold) }
+                    // Botón para resetear SOLO el nombre, para que pueda elegir otro si se equivocó
+                    TextButton(onClick = { onNombreConfirmado("") }) { Text("Cambiar", color = UAMColor, fontWeight = FontWeight.Bold) }
                 }
 
                 Text("2. Marca la ubicación exacta en el mapa:", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color.DarkGray)
 
                 Box(modifier = Modifier.fillMaxWidth().height(300.dp).clip(RoundedCornerShape(20.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(20.dp)).background(Color.White)) {
+                    // Lógica de coordenadas más robusta para evitar el "punto fijo" al rotar
+                    val uamLat = destinoDefecto?.latitud ?: 12.1126
+                    val uamLng = destinoDefecto?.longitud ?: -86.2435
+                    
                     MapLibreView(
-                        originLat = if (isToUam) (selLat ?: destinoDefecto?.latitud ?: 12.1126) else (destinoDefecto?.latitud ?: 12.1126),
-                        originLng = if (isToUam) (selLng ?: destinoDefecto?.longitud ?: -86.2435) else (destinoDefecto?.longitud ?: -86.2435),
-                        destLat = if (isToUam) (destinoDefecto?.latitud ?: 12.1126) else (selLat ?: destinoDefecto?.latitud ?: 12.1126),
-                        destLng = if (isToUam) (destinoDefecto?.longitud ?: -86.2435) else (selLng ?: destinoDefecto?.longitud ?: -86.2435),
+                        originLat = if (isToUam) (selLat ?: uamLat) else uamLat,
+                        originLng = if (isToUam) (selLng ?: uamLng) else uamLng,
+                        destLat = if (isToUam) uamLat else (selLat ?: uamLat),
+                        destLng = if (isToUam) uamLng else (selLng ?: uamLng),
                         isSelectionEnabled = true,
                         onLocationSelected = onLocationSelected,
                         modifier = Modifier.fillMaxSize()
@@ -329,7 +332,7 @@ fun Step1LocationFlow(
 
                     Column(modifier = Modifier.align(Alignment.TopStart).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         LocationBadge(label = "Tu Punto", name = nombreConfirmado, isHighlight = selLat == null)
-                        LocationBadge(label = "Punto Defecto", name = destinoDefecto?.nombre ?: "UAM", isHighlight = false)
+                        LocationBadge(label = "UAM", name = "Punto Fijo", isHighlight = false)
                     }
                 }
 
@@ -343,6 +346,7 @@ fun Step1LocationFlow(
     }
 }
 
+// ... (El resto de los componentes como SelectableLocationItem, HeaderSteps, etc. se mantienen igual)
 @Composable
 fun SelectableLocationItem(text: String, isSelected: Boolean, onClick: () -> Unit) {
     Surface(
@@ -407,11 +411,11 @@ fun VehicleRequiredPlaceholder(onNavigate: () -> Unit) {
 }
 
 @Composable
-fun LocationBadge(label: String, name: String, isHighlight: Boolean) {
+fun LocationBadge(label: String, name: String?, isHighlight: Boolean) {
     Card(shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)), elevation = CardDefaults.cardElevation(2.dp)) {
         Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("$label: ", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = UAMColor)
-            Text(name, fontSize = 11.sp, color = if (isHighlight) Color.Red else Color.DarkGray)
+            Text(name ?: "Seleccionando...", fontSize = 11.sp, color = if (isHighlight) Color.Red else Color.DarkGray)
         }
     }
 }

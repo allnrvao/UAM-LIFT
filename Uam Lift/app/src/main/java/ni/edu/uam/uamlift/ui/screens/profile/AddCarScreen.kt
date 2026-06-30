@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,10 +35,11 @@ fun AddCarScreen(
     usuarioViewModel: UsuarioViewModel,
     carroViewModel: CarroViewModel = viewModel()
 ) {
-    var placa by remember { mutableStateOf("") }
-    var marca by remember { mutableStateOf("") }
-    var modelo by remember { mutableStateOf("") }
-    var colorSeleccionado by remember { mutableStateOf("Blanco") }
+    // Usamos rememberSaveable para que los datos sobrevivan a la rotación de pantalla
+    var placa by rememberSaveable { mutableStateOf("") }
+    var marca by rememberSaveable { mutableStateOf("") }
+    var modelo by rememberSaveable { mutableStateOf("") }
+    var colorSeleccionado by rememberSaveable { mutableStateOf("Blanco") }
 
     val marcas = listOf("Toyota", "Nissan", "Hyundai", "Kia", "Honda", "Suzuki", "Mazda", "Chevrolet", "Ford", "Mitsubishi")
     val coloresMap = mapOf(
@@ -50,10 +52,10 @@ fun AddCarScreen(
         "Vino" to Color(0xFF800000)
     )
 
-    var expandidoMarca by remember { mutableStateOf(false) }
-    var mostrarConfirmacion by remember { mutableStateOf(false) }
-    var mostrarExito by remember { mutableStateOf(false) }
-    var errorPlaca by remember { mutableStateOf<String?>(null) }
+    var expandidoMarca by rememberSaveable { mutableStateOf(false) }
+    var mostrarConfirmacion by rememberSaveable { mutableStateOf(false) }
+    var mostrarExito by rememberSaveable { mutableStateOf(false) }
+    var errorPlaca by rememberSaveable { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {

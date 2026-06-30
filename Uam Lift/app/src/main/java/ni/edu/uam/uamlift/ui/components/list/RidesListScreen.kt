@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -18,7 +19,12 @@ fun RidesListScreen(
     usuarioIdActual: Long,
     onReservarClick: (Long) -> Unit
 ) {
-    var selectedViaje by remember { mutableStateOf<Viaje?>(null) }
+    // Usamos el ID para que sea fácil de guardar con rememberSaveable
+    var selectedViajeId by rememberSaveable { mutableStateOf<Long?>(null) }
+    
+    val selectedViaje = remember(selectedViajeId, viajesList) {
+        viajesList.find { it.id == selectedViajeId }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn {
@@ -39,17 +45,16 @@ fun RidesListScreen(
             val origen = viaje.origen?.nombre ?: "Origen"
             val destino = viaje.destino?.nombre ?: "Destino"
             
-            // CÁLCULO REAL DE ASIENTOS LIBRES
             val ocupados = viaje.pasajeros?.size ?: 0
             val asientosLibres = (viaje.numeroAsientosDisponibles - ocupados).coerceAtLeast(0)
 
             AlertDialog(
-                onDismissRequest = { selectedViaje = null },
+                onDismissRequest = { selectedViajeId = null },
                 confirmButton = {
                     TextButton(
                         onClick = {
                             viaje.id?.let { onReservarClick(it) }
-                            selectedViaje = null
+                            selectedViajeId = null
                         },
                         enabled = asientosLibres > 0
                     ) {
@@ -57,7 +62,7 @@ fun RidesListScreen(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { selectedViaje = null }) {
+                    TextButton(onClick = { selectedViajeId = null }) {
                         Text("Cancelar")
                     }
                 },

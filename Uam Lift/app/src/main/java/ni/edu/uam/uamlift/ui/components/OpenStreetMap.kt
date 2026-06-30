@@ -21,9 +21,9 @@ import org.osmdroid.views.overlay.Polyline
 
 /**
  * Componente de mapa OSM con:
- * - Desplazamiento fluido mejorado (scroll nativo sin interferencia del padre)
+ * - Desplazamiento fluido mejorado
  * - Soporte para selección de ubicación
- * - Dibuja ruta si se proveen origen y destino
+ * - Dibuja ruta y ubicación actual del conductor
  */
 @Composable
 fun MapLibreView(
@@ -32,6 +32,8 @@ fun MapLibreView(
     originLng: Double? = null,
     destLat: Double? = null,
     destLng: Double? = null,
+    currentLat: Double? = null,
+    currentLng: Double? = null,
     isSelectionEnabled: Boolean = false,
     isGesturesEnabled: Boolean = true,
     onLocationSelected: (Double, Double) -> Unit = { _, _ -> }
@@ -54,19 +56,16 @@ fun MapLibreView(
         factory = { ctx ->
             MapView(ctx).apply {
                 setTileSource(TileSourceFactory.MAPNIK)
-                // Habilitar multi-touch (pinch-to-zoom) siempre
                 setMultiTouchControls(true)
-                // Desactivar la repetición del mapa para scroll más limpio
                 isHorizontalMapRepetitionEnabled = false
                 isVerticalMapRepetitionEnabled = false
                 controller.setZoom(13.0)
                 controller.setCenter(GeoPoint(12.108038, -86.257292))
             }
         },
-        // Permitir que el mapa consuma todos los eventos touch sin que el padre los intercepte
         modifier = modifier,
         update = { view ->
-            val routeKey = "$originLat,$originLng,$destLat,$destLng,$isSelectionEnabled"
+            val routeKey = "$originLat,$originLng,$destLat,$destLng,$currentLat,$currentLng,$isSelectionEnabled"
 
             if (lastRoute.value != routeKey) {
                 lastRoute.value = routeKey
@@ -114,6 +113,41 @@ fun MapLibreView(
                     }
                 }
 
+                // Marcador de ubicación actual del conductor (ROJO y prominente)
+                currentLat?.let { lat ->
+                    currentLng?.let { lng ->
+                        val p = GeoPoint(lat, lng)
+                        points.add(p)
+                        val marker = Marker(view).apply {
+                            position = p
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                            title = "Conductor"
+                            setInfoWindow(null)
+                            
+                            val density = context.resources.displayMetrics.density
+                            val size = (32 * density).toInt()
+                            val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+                            val canvas = android.graphics.Canvas(bitmap)
+                            val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+                            
+                            // Borde blanco para visibilidad
+                            paint.color = android.graphics.Color.WHITE
+                            canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
+                            
+                            // Círculo rojo
+                            paint.color = android.graphics.Color.RED
+                            canvas.drawCircle(size / 2f, size / 2f, size / 2.6f, paint)
+                            
+                            // Punto blanco central
+                            paint.color = android.graphics.Color.WHITE
+                            canvas.drawCircle(size / 2f, size / 2f, size / 8f, paint)
+                            
+                            icon = android.graphics.drawable.BitmapDrawable(context.resources, bitmap)
+                        }
+                        view.overlays.add(marker)
+                    }
+                }
+
                 if (originLat != null && originLng != null && destLat != null && destLng != null) {
                     val line = Polyline(view).apply {
                         setPoints(
@@ -132,7 +166,7 @@ fun MapLibreView(
                 if (points.isNotEmpty()) {
                     val uniquePoints = points.distinctBy { "${it.latitude},${it.longitude}" }
                     if (uniquePoints.size <= 1) {
-                        view.controller.setZoom(15.0)
+                        view.controller.setZoom(17.0)
                         view.controller.animateTo(uniquePoints.firstOrNull() ?: points[0])
                     } else {
                         val boundingBox = BoundingBox.fromGeoPoints(uniquePoints)

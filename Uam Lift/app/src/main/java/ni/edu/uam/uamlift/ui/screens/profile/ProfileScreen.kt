@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,9 +58,6 @@ fun ProfileScreen(
     val scrollState      = rememberScrollState()
     val context          = LocalContext.current
 
-    var tarjetaSeleccionada by remember { mutableStateOf<WhyCardData?>(null) }
-    var mostrarLogoutConfirm by remember { mutableStateOf(false) }
-
     val listaWhyCards = remember {
         listOf(
             WhyCardData("💰", "Ahorra", "Comparte gastos", "Reduce tus gastos mensuales compartiendo los costos de combustible y parqueo con otros estudiantes que llevan tu misma ruta."),
@@ -68,6 +66,12 @@ fun ProfileScreen(
             WhyCardData("🔒", "Seguro", "Solo comunidad UAM", "Viaja con total tranquilidad. Todos los usuarios de la app son estudiantes, docentes o colaboradores activos y verificados por la universidad.")
         )
     }
+
+    // Usamos el índice para recordar qué tarjeta estaba seleccionada
+    var tarjetaIndexSeleccionada by rememberSaveable { mutableIntStateOf(-1) }
+    var mostrarLogoutConfirm by rememberSaveable { mutableStateOf(false) }
+
+    val tarjetaSeleccionada = if (tarjetaIndexSeleccionada != -1) listaWhyCards[tarjetaIndexSeleccionada] else null
 
     LaunchedEffect(estudiante.id) {
         if (estudiante.id != null) {
@@ -122,7 +126,6 @@ fun ProfileScreen(
                                         path.startsWith("http") -> path
                                         path.startsWith("C:") || path.contains("uam_photos") -> File(path)
                                         else -> {
-                                            // Si viene del back (ej: "/uploads/foto.jpg") lo concatenamos con la BASE_URL
                                             val base = RetrofitClient.BASE_URL.trimEnd('/')
                                             val relative = path.trimStart('/')
                                             "$base/$relative"
@@ -241,23 +244,23 @@ fun ProfileScreen(
         Spacer(modifier = Modifier.height(12.dp))
         Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                WhyCard("💰", "Ahorra", "Comparte gastos", Modifier.weight(1f)) { tarjetaSeleccionada = listaWhyCards[0] }
-                WhyCard("🌱", "Eco", "Reduce emisiones", Modifier.weight(1f)) { tarjetaSeleccionada = listaWhyCards[1] }
+                WhyCard("💰", "Ahorra", "Comparte gastos", Modifier.weight(1f)) { tarjetaIndexSeleccionada = 0 }
+                WhyCard("🌱", "Eco", "Reduce emisiones", Modifier.weight(1f)) { tarjetaIndexSeleccionada = 1 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                WhyCard("🤝", "Social", "Nuevos amigos", Modifier.weight(1f)) { tarjetaSeleccionada = listaWhyCards[2] }
-                WhyCard("🔒", "Seguro", "Solo comunidad UAM", Modifier.weight(1f)) { tarjetaSeleccionada = listaWhyCards[3] }
+                WhyCard("🤝", "Social", "Nuevos amigos", Modifier.weight(1f)) { tarjetaIndexSeleccionada = 2 }
+                WhyCard("🔒", "Seguro", "Solo comunidad UAM", Modifier.weight(1f)) { tarjetaIndexSeleccionada = 3 }
             }
         }
     }
 
     tarjetaSeleccionada?.let { tarjeta ->
         AlertDialog(
-            onDismissRequest = { tarjetaSeleccionada = null },
+            onDismissRequest = { tarjetaIndexSeleccionada = -1 },
             containerColor = Color.White,
             title   = { Text(text = "${tarjeta.emoji} ${tarjeta.titulo}", color = UAMColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) },
             text    = { Text(text = tarjeta.descripcionDetallada, color = Color(0xFF334155), style = MaterialTheme.typography.bodyLarge, lineHeight = 22.sp, fontWeight = FontWeight.Normal) },
-            confirmButton = { TextButton(onClick = { tarjetaSeleccionada = null }, colors = ButtonDefaults.textButtonColors(contentColor = UAMColor)) { Text(text = "Entendido", fontWeight = FontWeight.SemiBold) } }
+            confirmButton = { TextButton(onClick = { tarjetaIndexSeleccionada = -1 }, colors = ButtonDefaults.textButtonColors(contentColor = UAMColor)) { Text(text = "Entendido", fontWeight = FontWeight.SemiBold) } }
         )
     }
 

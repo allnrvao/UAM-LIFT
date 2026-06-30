@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,7 +43,8 @@ fun RideCard(
     onVerPasajeros: (Long) -> Unit = {},
     onCancelarParticipacion: (Long) -> Unit = {}
 ) {
-    var mostrarDialogo by remember { mutableStateOf(false) }
+    // Usamos rememberSaveable para que el diálogo no se cierre al rotar el dispositivo
+    var mostrarDialogo by rememberSaveable { mutableStateOf(false) }
 
     val lightTealBg = Color(0xFFE0F7FA)
     val lightTealSeat = Color(0xFFB2EBF2)
@@ -75,6 +77,29 @@ fun RideCard(
     val origenTexto = viaje.origen?.nombre ?: "Origen"
     val destinoTexto = viaje.destino?.nombre ?: "Destino"
     val horaTexto = viaje.fechaHoraSalida?.substringAfter("T")?.take(5) ?: "00:00"
+
+    // Lógica para determinar el texto de la fecha
+    val fechaTexto = remember(viaje.fechaHoraSalida) {
+        try {
+            val sdfInput = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+            val dateSalida = sdfInput.parse(viaje.fechaHoraSalida ?: "") ?: return@remember "Hoy, $horaTexto"
+            
+            val calSalida = Calendar.getInstance().apply { time = dateSalida }
+            val calHoy = Calendar.getInstance()
+            
+            val esHoy = calSalida.get(Calendar.YEAR) == calHoy.get(Calendar.YEAR) &&
+                        calSalida.get(Calendar.DAY_OF_YEAR) == calHoy.get(Calendar.DAY_OF_YEAR)
+            
+            if (esHoy) {
+                "Hoy, $horaTexto"
+            } else {
+                val sdfOutput = SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault())
+                sdfOutput.format(dateSalida)
+            }
+        } catch (e: Exception) {
+            "Hoy, $horaTexto"
+        }
+    }
 
     // Lógica para habilitar "Iniciar viaje" compatible con API 24
     val puedeIniciar = remember(viaje.fechaHoraSalida) {
@@ -290,7 +315,7 @@ fun RideCard(
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Hoy, $horaTexto", fontSize = 12.sp, color = grayText)
+                    Text(text = fechaTexto, fontSize = 12.sp, color = grayText)
                 }
 
                 if (esConductor) {

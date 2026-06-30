@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -57,10 +58,10 @@ fun MessagesScreen(
         }
     }
 
-    // Estado para controlar la navegación interna
-    var selectedViajeId by remember { mutableStateOf<Long?>(null) }
-    var selectedChatName by remember { mutableStateOf("") }
-    var selectedChatInitials by remember { mutableStateOf("") }
+    // Usamos rememberSaveable para controlar la navegación interna tras rotaciones
+    var selectedViajeId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var selectedChatName by rememberSaveable { mutableStateOf("") }
+    var selectedChatInitials by rememberSaveable { mutableStateOf("") }
 
     if (selectedViajeId != null) {
         ChatScreen(

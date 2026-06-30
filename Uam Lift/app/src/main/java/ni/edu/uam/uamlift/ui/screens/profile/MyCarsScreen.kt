@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,8 +38,17 @@ fun MyCarsScreen(
     carroViewModel: CarroViewModel = viewModel()
 ) {
     val usuario = usuarioViewModel.usuario
-    var carroAEditar by remember { mutableStateOf<Carro?>(null) }
-    var mostrarConfirmarEliminar by remember { mutableStateOf<Carro?>(null) }
+    
+    // Usamos IDs y rememberSaveable para persistir el estado de los diálogos
+    var carroAEditarId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var mostrarConfirmarEliminarId by rememberSaveable { mutableStateOf<Long?>(null) }
+
+    val carroAEditar = remember(carroAEditarId, carroViewModel.listaCarros) {
+        carroViewModel.listaCarros.find { it.id == carroAEditarId }
+    }
+    val mostrarConfirmarEliminar = remember(mostrarConfirmarEliminarId, carroViewModel.listaCarros) {
+        carroViewModel.listaCarros.find { it.id == mostrarConfirmarEliminarId }
+    }
 
     // Cargar los carros al entrar usando el ID del usuario actual
     LaunchedEffect(usuario.id) {
@@ -144,8 +154,8 @@ fun MyCarsScreen(
                     items(carroViewModel.listaCarros) { carro ->
                         CarItem(
                             carro = carro,
-                            onEdit = { carroAEditar = carro },
-                            onDelete = { mostrarConfirmarEliminar = carro }
+                            onEdit = { carroAEditarId = carro.id },
+                            onDelete = { mostrarConfirmarEliminarId = carro.id }
                         )
                     }
                     item { Spacer(modifier = Modifier.height(80.dp)) }
@@ -158,10 +168,10 @@ fun MyCarsScreen(
     if (carroAEditar != null) {
         EditCarDialog(
             carro = carroAEditar!!,
-            onDismiss = { carroAEditar = null },
+            onDismiss = { carroAEditarId = null },
             onConfirm = { carroActualizado ->
                 carroViewModel.actualizarCarro(carroActualizado) {
-                    carroAEditar = null
+                    carroAEditarId = null
                 }
             }
         )
@@ -170,7 +180,7 @@ fun MyCarsScreen(
     // Confirmación de Eliminación
     if (mostrarConfirmarEliminar != null) {
         AlertDialog(
-            onDismissRequest = { mostrarConfirmarEliminar = null },
+            onDismissRequest = { mostrarConfirmarEliminarId = null },
             title = { Text("¿Eliminar vehículo?", fontWeight = FontWeight.Bold) },
             text = { Text("¿Estás seguro de eliminar el vehículo ${mostrarConfirmarEliminar!!.marca} con placa ${mostrarConfirmarEliminar!!.placa}?") },
             confirmButton = {
@@ -181,7 +191,7 @@ fun MyCarsScreen(
                         if (cid != null && uid != null) {
                             carroViewModel.eliminarCarro(cid, uid)
                         }
-                        mostrarConfirmarEliminar = null
+                        mostrarConfirmarEliminarId = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))
                 ) {
@@ -189,7 +199,7 @@ fun MyCarsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { mostrarConfirmarEliminar = null }) {
+                TextButton(onClick = { mostrarConfirmarEliminarId = null }) {
                     Text("Cancelar")
                 }
             },
@@ -249,10 +259,11 @@ fun CarItem(carro: Carro, onEdit: () -> Unit, onDelete: () -> Unit) {
 
 @Composable
 fun EditCarDialog(carro: Carro, onDismiss: () -> Unit, onConfirm: (Carro) -> Unit) {
-    var placa by remember { mutableStateOf(carro.placa) }
-    var marca by remember { mutableStateOf(carro.marca) }
-    var modelo by remember { mutableStateOf(carro.modelo) }
-    var color by remember { mutableStateOf(carro.color) }
+    // Usamos rememberSaveable para que los cambios en el diálogo no se pierdan al rotar
+    var placa by rememberSaveable { mutableStateOf(carro.placa) }
+    var marca by rememberSaveable { mutableStateOf(carro.marca) }
+    var modelo by rememberSaveable { mutableStateOf(carro.modelo) }
+    var color by rememberSaveable { mutableStateOf(carro.color) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
