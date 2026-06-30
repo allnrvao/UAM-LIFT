@@ -39,12 +39,13 @@ fun RideCard(
     onConfirmarClick: (Long) -> Unit = {},
     onIniciarViaje: (Long) -> Unit = {},
     onFinalizarViaje: (Long) -> Unit = {},
-    onCancelarViaje: (Long) -> Unit = {},
+    onCancelarViaje: (Long, String) -> Unit = { _, _ -> },
     onVerPasajeros: (Long) -> Unit = {},
     onCancelarParticipacion: (Long) -> Unit = {}
 ) {
     // Usamos rememberSaveable para que el diálogo no se cierre al rotar el dispositivo
     var mostrarDialogo by rememberSaveable { mutableStateOf(false) }
+    var mostrarDialogoCancelarViaje by rememberSaveable { mutableStateOf(false) }
 
     val lightTealBg = Color(0xFFE0F7FA)
     val lightTealSeat = Color(0xFFB2EBF2)
@@ -134,6 +135,16 @@ fun RideCard(
             onCancelarParticipacion = {
                 mostrarDialogo = false
                 onCancelarParticipacion(viaje.id ?: 0L)
+            }
+        )
+    }
+
+    if (mostrarDialogoCancelarViaje) {
+        CancelRideDialog(
+            onDismissRequest = { mostrarDialogoCancelarViaje = false },
+            onConfirmarCancelacion = { motivo ->
+                mostrarDialogoCancelarViaje = false
+                onCancelarViaje(viaje.id ?: 0L, motivo)
             }
         )
     }
@@ -326,7 +337,7 @@ fun RideCard(
                         if (!estaTerminado) {
                             if (viaje.estadoViaje != EstadoViaje.EN_CURSO) {
                                 TextButton(
-                                    onClick = { onCancelarViaje(viaje.id ?: 0L) },
+                                    onClick = { mostrarDialogoCancelarViaje = true },
                                     colors = ButtonDefaults.buttonColors(contentColor = Color.Red),
                                     contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
                                 ) {

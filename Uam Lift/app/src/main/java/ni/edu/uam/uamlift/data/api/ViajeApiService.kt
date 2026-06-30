@@ -1,5 +1,6 @@
 package ni.edu.uam.uamlift.data.api
 
+import ni.edu.uam.uamlift.data.dto.MotivoCancelacionRequest
 import ni.edu.uam.uamlift.data.models.Usuario
 import ni.edu.uam.uamlift.data.models.Viaje
 import retrofit2.http.*
@@ -36,7 +37,10 @@ interface ViajeApiService {
     ): Boolean
 
     @PUT("api/viajes/{viajeId}/cancelar")
-    suspend fun cancelarViaje(@Path("viajeId") viajeId: Long): Boolean
+    suspend fun cancelarViaje(
+        @Path("viajeId") viajeId: Long,
+        @Body motivo: MotivoCancelacionRequest
+    ): Boolean
 
     @PUT("api/viajes/EliminarPasajero/{viajeId}/{usuarioCif}")
     suspend fun eliminarPasajero(

@@ -46,6 +46,11 @@ data class WhyCardData(
     val descripcionDetallada: String
 )
 
+// Tipos de estadísticas para los diálogos informativos
+enum class StatType {
+    VIAJES, KILOMETROS, CO2
+}
+
 @Composable
 fun ProfileScreen(
     navController: NavController,
@@ -67,9 +72,11 @@ fun ProfileScreen(
         )
     }
 
-    // Usamos el índice para recordar qué tarjeta estaba seleccionada
     var tarjetaIndexSeleccionada by rememberSaveable { mutableIntStateOf(-1) }
     var mostrarLogoutConfirm by rememberSaveable { mutableStateOf(false) }
+
+    // Estado para controlar qué diálogo de estadística mostrar
+    var statSeleccionada by rememberSaveable { mutableStateOf<StatType?>(null) }
 
     val tarjetaSeleccionada = if (tarjetaIndexSeleccionada != -1) listaWhyCards[tarjetaIndexSeleccionada] else null
 
@@ -211,9 +218,24 @@ fun ProfileScreen(
                 modifier              = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                StatItem(label = "Viajes", value = "${estadisticas.totalViajes}", icon  = Icons.AutoMirrored.Filled.Send)
-                StatItem(label = "Km", value = String.format("%.1f", estadisticas.kilometrosTotales), icon  = Icons.Default.Route)
-                StatItem(label = "CO₂ kg", value = String.format("%.1f", estadisticas.co2Ahorrado), icon  = Icons.Default.Eco)
+                StatItem(
+                    label = "Viajes",
+                    value = "${estadisticas.totalViajes}",
+                    icon  = Icons.AutoMirrored.Filled.Send,
+                    onClick = { statSeleccionada = StatType.VIAJES }
+                )
+                StatItem(
+                    label = "Km",
+                    value = String.format("%.1f", estadisticas.kilometrosTotales),
+                    icon  = Icons.Default.Route,
+                    onClick = { statSeleccionada = StatType.KILOMETROS }
+                )
+                StatItem(
+                    label = "CO₂ kg",
+                    value = String.format("%.1f", estadisticas.co2Ahorrado),
+                    icon  = Icons.Default.Eco,
+                    onClick = { statSeleccionada = StatType.CO2 }
+                )
             }
         }
 
@@ -254,6 +276,68 @@ fun ProfileScreen(
         }
     }
 
+    // Alerta informativa para las Estadísticas (Mismo estilo visual que los demás diálogos)
+    statSeleccionada?.let { tipo ->
+        val (titulo, texto) = when (tipo) {
+            StatType.VIAJES -> {
+                val tituloViajes = "🚀 Resumen de Viajes"
+                if (estadisticas.totalViajes == 0) {
+                    Pair(tituloViajes, "¡Aún no has registrado viajes! 🚗\n\nAnímate a compartir tu primer viaje hoy. Es la oportunidad perfecta para optimizar rutas y conectar con la comunidad UAM.")
+                } else {
+                    Pair(
+                        tituloViajes,
+                        "• Cantidad de viajes compartidos: ${estadisticas.totalViajes}\n\n" +
+                                "¡Cada viaje compartido es una oportunidad para optimizar rutas y conectar con la comunidad UAM!"
+                    )
+                }
+            }
+
+            StatType.KILOMETROS -> {
+                val tituloKm = "📍 Kilómetros Recorridos"
+                if (estadisticas.kilometrosTotales == 0.0) {
+                    Pair(tituloKm, "¡Tu contador de kilómetros está en 0! 🧭\n\nEmpieza a moverte con la comunidad UAM y descubre cuánta distancia puedes recorrer juntos.")
+                } else {
+                    Pair(
+                        tituloKm,
+                        "• Kilómetros recorridos: ${String.format("%.1f", estadisticas.kilometrosTotales)} km\n\n" +
+                                "Equivalencia interesante:\n" +
+                                "¡Has recorrido una distancia significativa reduciendo el tráfico vehicular en los alrededores del campus!"
+                    )
+                }
+            }
+
+            StatType.CO2 -> {
+                val tituloCo2 = "🌱 Impacto Ambiental (CO₂)"
+                if (estadisticas.co2Ahorrado == 0.0) {
+                    Pair(tituloCo2, "¡Aún no has acumulado ahorro de CO₂! 🌍\n\nCada viaje compartido cuenta para reducir la huella ecológica. ¡Súmate y dale un respiro al planeta!")
+                } else {
+                    Pair(
+                        tituloCo2,
+                        "• Ahorro de emisiones: ${String.format("%.1f", estadisticas.co2Ahorrado)} kg de CO₂\n\n" +
+                                "Al compartir tus viajes disminuyes la huella ecológica colectiva de nuestra universidad.\n\n" +
+                                "¡Muchas gracias por contribuir activamente a la preservación del medio ambiente!"
+                    )
+                }
+            }
+        }
+
+
+        AlertDialog(
+            onDismissRequest = { statSeleccionada = null },
+            containerColor = Color.White,
+            title   = { Text(text = titulo, color = UAMColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) },
+            text    = { Text(text = texto, color = Color(0xFF334155), style = MaterialTheme.typography.bodyLarge, lineHeight = 22.sp, fontWeight = FontWeight.Normal) },
+            confirmButton = {
+                TextButton(
+                    onClick = { statSeleccionada = null },
+                    colors = ButtonDefaults.textButtonColors(contentColor = UAMColor)
+                ) {
+                    Text(text = "Entendido", fontWeight = FontWeight.SemiBold)
+                }
+            }
+        )
+    }
+
     tarjetaSeleccionada?.let { tarjeta ->
         AlertDialog(
             onDismissRequest = { tarjetaIndexSeleccionada = -1 },
@@ -268,13 +352,13 @@ fun ProfileScreen(
         AlertDialog(
             onDismissRequest = { mostrarLogoutConfirm = false },
             containerColor = Color.White,
-            title   = { Text("Cerrar Sesión") },
+            title   = { Text("Cerrar Sesión", color = UAMColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)},
             text    = { Text("¿Estás seguro de que deseas salir de tu cuenta?") },
             confirmButton = {
                 Button(onClick = {
-                        mostrarLogoutConfirm = false
-                        usuarioViewModel.cerrarSesion(context) { navController.navigate("login") { popUpTo(0) { inclusive = true } } }
-                    },
+                    mostrarLogoutConfirm = false
+                    usuarioViewModel.cerrarSesion(context) { navController.navigate("login") { popUpTo(0) { inclusive = true } } }
+                },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                 ) { Text("Salir", color = Color.White) }
             },
@@ -311,9 +395,17 @@ fun ProfileMenuItem(title: String, subtitle: String = "", icon: ImageVector, ico
 }
 
 @Composable
-fun StatItem(label: String, value: String, icon: ImageVector) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(90.dp)) {
+fun StatItem(label: String, value: String, icon: ImageVector, onClick: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(90.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(8.dp)
+    ) {
         Icon(icon, null, tint = UAMColor, modifier = Modifier.size(24.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         Text(value, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color.Black)
         Text(label, fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
     }

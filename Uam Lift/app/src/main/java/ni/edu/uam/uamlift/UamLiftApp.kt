@@ -1,6 +1,11 @@
 package ni.edu.uam.uamlift
 
 import android.annotation.SuppressLint
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -9,15 +14,19 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ni.edu.uam.uamlift.data.viewmodels.AppViewModelFactory
+import ni.edu.uam.uamlift.data.viewmodels.NotificacionViewModel
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
+import ni.edu.uam.uamlift.notifications.NotificationHelper
 import ni.edu.uam.uamlift.ui.navegation.BottomNavigationBar
 import ni.edu.uam.uamlift.ui.screens.LogIn.LogIn
 import ni.edu.uam.uamlift.ui.screens.animation.SplashScreen
@@ -26,6 +35,7 @@ import ni.edu.uam.uamlift.ui.screens.create.createRide.CreateRideScreen
 import ni.edu.uam.uamlift.ui.screens.home.HomeScreen
 import ni.edu.uam.uamlift.ui.screens.messages.MessagesScreen
 import ni.edu.uam.uamlift.ui.screens.myRides.MyRidesScreen
+import ni.edu.uam.uamlift.ui.screens.notifications.NotificationsScreen
 import ni.edu.uam.uamlift.ui.screens.profile.AddCarScreen
 import ni.edu.uam.uamlift.ui.screens.profile.EditProfileScreen
 import ni.edu.uam.uamlift.ui.screens.profile.MyCarsScreen
@@ -47,6 +57,47 @@ fun UamLiftApp() {
     val appViewModelFactory = AppViewModelFactory()
     val usuarioViewModel: UsuarioViewModel = viewModel(factory = appViewModelFactory)
     val viajeViewModel: ViajeViewModel = viewModel(factory = appViewModelFactory)
+    val notificacionViewModel: NotificacionViewModel = viewModel(factory = appViewModelFactory)
+
+    val context = LocalContext.current
+
+    // Pedimos el permiso de notificaciones (requerido desde Android 13) para poder
+    // mostrar los avisos del sistema cuando se cancela o inicia un viaje.
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* No requiere acción adicional: si se niega, simplemente no se muestran avisos del sistema */ }
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val concedido = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!concedido) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
+    // Cuando llega una notificación nueva (inicio o cancelación de viaje), mostramos
+    // el aviso del sistema en la bandeja del celular.
+    DisposableEffect(notificacionViewModel) {
+        notificacionViewModel.onNuevaNotificacion = { nueva ->
+            NotificationHelper.mostrarNotificacion(context, nueva)
+        }
+        onDispose { notificacionViewModel.onNuevaNotificacion = null }
+    }
+
+    // Sondeamos periódicamente el backend para refrescar la lista de notificaciones
+    // y el contador de no leídas (no hay infraestructura de push/WebSocket para esto).
+    val usuarioId = usuarioViewModel.usuario.id
+    LaunchedEffect(usuarioId) {
+        if (usuarioId != null && usuarioId != 0L) {
+            while (true) {
+                notificacionViewModel.cargarNotificaciones(usuarioId)
+                delay(15000)
+            }
+        }
+    }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -168,7 +219,8 @@ fun UamLiftApp() {
                 HomeScreen(
                     navController = navController,
                     usuarioViewModel = usuarioViewModel,
-                    viajeViewModel = viajeViewModel
+                    viajeViewModel = viajeViewModel,
+                    notificacionViewModel = notificacionViewModel
                 )
             }
 
@@ -247,6 +299,15 @@ fun UamLiftApp() {
                     viajeViewModel = viajeViewModel,
                     usuarioViewModel = usuarioViewModel,
                     onBack = { navController.popBackStack() }
+                )
+            }
+
+            // ── NOTIFICACIONES ───────────────────────────────────────────────
+            composable("notifications") {
+                NotificationsScreen(
+                    navController = navController,
+                    usuarioViewModel = usuarioViewModel,
+                    notificacionViewModel = notificacionViewModel
                 )
             }
         }

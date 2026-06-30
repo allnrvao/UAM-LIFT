@@ -15,5 +15,5 @@ public interface InterfazViaje {
 
     void finalizarViaje(Long viajeId);
 
-    void cancelarViaje(Long viajeId);
+    void cancelarViaje(Long viajeId, String motivo);
 }

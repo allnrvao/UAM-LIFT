@@ -10,6 +10,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import ni.edu.uam.uamlift.notifications.NotificationHelper
 import ni.edu.uam.uamlift.ui.theme.UamLiftTheme
 
 import androidx.activity.compose.setContent
@@ -21,6 +22,7 @@ import androidx.compose.ui.Modifier
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        NotificationHelper.crearCanalNotificaciones(this)
         setContent {
             UamLiftTheme {
                 Surface(

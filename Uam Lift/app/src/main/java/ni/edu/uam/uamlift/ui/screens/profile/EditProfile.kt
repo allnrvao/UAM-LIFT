@@ -280,7 +280,7 @@ fun EditProfileScreen(
                 if (usuarioViewModel.cargando) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                 } else {
-                    Text("Guardar cambios", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Guardar cambios", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
@@ -292,7 +292,7 @@ fun EditProfileScreen(
         AlertDialog(
             onDismissRequest = { mostrarDialogoConfirmacion = false },
             containerColor = Color.White,
-            title = { Text("Confirmar cambios") },
+            title = { Text("Confirmar cambios", color = UAMColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) },
             text = { Text("¿Estás seguro de que deseas actualizar tu perfil con estos datos?") },
             confirmButton = {
                 Button(
@@ -343,7 +343,7 @@ fun EditProfileScreen(
                     modifier = Modifier.size(48.dp)
                 )
             },
-            title = { Text("¡Perfil Actualizado!") },
+            title = { Text("¡Perfil Actualizado!", color = UAMColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) },
             text = { Text("Tus cambios se han guardado exitosamente.") },
             confirmButton = {
                 Button(

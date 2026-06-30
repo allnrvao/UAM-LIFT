@@ -1,5 +1,6 @@
 package ni.edu.uam.UAM_LIFT.controller;
 
+import ni.edu.uam.UAM_LIFT.dto.MotivoCancelacionRequest;
 import ni.edu.uam.UAM_LIFT.models.Usuario;
 import ni.edu.uam.UAM_LIFT.models.Viaje;
 import ni.edu.uam.UAM_LIFT.services.ViajeServicio;
@@ -99,12 +100,18 @@ public class ViajeController {
     }
 
     /**
-     * Cancelar un viaje
+     * Cancelar un viaje. El conductor debe indicar el motivo de la
+     * cancelación, el cual se incluye en la notificación enviada a los
+     * pasajeros del viaje.
      */
     @PutMapping("/{viajeId}/cancelar")
-    public boolean cancelarViaje(@PathVariable Long viajeId) {
+    public boolean cancelarViaje(
+            @PathVariable Long viajeId,
+            @RequestBody(required = false) MotivoCancelacionRequest body
+    ) {
         try {
-            viajeServicio.cancelarViaje(viajeId);
+            String motivo = (body != null) ? body.getMotivo() : null;
+            viajeServicio.cancelarViaje(viajeId, motivo);
             return true;
         } catch (Exception e) {
             System.out.println("Error al cancelar viaje: " + e.getMessage());

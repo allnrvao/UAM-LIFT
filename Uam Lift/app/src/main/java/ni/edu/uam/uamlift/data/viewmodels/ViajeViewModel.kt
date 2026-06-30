@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ni.edu.uam.uamlift.data.api.ViajeApiService
+import ni.edu.uam.uamlift.data.dto.MotivoCancelacionRequest
 import ni.edu.uam.uamlift.data.enums.EstadoViaje
 import ni.edu.uam.uamlift.data.models.*
 
@@ -215,11 +216,13 @@ class ViajeViewModel(
         }
     }
 
-    fun cancelarViaje(viajeId: Long, usuarioId: Long, onExito: () -> Unit = {}, onError: (String) -> Unit = {}) {
+    fun cancelarViaje(viajeId: Long, usuarioId: Long, motivo: String, onExito: () -> Unit = {}, onError: (String) -> Unit = {}) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val exito = withContext(Dispatchers.IO) { apiService.cancelarViaje(viajeId) }
+                val exito = withContext(Dispatchers.IO) {
+                    apiService.cancelarViaje(viajeId, MotivoCancelacionRequest(motivo))
+                }
                 if (exito) {
                     fetchViajesInternal(apiService, usuarioId)
                     onExito()

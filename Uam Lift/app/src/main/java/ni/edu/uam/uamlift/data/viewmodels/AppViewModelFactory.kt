@@ -18,6 +18,9 @@ class AppViewModelFactory : ViewModelProvider.Factory {
             modelClass.isAssignableFrom(UsuarioViewModel::class.java) -> {
                 UsuarioViewModel() as T
             }
+            modelClass.isAssignableFrom(NotificacionViewModel::class.java) -> {
+                NotificacionViewModel(RetrofitClient.notificacionApi) as T
+            }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
     }

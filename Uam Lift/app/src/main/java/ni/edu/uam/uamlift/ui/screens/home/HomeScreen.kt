@@ -17,13 +17,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
@@ -32,10 +31,12 @@ import kotlinx.coroutines.launch
 import ni.edu.uam.uamlift.data.enums.EstadoViaje
 import ni.edu.uam.uamlift.data.models.Viaje
 import ni.edu.uam.uamlift.data.viewmodels.AppViewModelFactory
+import ni.edu.uam.uamlift.data.viewmodels.NotificacionViewModel
 import ni.edu.uam.uamlift.data.viewmodels.UbicacionViewModel
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.data.viewmodels.ViajeViewModel
 import ni.edu.uam.uamlift.ui.components.RideCard
+import ni.edu.uam.uamlift.ui.components.NotificationBellButton
 import ni.edu.uam.uamlift.ui.theme.Gray
 import ni.edu.uam.uamlift.ui.theme.UAMColor
 import ni.edu.uam.uamlift.ui.components.PassengersDialog
@@ -46,7 +47,8 @@ fun HomeScreen(
     navController: NavController? = null,
     viajeViewModel: ViajeViewModel = viewModel(factory = AppViewModelFactory()),
     usuarioViewModel: UsuarioViewModel,
-    ubicacionViewModel: UbicacionViewModel = viewModel(factory = AppViewModelFactory())
+    ubicacionViewModel: UbicacionViewModel = viewModel(factory = AppViewModelFactory()),
+    notificacionViewModel: NotificacionViewModel = viewModel(factory = AppViewModelFactory())
 ) {
     val backgroundColor = Gray
     val usuario = usuarioViewModel.usuario
@@ -65,6 +67,7 @@ fun HomeScreen(
     val viajesOtros by viajeViewModel.viajesOtros.collectAsState()
     val cargando by viajeViewModel.isLoading.collectAsState()
     val pasajerosViaje by viajeViewModel.pasajerosViaje.collectAsState()
+    val notificacionesNoLeidas by notificacionViewModel.noLeidas.collectAsState()
 
     val viajeActivo = misViajes.find {
         it.estadoViaje == EstadoViaje.EN_CURSO && it.conductor?.id == usuario?.id
@@ -77,7 +80,7 @@ fun HomeScreen(
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         )
     }
-    
+
     // Bandera para no repetir la solicitud si ya se intentó
     var permissionRequested by rememberSaveable { mutableStateOf(false) }
 
@@ -92,7 +95,6 @@ fun HomeScreen(
         val idViaje = viajeActivo?.id
         if (viajeActivo != null && idViaje != null) {
             if (!hasLocationPermission) {
-                // SOLO LANZAR SI NO HEMOS PEDIDO EN ESTE CICLO
                 if (!permissionRequested) {
                     permissionRequested = true
                     permissionLauncher.launch(
@@ -104,10 +106,10 @@ fun HomeScreen(
                 }
             } else {
                 ubicacionViewModel.conectar(idViaje)
-                val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
+                val locationRequest = com.google.android.gms.location.LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
                     .setMinUpdateIntervalMillis(3000)
                     .build()
-                val locationCallback = object : LocationCallback() {
+                val locationCallback = object : com.google.android.gms.location.LocationCallback() {
                     override fun onLocationResult(p0: LocationResult) {}
                 }
                 try {
@@ -126,12 +128,10 @@ fun HomeScreen(
                 }
             }
         } else {
-            // Si no hay viaje activo, reseteamos la bandera para la próxima vez
             permissionRequested = false
         }
     }
 
-    // Actualizamos a rememberSaveable para que la pestaña no se reinicie al rotar
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
     val tabs = listOf("Explorar", "Mis Viajes")
     var selectedViaje by remember { mutableStateOf<Viaje?>(null) }
@@ -170,32 +170,69 @@ fun HomeScreen(
                             color = Color.White,
                             modifier = Modifier.fillMaxWidth().wrapContentHeight()
                         ) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
-                                verticalArrangement = Arrangement.Center
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp), // Ajustado para mejor espaciado
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.Start
+                                // 1. Textos (Logo + Subtítulo) alineados a la izquierda
+                                Column(
+                                    modifier = Modifier.weight(1f) // Ocupa todo el espacio disponible y empuja la campana a la derecha
                                 ) {
-                                    Text(text = "UAM ", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Color.Black)
-                                    Text(text = "LIFT", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Color(0xFF019AA8))
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(text = "UAM ", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Color.Black)
+                                        Text(text = "LIFT", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Color(0xFF019AA8))
+                                    }
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "Movilidad colaborativa",
+                                        color = Color.Gray,
+                                        fontSize = 14.sp
+                                    )
                                 }
-                                Text(text = "Movilidad colaborativa", color = Color.Gray, fontSize = 14.sp)
+
+                                // 2. Botón de notificación en el extremo derecho
+                                NotificationBellButton(
+                                    tieneNoLeidas = notificacionesNoLeidas > 0,
+                                    tint = UAMColor,
+                                    onClick = { navController?.navigate("notifications") }
+                                )
                             }
                         }
-                        Box(modifier = Modifier.fillMaxWidth().wrapContentHeight()) {
-                            Box(modifier = Modifier.fillMaxWidth().height(110.dp).background(UAMColor))
-                            Column(modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 16.dp)) {
-                                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-                                    val nombreEstudiante = usuario?.nombre ?: "Estudiante"
-                                    Text(text = "¡Hola, $nombreEstudiante! 👋", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(text = "Encuentra o comparte un viaje hoy", fontSize = 14.sp, color = Color.White.copy(alpha = 0.85f))
-                                }
-                            }
+
+                        // Banner de Bienvenida Centrado Verticalmente
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(110.dp)
+                                .background(UAMColor)
+                                .padding(horizontal = 20.dp),
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            val nombreEstudiante = usuario?.nombre ?: "Estudiante"
+
+                            Text(
+                                text = "¡Hola, $nombreEstudiante! 👋",
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                text = "Encuentra o comparte un viaje hoy",
+                                fontSize = 14.sp,
+                                color = Color.White.copy(alpha = 0.85f)
+                            )
                         }
+
                         Spacer(modifier = Modifier.height(8.dp))
+
                         TabRow(
                             selectedTabIndex = selectedTabIndex,
                             containerColor = Color.White,
@@ -233,7 +270,7 @@ fun HomeScreen(
                             Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
                                 Text(
                                     text = if (selectedTabIndex == 0) "No hay viajes disponibles" else "No has creado viajes aún",
-                                    color = Color.Gray, textAlign = androidx.compose.ui.text.style.TextAlign.Center, fontSize = 14.sp
+                                    color = Color.Gray, textAlign = TextAlign.Center, fontSize = 14.sp
                                 )
                             }
                         }
@@ -271,8 +308,8 @@ fun HomeScreen(
                                             onError = { scope.launch { snackbarHostState.showSnackbar(it) } }
                                         )
                                     },
-                                    onCancelarViaje = { id ->
-                                        viajeViewModel.cancelarViaje(id, usuario?.id ?: 0L,
+                                    onCancelarViaje = { id, motivo ->
+                                        viajeViewModel.cancelarViaje(id, usuario?.id ?: 0L, motivo,
                                             onExito = { scope.launch { snackbarHostState.showSnackbar("Viaje cancelado") } },
                                             onError = { scope.launch { snackbarHostState.showSnackbar(it) } }
                                         )

@@ -118,8 +118,8 @@ fun MyRidesScreen(
                         onFinalizarViaje = { id ->
                             viajeViewModel.finalizarViaje(id, userId)
                         },
-                        onCancelarViaje = { id ->
-                            viajeViewModel.cancelarViaje(id, userId)
+                        onCancelarViaje = { id, motivo ->
+                            viajeViewModel.cancelarViaje(id, userId, motivo)
                         },
                         onVerPasajeros = { id ->
                             viajeViewModel.obtenerPasajeros(id)

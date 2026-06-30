@@ -23,13 +23,15 @@ public class ViajeServicio implements InterfazViaje {
     private final RepoViajeUsuario repoViajeUsuario;
     private final ValidacionViaje validacionViaje;
     private final RepoDestino repoDestino;
+    private final NotificacionServicio notificacionServicio;
 
-    public ViajeServicio(RepoViaje repoViaje, RepoUsuario repoUsuario, RepoViajeUsuario repoViajeUsuario, ValidacionViaje validacionViaje, RepoDestino repoDestino) {
+    public ViajeServicio(RepoViaje repoViaje, RepoUsuario repoUsuario, RepoViajeUsuario repoViajeUsuario, ValidacionViaje validacionViaje, RepoDestino repoDestino, NotificacionServicio notificacionServicio) {
         this.repoViaje = repoViaje;
         this.repoUsuario = repoUsuario;
         this.repoViajeUsuario = repoViajeUsuario;
         this.validacionViaje = validacionViaje;
         this.repoDestino = repoDestino;
+        this.notificacionServicio = notificacionServicio;
     }
 
     @Override
@@ -68,6 +70,10 @@ public class ViajeServicio implements InterfazViaje {
             if (viaje.getConductor().getId()== conductorId && viaje.getEstadoViaje() == EstadoViaje.PROPUESTO) {
                 viaje.setEstadoViaje(EstadoViaje.EN_CURSO);
                 repoViaje.save(viaje);
+
+                List<Usuario> destinatarios = obtenerPasajerosPorViaje(viajeId);
+                notificacionServicio.notificarInicioViaje(viaje, destinatarios);
+
                 return true;
             }
         }
@@ -116,11 +122,18 @@ public class ViajeServicio implements InterfazViaje {
     }
 
     @Override
-    public void cancelarViaje(Long viajeId) {
+    public void cancelarViaje(Long viajeId, String motivo) {
         Viaje viaje = repoViaje.findById(viajeId)
                 .orElseThrow(() -> new RuntimeException("Viaje no encontrado con ID: " + viajeId));
+
+        // Obtenemos a los destinatarios ANTES de cambiar el estado del viaje,
+        // ya que cancelar el viaje no modifica el estado de los ViajeUsuario.
+        List<Usuario> destinatarios = obtenerPasajerosPorViaje(viajeId);
+
         viaje.setEstadoViaje(EstadoViaje.CANCELADO);
         repoViaje.save(viaje);
+
+        notificacionServicio.notificarCancelacionViaje(viaje, motivo, destinatarios);
     }
 
     public boolean LimitesDeViaje(Long usuarioId) {
