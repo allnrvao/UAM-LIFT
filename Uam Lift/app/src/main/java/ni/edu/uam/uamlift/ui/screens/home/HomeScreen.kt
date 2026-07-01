@@ -5,22 +5,36 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.material3.TabRowDefaults.SecondaryIndicator
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -31,6 +45,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ni.edu.uam.uamlift.data.enums.EstadoViaje
 import ni.edu.uam.uamlift.data.enums.TipoNotificacion
+import ni.edu.uam.uamlift.data.models.Notificacion
 import ni.edu.uam.uamlift.data.models.Viaje
 import ni.edu.uam.uamlift.data.viewmodels.AppViewModelFactory
 import ni.edu.uam.uamlift.data.viewmodels.NotificacionViewModel
@@ -138,54 +153,13 @@ fun HomeScreen(
     val tabs = listOf("Explorar", "Mis Viajes")
     var selectedViaje by remember { mutableStateOf<Viaje?>(null) }
 
-    // Si llegamos aquí porque el usuario tocó una notificación de viaje finalizado o
-    // cancelado, mostramos un diálogo informativo con el detalle (mismo estilo que los
-    // diálogos de confirmación de Perfil) y luego la limpiamos para que no reaparezca.
+    // ── CORRECCIÓN AQUÍ: RENDERIZACIÓN DEL DIÁLOGO ADAPTATIVO DE NOTIFICACIONES ──
     val notificacionPendiente = notificacionViewModel.notificacionPendiente
     if (notificacionPendiente != null) {
-        val esCancelacion = notificacionPendiente.tipo == TipoNotificacion.CANCELACION_VIAJE ||
-                notificacionPendiente.tipo == TipoNotificacion.USUARIO_ELIMINADO
-        val colorTitulo = if (esCancelacion) Color(0xFFEF4444) else UAMColor
-        AlertDialog(
-            onDismissRequest = { notificacionViewModel.limpiarNotificacionPendiente() },
-            containerColor = Color.White,
-            shape = RoundedCornerShape(24.dp),
-            title = {
-                Text(
-                    text = notificacionPendiente.titulo.ifBlank {
-                        when (notificacionPendiente.tipo) {
-                            TipoNotificacion.USUARIO_ELIMINADO -> "Fuiste removido del viaje"
-                            else -> if (esCancelacion) "Viaje cancelado" else "Viaje finalizado"
-                        }
-                    },
-                    color = colorTitulo,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleLarge
-                )
-            },
-            text = {
-                Text(
-                    text = notificacionPendiente.mensaje.ifBlank {
-                        when (notificacionPendiente.tipo) {
-                            TipoNotificacion.USUARIO_ELIMINADO -> "El conductor te eliminó de este viaje."
-                            TipoNotificacion.CANCELACION_VIAJE -> "El conductor canceló este viaje."
-                            else -> "El viaje ha finalizado."
-                        }
-                    },
-                    color = Color(0xFF334155),
-                    style = MaterialTheme.typography.bodyLarge,
-                    lineHeight = 22.sp,
-                    fontWeight = FontWeight.Normal
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = { notificacionViewModel.limpiarNotificacionPendiente() },
-                    colors = ButtonDefaults.textButtonColors(contentColor = UAMColor)
-                ) {
-                    Text(text = "Entendido", fontWeight = FontWeight.SemiBold)
-                }
-            }
+        HomeNotificationAdaptativeDialog(
+            notificacion = notificacionPendiente,
+            navController = navController,
+            onDismissRequest = { notificacionViewModel.limpiarNotificacionPendiente() }
         )
     }
 
@@ -226,13 +200,12 @@ fun HomeScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 12.dp), // Ajustado para mejor espaciado
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // 1. Textos (Logo + Subtítulo) alineados a la izquierda
                                 Column(
-                                    modifier = Modifier.weight(1f) // Ocupa todo el espacio disponible y empuja la campana a la derecha
+                                    modifier = Modifier.weight(1f)
                                 ) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically
@@ -248,7 +221,6 @@ fun HomeScreen(
                                     )
                                 }
 
-                                // 2. Botón de notificación en el extremo derecho
                                 NotificationBellButton(
                                     tieneNoLeidas = notificacionesNoLeidas > 0,
                                     tint = UAMColor,
@@ -257,7 +229,6 @@ fun HomeScreen(
                             }
                         }
 
-                        // Banner de Bienvenida Centrado Verticalmente
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -292,7 +263,7 @@ fun HomeScreen(
                             contentColor = UAMColor,
                             indicator = { tabPositions ->
                                 if (selectedTabIndex < tabPositions.size) {
-                                    TabRowDefaults.SecondaryIndicator(
+                                    SecondaryIndicator(
                                         Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
                                         color = UAMColor
                                     )
@@ -381,3 +352,156 @@ fun HomeScreen(
         }
     }
 }
+
+// ── COMPONENTE DIÁLOGO ADAPTATIVO CON EL NUEVO DISEÑO ORIENTADO A LA FUNCIONALIDAD ──
+@Composable
+fun HomeNotificationAdaptativeDialog(
+    notificacion: Notificacion,
+    navController: NavController?,
+    onDismissRequest: () -> Unit
+) {
+    val (colorTema, fondoItem, icono, etiquetaTexto, leyendaInformativa) = when (notificacion.tipo) {
+        TipoNotificacion.USUARIO_UNIDO -> HomeQuintuple(
+            UAMColor, UAMColor.copy(alpha = 0.10f), Icons.Default.PersonAdd, "NUEVO INTEGRANTE", "Un pasajero se ha reservado un asiento en tu vehículo:"
+        )
+        TipoNotificacion.CANCELACION_VIAJE, TipoNotificacion.USUARIO_ELIMINADO -> HomeQuintuple(
+            Color(0xFFEF4444), Color(0xFFEF4444).copy(alpha = 0.08f), Icons.Default.PersonRemove, "MODIFICACIÓN / CANCELADO", "Se han generado cambios críticos en el estado del viaje:"
+        )
+        TipoNotificacion.FINALIZACION_VIAJE -> HomeQuintuple(
+            Color(0xFF22C55E), Color(0xFF22C55E).copy(alpha = 0.08f), Icons.Default.CheckCircle, "VIAJE COMPLETADO", "¡Tu ruta ha finalizado exitosamente! Detalles del cierre:"
+        )
+        TipoNotificacion.INICIO_VIAJE -> HomeQuintuple(
+            UAMColor, UAMColor.copy(alpha = 0.08f), Icons.Default.DirectionsCar, "EN CURSO", "El conductor ha iniciado la ruta. Asegúrate de estar listo:"
+        )
+        else -> HomeQuintuple(
+            UAMColor, Color(0xFFF8F9FA), Icons.Default.Person, "AVISO GENERAL", "Información importante sobre la plataforma:"
+        )
+    }
+
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(0.88f).wrapContentHeight(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = notificacion.titulo.ifBlank { etiquetaTexto.lowercase().replaceFirstChar { it.uppercase() } },
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colorTema
+                    )
+                    IconButton(onClick = onDismissRequest) {
+                        Icon(Icons.Default.Close, contentDescription = "Cerrar")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+                Text(text = leyendaInformativa, fontSize = 13.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(fondoItem)
+                        .border(1.5.dp, colorTema, RoundedCornerShape(14.dp))
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier.size(46.dp).clip(CircleShape).background(colorTema),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(imageVector = icono, contentDescription = null, tint = Color.White)
+                    }
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Estado de Ruta",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                color = Color.Black
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(color = colorTema, shape = RoundedCornerShape(4.dp)) {
+                                Text(
+                                    text = etiquetaTexto,
+                                    color = Color.White,
+                                    fontSize = 8.5.sp,
+                                    fontWeight = FontWeight.Black,
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = notificacion.mensaje.ifBlank {
+                                when (notificacion.tipo) {
+                                    TipoNotificacion.USUARIO_ELIMINADO -> "El conductor te eliminó de este viaje."
+                                    TipoNotificacion.CANCELACION_VIAJE -> "El conductor canceló este viaje."
+                                    else -> "El viaje ha cambiado de estado."
+                                }
+                            },
+                            fontSize = 12.5.sp,
+                            color = Color(0xFF334155),
+                            lineHeight = 17.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (notificacion.tipo == TipoNotificacion.INICIO_VIAJE && notificacion.viajeId != null) {
+                        OutlinedButton(
+                            onClick = onDismissRequest,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Cerrar", color = Color.Gray)
+                        }
+                        Button(
+                            onClick = {
+                                onDismissRequest()
+                                navController?.navigate("active_ride/${notificacion.viajeId}") {
+                                    launchSingleTop = true
+                                }
+                            },
+                            modifier = Modifier.weight(1.2f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = UAMColor)
+                        ) {
+                            Text("Ver Mapa", fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        Button(
+                            onClick = onDismissRequest,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = colorTema)
+                        ) {
+                            Text("Entendido", fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class HomeQuintuple<A, B, C, D, E>(val first: A, val second: B, val third: C, val fourth: D, val fifth: E)

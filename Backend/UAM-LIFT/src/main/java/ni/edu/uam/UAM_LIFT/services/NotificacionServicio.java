@@ -43,7 +43,7 @@ public class NotificacionServicio {
         }
         String ruta = construirRuta(viaje);
         String motivoFinal = (motivo == null || motivo.isBlank()) ? "No se especificó un motivo." : motivo.trim();
-        String mensaje = "El viaje " + ruta + " fue cancelado por el conductor. Motivo: " + motivoFinal;
+        String mensaje = "El viaje " + ruta + " fue cancelado por el conductor. \n\n Motivo: " + motivoFinal;
 
         for (Usuario destinatario : destinatarios) {
             crearNotificacion(destinatario, viaje.getId(), TipoNotificacion.CANCELACION_VIAJE, "Viaje cancelado", mensaje);

@@ -35,10 +35,8 @@ fun MessagesScreen(
     val usuario = usuarioViewModel.usuario
     val currentUserId = usuario.id ?: 0L
 
-    // Paleta de colores
     val chatBgColor = Color(0xFFF8FAFC)
 
-    // Cargar datos al iniciar
     LaunchedEffect(Unit) {
         usuarioViewModel.verificarSesion(context)
     }
@@ -49,33 +47,25 @@ fun MessagesScreen(
         }
     }
 
-    // Filtrar chats permitidos:
-    // - El usuario es el conductor (creador)
-    // - O el usuario es un pasajero del viaje (está participando)
-    //
-    // "misViajes" ya viene filtrado desde el backend (conductor u obtenerViajesPorUsuario),
-    // así que la pertenencia al chat ya está garantizada por esa consulta. Antes se exigía
-    // además que el propio usuario apareciera dentro de la lista anidada "pasajeros" del
-    // viaje con estado == ACEPTADO, pero esa lista casi nunca viaja completa en las
-    // respuestas de listado (se carga aparte, bajo demanda, con obtenerPasajerosPorViaje),
-    // así que la condición fallaba siempre y el chat se descartaba: por eso Mensajes
-    // mostraba "No tienes chats activos" aunque sí hubiera viajes con chat activo.
-    // Ahora solo excluimos un viaje si, cuando la lista de pasajeros SÍ viene poblada,
-    // consta explícitamente que el usuario fue rechazado o canceló su participación.
+    // ── SOLUCIÓN: Forzar la inclusión instantánea en cuanto el usuario se une ──
     val chatsPermitidos = remember(misViajes, currentUserId) {
         misViajes.filter { viaje ->
             val esConductor = viaje.conductor?.id == currentUserId
             if (esConductor) return@filter true
 
+            // Buscamos si el usuario actual está en la lista de pasajeros asignados a este objeto viaje
             val miParticipacion = viaje.pasajeros?.firstOrNull { it.usuario?.id == currentUserId }
-            miParticipacion == null ||
-                    (miParticipacion.estado != EstadoViajeUsuario.RECHAZADO &&
-                            miParticipacion.estado != EstadoViajeUsuario.CANCELADO)
+
+            if (miParticipacion != null) {
+                // Si existe registro explícito en la lista, permitimos el chat excepto si fue cancelado/rechazado
+                miParticipacion.estado != EstadoViajeUsuario.RECHAZADO &&
+                        miParticipacion.estado != EstadoViajeUsuario.CANCELADO
+            } else {
+                // COMPORTAMIENTO AGRESIVO: Si el backend asignó el viaje a la lista general pero la sublista de pasajeros
+                // viene vacía provisionalmente, asumimos que se acaba de unir y le permitimos ver el chat de inmediato.
+                true
+            }
         }.sortedByDescending { viaje ->
-            // Orden: más reciente primero. Usamos el último mensaje guardado localmente
-            // (si el usuario ya entró a ese chat alguna vez) y, si no hay ninguno todavía,
-            // caemos al id del viaje (a mayor id, viaje más reciente) para que igual quede
-            // ordenado de forma consistente.
             val idViaje = viaje.id
             val ultimoMensaje = idViaje?.let {
                 ChatLocalCache.obtenerUltimos(context, it).lastOrNull()
@@ -84,21 +74,13 @@ fun MessagesScreen(
         }
     }
 
-    // Usamos rememberSaveable para controlar la navegación interna tras rotaciones
     var selectedViajeId by rememberSaveable { mutableStateOf<Long?>(null) }
     var selectedChatName by rememberSaveable { mutableStateOf("") }
     var selectedChatInitials by rememberSaveable { mutableStateOf("") }
-    // Evita que se vuelva a autoseleccionar el chat si el usuario ya lo cerró manualmente
     var autoAperturaRealizada by rememberSaveable { mutableStateOf(false) }
 
-    // Si llegamos a Mensajes viniendo del mapa del viaje activo (initialViajeId != null),
-    // estamos "dentro" de un viaje en curso: en ese estado solo existen dos pantallas
-    // posibles (el mapa y este chat), así que el botón de regresar debe llevar siempre
-    // de vuelta al mapa y no a la lista de chats.
     val enViajeActivo = initialViajeId != null
 
-    // Si llegamos aquí desde "Chat del viaje" en el mapa del viaje activo, abrimos
-    // ese chat automáticamente en cuanto encontremos el viaje correspondiente.
     LaunchedEffect(initialViajeId, chatsPermitidos) {
         if (initialViajeId != null && !autoAperturaRealizada) {
             val viajeDestino = chatsPermitidos.firstOrNull { it.id == initialViajeId }
@@ -112,17 +94,10 @@ fun MessagesScreen(
         }
     }
 
-    // Mientras estamos dentro de un viaje activo, cualquier gesto/botón de "atrás" del
-    // sistema debe regresar directamente al mapa del viaje, nunca a la lista de chats.
     BackHandler(enabled = enViajeActivo) {
         onBack()
     }
 
-    // Si llegamos a un chat desde la lista normal de Mensajes (no desde un viaje activo),
-    // el chat y la lista viven en la MISMA ruta de navegación (solo cambia un estado
-    // interno). Sin este BackHandler, el gesto/botón de "atrás" no cerraba el chat hacia
-    // la lista: se le escapaba al manejo global de navegación y saltaba directo a otra
-    // pantalla, saltándose el paso intermedio de "volver a la lista de chats".
     BackHandler(enabled = !enViajeActivo && selectedViajeId != null) {
         selectedViajeId = null
     }
@@ -135,8 +110,6 @@ fun MessagesScreen(
             initials = selectedChatInitials,
             onBackClick = {
                 if (enViajeActivo) {
-                    // Dentro de un viaje activo solo se puede ver el mapa o el chat:
-                    // el botón de regresar del chat debe llevar al mapa, no a la lista.
                     onBack()
                 } else {
                     selectedViajeId = null
@@ -175,8 +148,11 @@ fun MessagesScreen(
                         val ultimoMensaje = viaje.id?.let {
                             ChatLocalCache.obtenerUltimos(context, it).lastOrNull()
                         }
+
+                        // Si no hay mensajes guardados en caché, avisamos que el chat se acaba de inicializar
                         val previewMensaje = ultimoMensaje?.contenido?.takeIf { it.isNotBlank() }
-                            ?: "Chat grupal del viaje"
+                            ?: "¡Te has unido al viaje! Escribe un mensaje..."
+
                         val horaMensaje = ultimoMensaje?.fechaEnvio
                             ?.let { fecha -> fecha.substringAfter('T').take(5).ifBlank { null } }
                             ?: ""
