@@ -5,10 +5,8 @@ COPY pom.xml .
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-# Etapa 2: Imagen de ejecución ligera
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
-# Copia exacta del archivo compilado .war
 COPY --from=build /app/target/WebSockerChat-0.0.1-SNAPSHOT.war app.war
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.war"]

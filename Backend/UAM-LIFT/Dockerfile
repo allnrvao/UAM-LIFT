@@ -5,9 +5,8 @@ COPY pom.xml .
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-# Etapa 2: Imagen de ejecución ligera
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
-COPY --from=build /app/target/UAM-LIFT-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=build /app/target/UAM-LIFT-0.0.1-SNAPSHOT.war app.war
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "app.war"]
