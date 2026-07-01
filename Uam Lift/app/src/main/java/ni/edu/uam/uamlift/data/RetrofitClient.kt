@@ -13,7 +13,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
-    const val BASE_URL = "http://192.168.0.9:8080/"
+    const val BASE_URL = "https://uam-lift-yt7i.onrender.com/"
 
 
     private val loggingInterceptor = HttpLoggingInterceptor { message ->

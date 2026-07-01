@@ -38,7 +38,7 @@ class ViajeWebSocketManager(
         currentViajeId = idViaje
 
         val request = Request.Builder()
-            .url("ws://192.168.0.9:8082/ws/viaje")
+            .url("wss://uam-lift-w6pi.onrender.com/ws/viaje")
             .build()
 
         socket = client.newWebSocket(request, object : okhttp3.WebSocketListener() {

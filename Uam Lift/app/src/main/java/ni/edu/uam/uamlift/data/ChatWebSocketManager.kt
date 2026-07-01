@@ -37,7 +37,7 @@ class ChatWebSocketManager {
         currentViajeId = viajeId
 
         val host = RetrofitClient2.chatHost
-        val url = "ws://$host:8081/ws/chat?viajeId=$viajeId"
+        val url = "wss://$host/ws/chat?viajeId=$viajeId"
 
         val request = Request.Builder()
             .url(url)

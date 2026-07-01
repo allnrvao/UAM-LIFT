@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import ni.edu.uam.uamlift.data.RetrofitClient
@@ -149,8 +150,12 @@ fun ChatScreen(
                     TextField(
                         value = textState, onValueChange = { textState = it },
                         modifier = Modifier.weight(1f),
-                        placeholder = { Text("Escribe un mensaje...") },
+                        textStyle = TextStyle(color = Color.Black, fontSize = 16.sp),
+                        placeholder = { Text("Escribe un mensaje...", color = Color.Gray) },
                         colors = TextFieldDefaults.colors(
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.Black,
+                            cursorColor = Color.Black,
                             focusedContainerColor = Color(0xFFF1F5F9),
                             unfocusedContainerColor = Color(0xFFF1F5F9),
                             focusedIndicatorColor = Color.Transparent,
