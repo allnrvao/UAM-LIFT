@@ -1,10 +1,12 @@
 package ni.edu.uam.uamlift.data.viewmodels
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import ni.edu.uam.uamlift.data.ChatLocalCache
 import ni.edu.uam.uamlift.data.ChatWebSocketManager
 import ni.edu.uam.uamlift.data.api.ChatApi
 import ni.edu.uam.uamlift.data.api.UsuarioApiService
@@ -35,12 +37,21 @@ class ChatViewModel(
     private var currentViajeId: Long? = null
     private var connectionJob: Job? = null
 
-    fun iniciarChat(viajeId: Long, currentUserId: Long) {
+    fun iniciarChat(viajeId: Long, currentUserId: Long, context: Context? = null) {
         if (currentViajeId == viajeId) return
 
         connectionJob?.cancel()
         currentViajeId = viajeId
-        _mensajesUi.value = emptyList()
+
+        // Mostramos de inmediato los últimos mensajes guardados localmente (si los hay)
+        // para que el chat nunca se vea vacío mientras llega la respuesta del backend.
+        val appContext = context?.applicationContext
+        _mensajesUi.value = if (appContext != null) {
+            ChatLocalCache.obtenerUltimos(appContext, viajeId)
+                .map { it.copy(isMe = it.usuarioId == currentUserId) }
+        } else {
+            emptyList()
+        }
 
         connectionJob = viewModelScope.launch {
             try {
@@ -72,6 +83,9 @@ class ChatViewModel(
                                 (actual + nuevoUi).sortedWith(compareBy({ it.id }, { it.timestamp }))
                             }
                         }
+                        appContext?.let { ctx ->
+                            ChatLocalCache.guardarUltimos(ctx, viajeId, _mensajesUi.value)
+                        }
                     }
                 }
             }
@@ -94,6 +108,10 @@ class ChatViewModel(
                     val idsExistentes = actual.filter { it.id != 0L }.map { it.id }.toSet()
                     val historialFiltrado = listaHistorialUi.filter { it.id !in idsExistentes }
                     (historialFiltrado + actual).sortedWith(compareBy({ it.id }, { it.timestamp }))
+                }
+
+                appContext?.let { ctx ->
+                    ChatLocalCache.guardarUltimos(ctx, viajeId, _mensajesUi.value)
                 }
 
                 resolveMissingNames()

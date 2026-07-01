@@ -61,10 +61,10 @@ class ViajeViewModel(
                     return@launch
                 }
 
-                val tieneViajeActivo = _misViajes.value.any { 
+                val tieneViajeActivo = _misViajes.value.any {
                     it.estadoViaje == EstadoViaje.PROPUESTO ||
-                    it.estadoViaje == EstadoViaje.PROGRAMADO || 
-                    it.estadoViaje == EstadoViaje.EN_CURSO 
+                            it.estadoViaje == EstadoViaje.PROGRAMADO ||
+                            it.estadoViaje == EstadoViaje.EN_CURSO
                 }
                 if (tieneViajeActivo) {
                     onError("Ya tienes un viaje activo. Debes finalizarlo antes de crear uno nuevo.")
@@ -75,7 +75,7 @@ class ViajeViewModel(
                     onError("El aporte debe ser al menos de C$ 1")
                     return@launch
                 }
-                
+
                 val fechasValidas = withContext(Dispatchers.IO) {
                     apiService.validarFechas(usuarioId, fechaSalida, fechaLlegada)
                 }
@@ -123,10 +123,10 @@ class ViajeViewModel(
             _isLoading.value = true
             try {
                 // 1. Verificar si el usuario ya tiene un viaje activo
-                val tieneViajeActivo = _misViajes.value.any { 
-                    it.estadoViaje == EstadoViaje.PROPUESTO || 
-                    it.estadoViaje == EstadoViaje.PROGRAMADO || 
-                    it.estadoViaje == EstadoViaje.EN_CURSO 
+                val tieneViajeActivo = _misViajes.value.any {
+                    it.estadoViaje == EstadoViaje.PROPUESTO ||
+                            it.estadoViaje == EstadoViaje.PROGRAMADO ||
+                            it.estadoViaje == EstadoViaje.EN_CURSO
                 }
                 if (tieneViajeActivo) {
                     onError("Ya estás participando en un viaje activo. Finalízalo antes de unirte a otro.")
@@ -135,17 +135,17 @@ class ViajeViewModel(
 
                 // 2. Buscar el viaje y VERIFICAR ASIENTOS DISPONIBLES REALES
                 val viajeADeterminar = _viajesOtros.value.find { it.id == viajeId } ?: _viajes.value.find { it.id == viajeId }
-                
+
                 if (viajeADeterminar != null) {
                     // VALIDACIÓN DE CUPO: Total - Pasajeros ya unidos
                     val pasajerosActuales = viajeADeterminar.pasajeros?.size ?: 0
                     val asientosLibres = viajeADeterminar.numeroAsientosDisponibles - pasajerosActuales
-                    
+
                     if (asientosLibres <= 0) {
                         onError("Lo sentimos, este viaje ya está lleno (0 asientos disponibles).")
                         return@launch
                     }
-                    
+
                     val fechasValidas = withContext(Dispatchers.IO) {
                         apiService.validarFechas(usuarioId, viajeADeterminar.fechaHoraSalida ?: "", viajeADeterminar.fechaHoraLlegada ?: "")
                     }
@@ -171,15 +171,19 @@ class ViajeViewModel(
         }
     }
 
-    fun cargarViajesDesdeBackend(usuarioId: Long? = null) {
+    fun cargarViajesDesdeBackend(usuarioId: Long? = null, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
-            if (usuarioId == null && _viajesOtros.value.isNotEmpty()) return@launch
+            if (usuarioId == null && _viajesOtros.value.isNotEmpty()) {
+                onComplete()
+                return@launch
+            }
             try {
                 fetchViajesInternal(apiService, usuarioId)
             } catch (e: Exception) {
                 Log.e("ViajeViewModel", "Error al cargar datos", e)
             } finally {
                 _isLoading.value = false
+                onComplete()
             }
         }
     }
@@ -199,7 +203,7 @@ class ViajeViewModel(
                 val misCreadosFiltrados = creados.filter { it.estadoViaje in estadosActivos }
                 val misUnidosFiltrados = unidos.filter { it.estadoViaje in estadosActivos }
                 val misViajesResult = (misCreadosFiltrados + misUnidosFiltrados).distinctBy { it.id }
-                
+
                 val otrosResult = todos.filter { v ->
                     val esConductor = v.conductor?.id == usuarioId
                     val esPasajero = v.pasajeros?.any { it.usuario?.id == usuarioId }

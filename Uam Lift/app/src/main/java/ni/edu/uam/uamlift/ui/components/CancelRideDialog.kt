@@ -22,14 +22,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ni.edu.uam.uamlift.ui.theme.UAMColor
-
-/**
- * Diálogo de dos pasos que se muestra cuando el conductor quiere cancelar
- * un viaje:
- *  1. Confirmación: "¿Estás seguro de que quieres cancelar el viaje?"
- *  2. Motivo: el conductor escribe la razón, la cual se enviará como
- *     notificación a todos los pasajeros del viaje.
- */
 @Composable
 fun CancelRideDialog(
     onDismissRequest: () -> Unit,

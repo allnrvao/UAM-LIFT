@@ -62,16 +62,20 @@ fun MyRidesScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().background(Gray)) {
-        Surface(color = Color.White, shadowElevation = 4.dp) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = Color.White,
+            shadowElevation = 4.dp
+        ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text(
-                    "Mis Viajes",
+                    text = "Mis Viajes",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Black,
                     color = UAMColor
                 )
                 Text(
-                    "Gestiona tus rutas publicadas",
+                    text = "Gestiona tus rutas publicadas",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )

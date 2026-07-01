@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import ni.edu.uam.uamlift.data.RetrofitClient
@@ -58,6 +59,7 @@ fun ChatScreen(
     val chatBgColor = Color(0xFFF8FAFC)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     val misViajes by viajeViewModel.misViajes.collectAsState()
     val viajeActual = remember(misViajes, viajeId) {
@@ -77,7 +79,7 @@ fun ChatScreen(
     LaunchedEffect(viajeId, currentUserId) {
         if (currentUserId != 0L) {
             viajeViewModel.obtenerPasajeros(viajeId)
-            viewModel.iniciarChat(viajeId, currentUserId)
+            viewModel.iniciarChat(viajeId, currentUserId, context)
         }
     }
 

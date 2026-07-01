@@ -103,6 +103,8 @@ public class ViajeServicio implements InterfazViaje {
         viajeUsuario.setUsuario(pasajero);
         viajeUsuario.setEstado(EstadoViajeUsuario.ACEPTADO);
         repoViajeUsuario.save(viajeUsuario);
+
+        notificacionServicio.notificarUsuarioUnido(viaje, pasajero);
     }
 
     @Override
@@ -117,8 +119,15 @@ public class ViajeServicio implements InterfazViaje {
     public void finalizarViaje(Long viajeId) {
         Viaje viaje = repoViaje.findById(viajeId)
                 .orElseThrow(() -> new RuntimeException("Viaje no encontrado con ID: " + viajeId));
+
+        // Obtenemos a los destinatarios ANTES de cambiar el estado del viaje,
+        // igual que en cancelarViaje, para mantener el mismo patrón.
+        List<Usuario> destinatarios = obtenerPasajerosPorViaje(viajeId);
+
         viaje.setEstadoViaje(EstadoViaje.FINALIZADO);
         repoViaje.save(viaje);
+
+        notificacionServicio.notificarFinalizacionViaje(viaje, destinatarios);
     }
 
     @Override
@@ -184,7 +193,7 @@ public class ViajeServicio implements InterfazViaje {
             LocalDateTime existenteSalida = viaje.getFechaHoraSalida();
             LocalDateTime existenteLlegada = viaje.getFechaHoraLlegada();
 
-             if (nuevaSalida.isBefore(existenteLlegada) && nuevaLlegada.isAfter(existenteSalida)) {
+            if (nuevaSalida.isBefore(existenteLlegada) && nuevaLlegada.isAfter(existenteSalida)) {
                 return false;
             }
         }
@@ -208,7 +217,7 @@ public class ViajeServicio implements InterfazViaje {
             LocalDateTime existenteSalida = viaje.getFechaHoraSalida();
             LocalDateTime existenteLlegada = viaje.getFechaHoraLlegada();
 
-             if (nuevaSalida.isBefore(existenteLlegada) && nuevaLlegada.isAfter(existenteSalida)) {
+            if (nuevaSalida.isBefore(existenteLlegada) && nuevaLlegada.isAfter(existenteSalida)) {
                 return false;
             }
         }
@@ -241,6 +250,7 @@ public class ViajeServicio implements InterfazViaje {
             if (viajeUsuario.getEstado() == EstadoViajeUsuario.ACEPTADO) {
                 viajeUsuario.setEstado(EstadoViajeUsuario.CANCELADO);
                 repoViajeUsuario.save(viajeUsuario);
+                notificacionServicio.notificarUsuarioEliminado(viajeUsuario.getViaje(), viajeUsuario.getUsuario());
                 return true;
             }
         }

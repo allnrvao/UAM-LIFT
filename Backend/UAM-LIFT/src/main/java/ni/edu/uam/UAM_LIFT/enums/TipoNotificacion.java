@@ -9,6 +9,15 @@ public enum TipoNotificacion {
     @JsonProperty("INICIO_VIAJE")
     INICIO_VIAJE,
 
+    @JsonProperty("FINALIZACION_VIAJE")
+    FINALIZACION_VIAJE,
+
+    @JsonProperty("USUARIO_UNIDO")
+    USUARIO_UNIDO,
+
+    @JsonProperty("USUARIO_ELIMINADO")
+    USUARIO_ELIMINADO,
+
     @JsonProperty("GENERAL")
     GENERAL
 }

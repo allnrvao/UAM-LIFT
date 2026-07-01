@@ -20,6 +20,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -101,8 +102,26 @@ fun LogIn(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.2f))
             ) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = "UL", color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Black)
+                Box(
+
+                    modifier = Modifier.fillMaxSize(),
+
+                    contentAlignment = Alignment.Center // Garantiza el centrado perfecto
+
+                ) {
+
+                    Image(
+
+                        painter = painterResource(id = R.drawable.uam_lift_logo),
+
+                        contentDescription = "Logo UAM Lift",
+
+                        modifier = Modifier.fillMaxSize(), // Rellena todo el contenedor de la tarjeta sin padding externo
+
+                        contentScale = ContentScale.Crop // Recorta y expande para rellenar por completo el recuadro
+
+                    )
+
                 }
             }
 

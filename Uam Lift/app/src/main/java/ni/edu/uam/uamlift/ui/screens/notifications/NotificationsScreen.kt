@@ -9,9 +9,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -97,6 +99,34 @@ fun NotificationsScreen(
                                 if (!notificacion.leida) {
                                     notificacion.id?.let { notificacionViewModel.marcarComoLeida(it, usuarioId) }
                                 }
+                                when (notificacion.tipo) {
+                                    TipoNotificacion.INICIO_VIAJE -> {
+                                        val viajeId = notificacion.viajeId
+                                        if (viajeId != null) {
+                                            navController.navigate("active_ride/$viajeId") {
+                                                launchSingleTop = true
+                                            }
+                                        }
+                                    }
+                                    TipoNotificacion.USUARIO_UNIDO -> {
+                                        // El conductor ve quién se unió desde "Mis viajes".
+                                        navController.navigate("my_rides") {
+                                            launchSingleTop = true
+                                        }
+                                    }
+                                    TipoNotificacion.FINALIZACION_VIAJE,
+                                    TipoNotificacion.CANCELACION_VIAJE,
+                                    TipoNotificacion.USUARIO_ELIMINADO -> {
+                                        // Guardamos la notificación para que HomeScreen muestre el
+                                        // diálogo con la info una vez lleguemos ahí.
+                                        notificacionViewModel.mostrarNotificacionPendiente(notificacion)
+                                        navController.navigate("home") {
+                                            popUpTo(navController.graph.id) { inclusive = true }
+                                            launchSingleTop = true
+                                        }
+                                    }
+                                    else -> { /* GENERAL: no hay pantalla específica a la cual ir */ }
+                                }
                             }
                         )
                     }
@@ -112,8 +142,22 @@ private fun NotificationItem(
     notificacion: Notificacion,
     onClick: () -> Unit
 ) {
-    val esCancelacion = notificacion.tipo == TipoNotificacion.CANCELACION_VIAJE
-    val colorIcono = if (esCancelacion) Color(0xFFEF4444) else UAMColor
+    val esCancelacion = notificacion.tipo == TipoNotificacion.CANCELACION_VIAJE ||
+            notificacion.tipo == TipoNotificacion.USUARIO_ELIMINADO
+    val esFinalizacion = notificacion.tipo == TipoNotificacion.FINALIZACION_VIAJE
+    val esUsuarioUnido = notificacion.tipo == TipoNotificacion.USUARIO_UNIDO
+    val colorIcono = when {
+        esCancelacion -> Color(0xFFEF4444)
+        esFinalizacion -> Color(0xFF22C55E)
+        esUsuarioUnido -> UAMColor
+        else -> UAMColor
+    }
+    val iconoNotificacion = when {
+        esCancelacion -> Icons.Default.Cancel
+        esFinalizacion -> Icons.Default.CheckCircle
+        esUsuarioUnido -> Icons.Default.PersonAdd
+        else -> Icons.Default.DirectionsCar
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -133,7 +177,7 @@ private fun NotificationItem(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (esCancelacion) Icons.Default.Cancel else Icons.Default.DirectionsCar,
+                    imageVector = iconoNotificacion,
                     contentDescription = null,
                     tint = colorIcono,
                     modifier = Modifier.size(20.dp)

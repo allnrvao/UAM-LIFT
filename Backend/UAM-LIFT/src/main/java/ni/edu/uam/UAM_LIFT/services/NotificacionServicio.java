@@ -10,11 +10,7 @@ import org.springframework.stereotype.Service;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-/**
- * Servicio encargado de generar y consultar las notificaciones que se envían
- * a los miembros (pasajeros y conductor) de un viaje cuando ocurren eventos
- * relevantes: inicio o cancelación del viaje.
- */
+
 @Service
 public class NotificacionServicio {
 
@@ -72,6 +68,54 @@ public class NotificacionServicio {
         for (Usuario destinatario : destinatarios) {
             crearNotificacion(destinatario, viaje.getId(), TipoNotificacion.INICIO_VIAJE, "Tu viaje ha iniciado", mensaje);
         }
+    }
+
+    /**
+     * Notifica a todos los destinatarios (pasajeros aceptados) que el viaje
+     * ha finalizado.
+     */
+    public void notificarFinalizacionViaje(Viaje viaje, List<Usuario> destinatarios) {
+        if (destinatarios == null || destinatarios.isEmpty()) {
+            return;
+        }
+        String ruta = construirRuta(viaje);
+        String mensaje = "El viaje " + ruta + " ha finalizado. ¡Gracias por usar UAM Lift!";
+
+        for (Usuario destinatario : destinatarios) {
+            crearNotificacion(destinatario, viaje.getId(), TipoNotificacion.FINALIZACION_VIAJE, "Viaje finalizado", mensaje);
+        }
+    }
+
+    /**
+     * Notifica al conductor que un pasajero se unió a su viaje.
+     */
+    public void notificarUsuarioUnido(Viaje viaje, Usuario pasajero) {
+        Usuario conductor = viaje.getConductor();
+        if (conductor == null || pasajero == null) {
+            return;
+        }
+        String ruta = construirRuta(viaje);
+        String fecha = (viaje.getFechaHoraSalida() != null) ? viaje.getFechaHoraSalida().format(FORMATO_FECHA) : "fecha no disponible";
+        String nombrePasajero = ((pasajero.getNombre() != null ? pasajero.getNombre() : "") + " " +
+                (pasajero.getApellido() != null ? pasajero.getApellido() : "")).trim();
+        if (nombrePasajero.isEmpty()) nombrePasajero = "Un pasajero";
+        String mensaje = nombrePasajero + " se unió a tu viaje " + ruta +
+                ", programado para el " + fecha + ".";
+
+        crearNotificacion(conductor, viaje.getId(), TipoNotificacion.USUARIO_UNIDO, "Nuevo pasajero", mensaje);
+    }
+
+    /**
+     * Notifica al pasajero que fue eliminado (sacado) de un viaje por el conductor.
+     */
+    public void notificarUsuarioEliminado(Viaje viaje, Usuario pasajero) {
+        if (pasajero == null) {
+            return;
+        }
+        String ruta = construirRuta(viaje);
+        String mensaje = "Fuiste eliminado del viaje " + ruta + " por el conductor.";
+
+        crearNotificacion(pasajero, viaje.getId(), TipoNotificacion.USUARIO_ELIMINADO, "Fuiste removido del viaje", mensaje);
     }
 
     public List<Notificacion> obtenerPorUsuario(Long usuarioId) {

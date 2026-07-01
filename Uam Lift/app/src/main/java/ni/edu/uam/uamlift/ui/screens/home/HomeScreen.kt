@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -29,6 +30,7 @@ import com.google.android.gms.location.Priority
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ni.edu.uam.uamlift.data.enums.EstadoViaje
+import ni.edu.uam.uamlift.data.enums.TipoNotificacion
 import ni.edu.uam.uamlift.data.models.Viaje
 import ni.edu.uam.uamlift.data.viewmodels.AppViewModelFactory
 import ni.edu.uam.uamlift.data.viewmodels.NotificacionViewModel
@@ -135,6 +137,57 @@ fun HomeScreen(
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
     val tabs = listOf("Explorar", "Mis Viajes")
     var selectedViaje by remember { mutableStateOf<Viaje?>(null) }
+
+    // Si llegamos aquí porque el usuario tocó una notificación de viaje finalizado o
+    // cancelado, mostramos un diálogo informativo con el detalle (mismo estilo que los
+    // diálogos de confirmación de Perfil) y luego la limpiamos para que no reaparezca.
+    val notificacionPendiente = notificacionViewModel.notificacionPendiente
+    if (notificacionPendiente != null) {
+        val esCancelacion = notificacionPendiente.tipo == TipoNotificacion.CANCELACION_VIAJE ||
+                notificacionPendiente.tipo == TipoNotificacion.USUARIO_ELIMINADO
+        val colorTitulo = if (esCancelacion) Color(0xFFEF4444) else UAMColor
+        AlertDialog(
+            onDismissRequest = { notificacionViewModel.limpiarNotificacionPendiente() },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(24.dp),
+            title = {
+                Text(
+                    text = notificacionPendiente.titulo.ifBlank {
+                        when (notificacionPendiente.tipo) {
+                            TipoNotificacion.USUARIO_ELIMINADO -> "Fuiste removido del viaje"
+                            else -> if (esCancelacion) "Viaje cancelado" else "Viaje finalizado"
+                        }
+                    },
+                    color = colorTitulo,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Text(
+                    text = notificacionPendiente.mensaje.ifBlank {
+                        when (notificacionPendiente.tipo) {
+                            TipoNotificacion.USUARIO_ELIMINADO -> "El conductor te eliminó de este viaje."
+                            TipoNotificacion.CANCELACION_VIAJE -> "El conductor canceló este viaje."
+                            else -> "El viaje ha finalizado."
+                        }
+                    },
+                    color = Color(0xFF334155),
+                    style = MaterialTheme.typography.bodyLarge,
+                    lineHeight = 22.sp,
+                    fontWeight = FontWeight.Normal
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { notificacionViewModel.limpiarNotificacionPendiente() },
+                    colors = ButtonDefaults.textButtonColors(contentColor = UAMColor)
+                ) {
+                    Text(text = "Entendido", fontWeight = FontWeight.SemiBold)
+                }
+            }
+        )
+    }
 
     if (selectedViaje != null) {
         PassengersDialog(

@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -317,9 +318,9 @@ fun Step1LocationFlow(
 
                 Box(modifier = Modifier.fillMaxWidth().height(300.dp).clip(RoundedCornerShape(20.dp)).border(1.dp, Color.LightGray, RoundedCornerShape(20.dp)).background(Color.White)) {
                     // Lógica de coordenadas más robusta para evitar el "punto fijo" al rotar
-                    val uamLat = destinoDefecto?.latitud ?: 12.1126
-                    val uamLng = destinoDefecto?.longitud ?: -86.2435
-                    
+                    val uamLat = destinoDefecto?.latitud ?: 12.108512
+                    val uamLng = destinoDefecto?.longitud ?: -86.257050
+
                     MapLibreView(
                         originLat = if (isToUam) (selLat ?: uamLat) else uamLat,
                         originLng = if (isToUam) (selLng ?: uamLng) else uamLng,
@@ -579,7 +580,17 @@ fun Step3Price(
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Aporte por persona", style = MaterialTheme.typography.titleLarge, color = UAMColor, fontWeight = FontWeight.Bold)
-        OutlinedTextField(value = price, onValueChange = onPriceChange, label = { Text("Monto en Córdoba (C$)") }, prefix = { Text("C$ ") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.Black, unfocusedTextColor = Color.Black))
+        OutlinedTextField(
+            value = price,
+            onValueChange = { nuevoValor -> onPriceChange(nuevoValor.replace("\n", "")) },
+            label = { Text("Monto en Córdoba (C$)") },
+            prefix = { Text("C$ ") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.Black, unfocusedTextColor = Color.Black)
+        )
 
         Card(colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), shape = RoundedCornerShape(16.dp)) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

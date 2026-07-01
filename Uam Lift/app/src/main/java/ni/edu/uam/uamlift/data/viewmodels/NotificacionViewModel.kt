@@ -1,6 +1,9 @@
 package ni.edu.uam.uamlift.data.viewmodels
 
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -12,14 +15,7 @@ import kotlinx.coroutines.withContext
 import ni.edu.uam.uamlift.data.api.NotificacionApiService
 import ni.edu.uam.uamlift.data.models.Notificacion
 
-/**
- * Maneja el estado de las notificaciones del usuario actual: la lista
- * (ordenada de la más reciente a la más antigua) y el conteo de no leídas,
- * usado para mostrar el círculo rojo sobre el botón de notificaciones.
- *
- * También detecta notificaciones nuevas que llegan en cada refresco para
- * poder disparar un aviso del sistema (ver [NotificationHelper]).
- */
+
 class NotificacionViewModel(
     private val apiService: NotificacionApiService
 ) : ViewModel() {
@@ -29,6 +25,19 @@ class NotificacionViewModel(
 
     private val _noLeidas = MutableStateFlow(0L)
     val noLeidas: StateFlow<Long> = _noLeidas.asStateFlow()
+
+    // Notificación de finalización/cancelación que el usuario acaba de tocar y que
+    // todavía no se le ha mostrado como diálogo (la pantalla de inicio la consume).
+    var notificacionPendiente by mutableStateOf<Notificacion?>(null)
+        private set
+
+    fun mostrarNotificacionPendiente(notificacion: Notificacion) {
+        notificacionPendiente = notificacion
+    }
+
+    fun limpiarNotificacionPendiente() {
+        notificacionPendiente = null
+    }
 
     // IDs de notificaciones que ya conocemos, para detectar cuáles son nuevas en cada refresco.
     private var idsConocidos: Set<Long> = emptySet()
