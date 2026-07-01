@@ -38,7 +38,7 @@ class ViajeWebSocketManager(
         currentViajeId = idViaje
 
         val request = Request.Builder()
-            .url("ws://192.168.0.13:8082/ws/viaje")
+            .url("ws://192.168.1.20:8082/ws/viaje")
             .build()
 
         socket = client.newWebSocket(request, object : okhttp3.WebSocketListener() {

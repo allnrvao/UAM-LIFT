@@ -51,7 +51,6 @@ fun TakeRideDialog(
         if (libres < 0) 0 else libres
     }
 
-    // Priorizamos nombreUsuario sobre el nombre real
     val nombreConductor = viaje.conductor?.nombreUsuario?.takeIf { it.isNotBlank() }
         ?: "${viaje.conductor?.nombre ?: "Conductor"} ${viaje.conductor?.apellido ?: ""}".trim()
 
@@ -82,15 +81,29 @@ fun TakeRideDialog(
 
                 Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
                     Card(modifier = Modifier.fillMaxWidth().height(200.dp), shape = RoundedCornerShape(24.dp)) {
-                        MapLibreView(
-                            modifier = Modifier.fillMaxSize(),
-                            originLat = viaje.origen?.latitud ?: 12.108,
-                            originLng = viaje.origen?.longitud ?: -86.257,
-                            destLat = viaje.destino?.latitud ?: 12.115,
-                            destLng = viaje.destino?.longitud ?: -86.250,
-                            isSelectionEnabled = false,
-                            isGesturesEnabled = true
-                        )
+
+                        // SOLUCIÓN: Validamos de forma estricta que existan las coordenadas del viaje antes de renderizar
+                        if (viaje.origen?.latitud != null && viaje.origen.longitud != null &&
+                            viaje.destino?.latitud != null && viaje.destino.longitud != null) {
+
+                            MapLibreView(
+                                modifier = Modifier.fillMaxSize(),
+                                originLat = viaje.origen.latitud,
+                                originLng = viaje.origen.longitud,
+                                destLat = viaje.destino.latitud,
+                                destLng = viaje.destino.longitud,
+                                isSelectionEnabled = false,
+                                isGesturesEnabled = true
+                            )
+                        } else {
+                            // Vista temporal de carga mientras la data del backend termina de propagarse
+                            Box(
+                                modifier = Modifier.fillMaxSize().background(Color(0xFFF5F5F5)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = UAMColor)
+                            }
+                        }
                     }
 
                     Spacer(Modifier.height(24.dp))

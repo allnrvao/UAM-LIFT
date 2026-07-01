@@ -4,11 +4,13 @@ import android.content.Context
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.osmdroid.bonuspack.routing.OSRMRoadManager
+import org.osmdroid.bonuspack.routing.RoadManager
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -23,7 +25,8 @@ import org.osmdroid.views.overlay.Polyline
  * Componente de mapa OSM con:
  * - Desplazamiento fluido mejorado
  * - Soporte para selección de ubicación
- * - Dibuja ruta y ubicación actual del conductor
+ * - Dibuja ruta REAL por calles y ubicación actual del conductor
+ * - Mantiene los íconos/pines originales de Origen y Destino
  */
 @Composable
 fun MapLibreView(
@@ -39,6 +42,8 @@ fun MapLibreView(
     onLocationSelected: (Double, Double) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope() // Para calcular la ruta en segundo plano
+    val roadManager: RoadManager = remember { OSRMRoadManager(context, "UamLift") }
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -87,26 +92,28 @@ fun MapLibreView(
 
                 val points = mutableListOf<GeoPoint>()
 
+                // --- MARCADOR ORIGEN ORIGINAL ---
                 originLat?.let { lat ->
                     originLng?.let { lng ->
                         val p = GeoPoint(lat, lng)
                         points.add(p)
                         val marker = Marker(view).apply {
                             position = p
-                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM) // Pin estándar
                             title = "Origen"
                         }
                         view.overlays.add(marker)
                     }
                 }
 
+                // --- MARCADOR DESTINO ORIGINAL ---
                 destLat?.let { lat ->
                     destLng?.let { lng ->
                         val p = GeoPoint(lat, lng)
                         points.add(p)
                         val marker = Marker(view).apply {
                             position = p
-                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM) // Pin estándar
                             title = "Destino"
                         }
                         view.overlays.add(marker)
@@ -123,44 +130,56 @@ fun MapLibreView(
                             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                             title = "Conductor"
                             setInfoWindow(null)
-                            
+
                             val density = context.resources.displayMetrics.density
                             val size = (32 * density).toInt()
                             val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
                             val canvas = android.graphics.Canvas(bitmap)
                             val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
-                            
+
                             // Borde blanco para visibilidad
                             paint.color = android.graphics.Color.WHITE
                             canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
-                            
+
                             // Círculo rojo
                             paint.color = android.graphics.Color.RED
                             canvas.drawCircle(size / 2f, size / 2f, size / 2.6f, paint)
-                            
+
                             // Punto blanco central
                             paint.color = android.graphics.Color.WHITE
                             canvas.drawCircle(size / 2f, size / 2f, size / 8f, paint)
-                            
+
                             icon = android.graphics.drawable.BitmapDrawable(context.resources, bitmap)
                         }
                         view.overlays.add(marker)
                     }
                 }
 
+                // --- DIBUJO DE LA RUTA REAL (OSRM) ---
                 if (originLat != null && originLng != null && destLat != null && destLng != null) {
-                    val line = Polyline(view).apply {
-                        setPoints(
-                            listOf(
-                                GeoPoint(originLat, originLng),
-                                GeoPoint(destLat, destLng)
-                            )
-                        )
-                        outlinePaint.color = android.graphics.Color.parseColor("#019AA8")
-                        outlinePaint.strokeWidth = 10f
-                        outlinePaint.isAntiAlias = true
+                    scope.launch(Dispatchers.IO) {
+                        try {
+                            val waypoints = ArrayList<GeoPoint>().apply {
+                                add(GeoPoint(originLat, originLng))
+                                add(GeoPoint(destLat, destLng))
+                            }
+                            val road = roadManager.getRoad(waypoints)
+                            if (road.mRouteHigh.isNotEmpty()) {
+                                withContext(Dispatchers.Main) {
+                                    val polyline = Polyline(view).apply {
+                                        setPoints(road.mRouteHigh)
+                                        outlinePaint.color = android.graphics.Color.parseColor("#019AA8")
+                                        outlinePaint.strokeWidth = 10f
+                                        outlinePaint.isAntiAlias = true
+                                    }
+                                    view.overlays.add(polyline)
+                                    view.invalidate() // Refresca el mapa para pintar la ruta nueva
+                                }
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
-                    view.overlays.add(line)
                 }
 
                 if (points.isNotEmpty()) {

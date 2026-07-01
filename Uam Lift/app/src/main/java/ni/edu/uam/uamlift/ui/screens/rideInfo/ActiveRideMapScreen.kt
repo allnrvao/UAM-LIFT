@@ -3,7 +3,11 @@ package ni.edu.uam.uamlift.ui.screens.rideInfo
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color as AndroidColor
+import android.graphics.drawable.BitmapDrawable
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -74,7 +78,7 @@ fun ActiveRideMapScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    
+
     val usuarioActual = usuarioViewModel.usuario
     val misViajes by viajeViewModel.misViajes.collectAsState()
     val viajesOtros by viajeViewModel.viajesOtros.collectAsState()
@@ -87,6 +91,21 @@ fun ActiveRideMapScreen(
     val viaje = remember(misViajes, viajesOtros, viajeId) {
         (misViajes + viajesOtros).firstOrNull { it.id == viajeId }
     }
+
+    // --- LÓGICA DE ROLES PARA BLOQUEO DE PANTALLA ---
+    val esPasajero = remember(pasajeros, usuarioActual.cif) {
+        pasajeros.any { it.cif == usuarioActual.cif && it.cif != null }
+    }
+
+    val esConductor = remember(viaje, usuarioActual.id) {
+        viaje?.conductor?.id == usuarioActual.id
+    }
+
+    val esParticipante = esPasajero || esConductor
+
+    // Bloquear botón atrás físico SOLO si el viaje está en curso Y el usuario es participante
+    BackHandler(enabled = viaje?.estadoViaje == EstadoViaje.EN_CURSO && esParticipante) { /* No hace nada, bloquea la salida */ }
+    // ------------------------------------------------
 
     // Cálculo dinámico de asientos libres para el mapa
     val asientosLibres = remember(viaje?.numeroAsientosDisponibles, pasajeros.size) {
@@ -103,7 +122,7 @@ fun ActiveRideMapScreen(
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         )
     }
-    
+
     // Bandera para no repetir la solicitud de permisos en esta pantalla
     var permissionRequested by rememberSaveable { mutableStateOf(false) }
 
@@ -142,9 +161,8 @@ fun ActiveRideMapScreen(
     }
 
     LaunchedEffect(viaje, hasLocationPermission) {
-        val esConductor = viaje?.conductor?.id == usuarioActual.id
         val esViajeActivo = viaje?.estadoViaje == EstadoViaje.EN_CURSO
-        
+
         if (esConductor && esViajeActivo && viaje != null) {
             if (!hasLocationPermission) {
                 if (!permissionRequested) {
@@ -164,10 +182,7 @@ fun ActiveRideMapScreen(
                         }
                         delay(5000)
                     }
-                } catch (e: SecurityException) {
-                } finally {
-                    fusedLocationClient.removeLocationUpdates(locationCallback)
-                }
+                } catch (e: SecurityException) { }
             }
         }
     }
@@ -196,9 +211,10 @@ fun ActiveRideMapScreen(
                 },
                 modifier = Modifier.fillMaxSize(),
                 update = { mv ->
-                    if (viaje != null) dibujarRuta(mv, viaje, roadManager, scope)
                     val lat = ubicacion?.latitud
                     val lng = ubicacion?.longitud
+
+                    if (viaje != null) dibujarRuta(mv, viaje, lat, lng, roadManager, scope)
                     if (lat != null && lng != null) actualizarPosicionCarro(mv, lat, lng, context)
                 }
             )
@@ -230,7 +246,7 @@ fun ActiveRideMapScreen(
                             Column(
                                 modifier = Modifier.fillMaxWidth().clickable { cardExpandida = !cardExpandida }.padding(horizontal = 20.dp, vertical = 12.dp)
                             ) {
-                                val nombreConductor = viaje.conductor?.nombreUsuario?.takeIf { it.isNotBlank() } 
+                                val nombreConductor = viaje.conductor?.nombreUsuario?.takeIf { it.isNotBlank() }
                                     ?: "${viaje.conductor?.nombre ?: ""} ${viaje.conductor?.apellido ?: ""}".trim().ifEmpty { "Conductor" }
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                                     val foto = viaje.conductor?.imagenUrl
@@ -254,7 +270,6 @@ fun ActiveRideMapScreen(
                                     Icon(if (cardExpandida) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp, null, tint = Color.Gray)
                                 }
                                 Spacer(modifier = Modifier.height(12.dp))
-                                // MOSTRAR ASIENTOS LIBRES REALES
                                 Text("Asientos disponibles: $asientosLibres", fontSize = 13.sp, color = UAMColor, fontWeight = FontWeight.Bold)
                             }
 
@@ -317,21 +332,95 @@ private fun MiniPasajeroItem(usuario: Usuario, puedeEliminar: Boolean, onElimina
     }
 }
 
-private fun dibujarRuta(mapView: MapView, viaje: Viaje, roadManager: RoadManager, scope: CoroutineScope) {
-    val originLat = viaje.origen?.latitud ?: return
-    val originLng = viaje.origen.longitud ?: return
+private fun dibujarRuta(mapView: MapView, viaje: Viaje, currentLat: Double?, currentLng: Double?, roadManager: RoadManager, scope: CoroutineScope) {
+    val context = mapView.context
+    val originLat = currentLat ?: viaje.origen?.latitud ?: return
+    val originLng = currentLng ?: viaje.origen?.longitud ?: return
     val destLat = viaje.destino?.latitud ?: return
     val destLng = viaje.destino.longitud ?: return
+
     val existingPolyline = mapView.overlays.filterIsInstance<Polyline>().firstOrNull()
-    if (existingPolyline != null) return 
-    if (!mapView.overlays.any { it is Marker && it.title == "Origen" }) {
-        val startMarker = Marker(mapView).apply { position = GeoPoint(originLat, originLng); setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM); title = "Origen" }
-        mapView.overlays.add(startMarker)
+    if (existingPolyline != null) {
+        val primerPuntoRuta = existingPolyline.actualPoints.firstOrNull()
+        if (primerPuntoRuta != null) {
+            val distanciaMetros = primerPuntoRuta.distanceToAsDouble(GeoPoint(originLat, originLng))
+            if (distanciaMetros < 15.0) {
+                val startMarker = mapView.overlays.filterIsInstance<Marker>().find { it.title == "Origen" }
+                startMarker?.position = GeoPoint(originLat, originLng)
+                return
+            }
+        }
     }
-    if (!mapView.overlays.any { it is Marker && it.title == "Destino" }) {
-        val endMarker = Marker(mapView).apply { position = GeoPoint(destLat, destLng); setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM); title = "Destino" }
-        mapView.overlays.add(endMarker)
+
+    val origenDrawable = android.graphics.drawable.ShapeDrawable(android.graphics.drawable.shapes.OvalShape()).apply {
+        intrinsicWidth = 40
+        intrinsicHeight = 40
+        paint.color = AndroidColor.parseColor("#2ECC71")
     }
+
+    // Actualizar o crear marcador de Origen
+    val startMarker = mapView.overlays.filterIsInstance<Marker>().find { it.title == "Origen" }
+    if (startMarker != null) {
+        startMarker.position = GeoPoint(originLat, originLng)
+    } else {
+        val newStartMarker = Marker(mapView).apply {
+            position = GeoPoint(originLat, originLng)
+            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+            title = "Origen"
+            icon = origenDrawable
+            setInfoWindow(null)
+        }
+        mapView.overlays.add(newStartMarker)
+    }
+
+    // VERIFICACIÓN: Comprobamos si el destino va hacia la UAM
+    val esHaciaUam = viaje.destino?.nombre?.contains("UAM", ignoreCase = true) == true
+
+    val endMarker = mapView.overlays.filterIsInstance<Marker>().find { it.title == "Destino" }
+    if (endMarker == null) {
+        val newEndMarker = Marker(mapView).apply {
+            position = GeoPoint(destLat, destLng)
+            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+            title = "Destino"
+            setInfoWindow(null)
+
+            // Si el destino es la UAM, aplicamos 'uam_icon_location'. Si no, aplicamos el círculo rojo estándar.
+            if (esHaciaUam) {
+                val uamIconId = context.resources.getIdentifier("uam_icon_location", "drawable", context.packageName)
+                if (uamIconId != 0) {
+                    val drawableOriginal = ContextCompat.getDrawable(context, uamIconId)
+                    val density = context.resources.displayMetrics.density
+                    val sizeInPx = (40 * density).toInt()
+
+                    if (drawableOriginal != null) {
+                        val bitmap = Bitmap.createBitmap(sizeInPx, sizeInPx, Bitmap.Config.ARGB_8888)
+                        val canvas = Canvas(bitmap)
+                        canvas.drawColor(android.graphics.Color.TRANSPARENT, android.graphics.PorterDuff.Mode.CLEAR)
+                        drawableOriginal.setBounds(0, 0, canvas.width, canvas.height)
+                        drawableOriginal.draw(canvas)
+                        icon = BitmapDrawable(context.resources, bitmap)
+                    }
+                } else {
+                    icon = android.graphics.drawable.ShapeDrawable(android.graphics.drawable.shapes.OvalShape()).apply {
+                        intrinsicWidth = 40
+                        intrinsicHeight = 40
+                        paint.color = AndroidColor.parseColor("#E74C3C")
+                    }
+                }
+            } else {
+                // Destino genérico estándar (Círculo rojo) si el viaje NO va hacia la UAM
+                icon = android.graphics.drawable.ShapeDrawable(android.graphics.drawable.shapes.OvalShape()).apply {
+                    intrinsicWidth = 40
+                    intrinsicHeight = 40
+                    paint.color = AndroidColor.parseColor("#E74C3C")
+                }
+            }
+        }
+        mapView.overlays.add(newEndMarker)
+    } else {
+        endMarker.position = GeoPoint(destLat, destLng)
+    }
+
     scope.launch(Dispatchers.IO) {
         try {
             val waypoints = ArrayList<GeoPoint>()
@@ -340,7 +429,13 @@ private fun dibujarRuta(mapView: MapView, viaje: Viaje, roadManager: RoadManager
             val road = roadManager.getRoad(waypoints)
             if (road.mRouteHigh.isNotEmpty()) {
                 withContext(Dispatchers.Main) {
-                    val polyline = Polyline().apply { setPoints(road.mRouteHigh); outlinePaint.color = AndroidColor.BLUE; outlinePaint.strokeWidth = 5f }
+                    existingPolyline?.let { mapView.overlays.remove(it) }
+
+                    val polyline = Polyline().apply {
+                        setPoints(road.mRouteHigh)
+                        outlinePaint.color = AndroidColor.BLUE
+                        outlinePaint.strokeWidth = 5f
+                    }
                     mapView.overlays.add(polyline)
                     mapView.invalidate()
                 }
@@ -358,15 +453,31 @@ private fun actualizarPosicionCarro(mapView: MapView, lat: Double, lng: Double, 
         val marker = Marker(mapView).apply {
             position = point
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-            // Cambiado a ic_menu_mylocation y color ROJO para máxima visibilidad
-            val drawable = ContextCompat.getDrawable(context, android.R.drawable.ic_menu_mylocation)?.mutate()
-            drawable?.setTint(AndroidColor.RED)
-            icon = drawable
             title = "Carro"
             setInfoWindow(null)
+
+            val miIconoId = context.resources.getIdentifier("car_icon", "drawable", context.packageName)
+
+            if (miIconoId != 0) {
+                val drawableOriginal = ContextCompat.getDrawable(context, miIconoId)
+                val density = context.resources.displayMetrics.density
+                val sizeInPx = (40 * density).toInt()
+
+                if (drawableOriginal != null) {
+                    val bitmap = Bitmap.createBitmap(sizeInPx, sizeInPx, Bitmap.Config.ARGB_8888)
+                    val canvas = Canvas(bitmap)
+                    canvas.drawColor(android.graphics.Color.TRANSPARENT, android.graphics.PorterDuff.Mode.CLEAR)
+                    drawableOriginal.setBounds(0, 0, canvas.width, canvas.height)
+                    drawableOriginal.draw(canvas)
+                    icon = BitmapDrawable(context.resources, bitmap)
+                }
+            } else {
+                val fallback = ContextCompat.getDrawable(context, android.R.drawable.ic_menu_mylocation)?.mutate()
+                fallback?.setTint(AndroidColor.RED)
+                icon = fallback
+            }
         }
         mapView.overlays.add(marker)
-        // La primera vez que aparece, centramos el mapa en la ubicación
         mapView.controller.animateTo(point)
     }
     mapView.invalidate()
