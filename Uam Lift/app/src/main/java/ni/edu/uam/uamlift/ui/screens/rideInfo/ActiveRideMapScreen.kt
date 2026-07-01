@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color as AndroidColor
+import android.graphics.PorterDuff
 import android.graphics.drawable.BitmapDrawable
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -158,6 +159,7 @@ fun ActiveRideMapScreen(
                     res.lastLocation?.let { location ->
                         if (location.latitude != 0.0 && location.longitude != 0.0) {
                             miUbicacionActual = GeoPoint(location.latitude, location.longitude)
+                            // SOLO EL CONDUCTOR ENVÍA SU UBICACIÓN
                             if (esConductor && viaje?.estadoViaje == EstadoViaje.EN_CURSO) {
                                 ubicacionViewModel.enviar(viajeId, location.latitude, location.longitude)
                             }
@@ -206,11 +208,23 @@ fun ActiveRideMapScreen(
                 },
                 modifier = Modifier.fillMaxSize(),
                 update = { mv ->
-                    val lat = ubicacion?.latitud ?: miUbicacionActual?.latitude
-                    val lng = ubicacion?.longitud ?: miUbicacionActual?.longitude
+                    // El carro siempre representa al conductor.
+                    // Si soy el conductor, uso mi ubicación local. Si soy pasajero, uso la del socket.
+                    val latConductor = if (esConductor) (miUbicacionActual?.latitude ?: ubicacion?.latitud) else ubicacion?.latitud
+                    val lngConductor = if (esConductor) (miUbicacionActual?.longitude ?: ubicacion?.longitud) else ubicacion?.longitud
 
                     if (viaje != null) {
-                        dibujarRuta(mv, viaje, lat, lng, roadManager, scope, colorPrincipal)
+                        dibujarRuta(
+                            mapView = mv,
+                            viaje = viaje,
+                            conductorLat = latConductor,
+                            conductorLng = lngConductor,
+                            roadManager = roadManager,
+                            scope = scope,
+                            colorPrincipal = colorPrincipal,
+                            miUbicacionUsuario = miUbicacionActual,
+                            soyElConductor = esConductor
+                        )
                     }
                 }
             )
@@ -478,11 +492,21 @@ private fun MiniPasajeroItem(usuario: Usuario, puedeEliminar: Boolean, onElimina
     }
 }
 
-private fun dibujarRuta(mapView: MapView, viaje: Viaje, currentLat: Double?, currentLng: Double?, roadManager: RoadManager, scope: CoroutineScope, colorPrincipal: Int) {
+private fun dibujarRuta(
+    mapView: MapView,
+    viaje: Viaje,
+    conductorLat: Double?,
+    conductorLng: Double?,
+    roadManager: RoadManager,
+    scope: CoroutineScope,
+    colorPrincipal: Int,
+    miUbicacionUsuario: GeoPoint?,
+    soyElConductor: Boolean
+) {
     val context = mapView.context
 
-    val originLat = currentLat ?: viaje.origen?.latitud ?: return
-    val originLng = currentLng ?: viaje.origen?.longitud ?: return
+    val conductorPosLat = conductorLat ?: viaje.origen?.latitud ?: return
+    val conductorPosLng = conductorLng ?: viaje.origen?.longitud ?: return
 
     val destLat = viaje.destino?.latitud ?: return
     val destLng = viaje.destino?.longitud ?: return
@@ -504,47 +528,70 @@ private fun dibujarRuta(mapView: MapView, viaje: Viaje, currentLat: Double?, cur
     drawableOriginalCarro?.draw(carCanvas)
     val carIconDrawable = android.graphics.drawable.BitmapDrawable(context.resources, carBitmap)
 
+    // 1. DIBUJAR AL CONDUCTOR (EL CARRO)
     val existingPolylineActiva =
         mapView.overlays.filterIsInstance<Polyline>().find { it.id == "RutaActiva" }
+
     if (existingPolylineActiva != null) {
         val primerPuntoRuta = existingPolylineActiva.actualPoints.firstOrNull()
         if (primerPuntoRuta != null) {
-            val distanciaMetros = primerPuntoRuta.distanceToAsDouble(GeoPoint(originLat, originLng))
+            val distanciaMetros = primerPuntoRuta.distanceToAsDouble(GeoPoint(conductorPosLat, conductorPosLng))
             if (distanciaMetros < 15.0) {
-                val startMarker =
-                    mapView.overlays.filterIsInstance<Marker>().find { it.title == "Origen" }
-                if (startMarker != null) {
-                    startMarker.position = GeoPoint(originLat, originLng)
-                    startMarker.icon = carIconDrawable
+                val carMarker = mapView.overlays.filterIsInstance<Marker>().find { it.title == "Conductor" }
+                if (carMarker != null) {
+                    carMarker.position = GeoPoint(conductorPosLat, conductorPosLng)
+                    carMarker.icon = carIconDrawable
                 }
                 mapView.invalidate()
-                return
             }
         }
     }
 
-    val startMarker = mapView.overlays.filterIsInstance<Marker>().find { it.title == "Origen" }
-    if (startMarker != null) {
-        startMarker.position = GeoPoint(originLat, originLng)
-        startMarker.icon = carIconDrawable
+    val carMarker = mapView.overlays.filterIsInstance<Marker>().find { it.title == "Conductor" }
+    if (carMarker != null) {
+        carMarker.position = GeoPoint(conductorPosLat, conductorPosLng)
+        carMarker.icon = carIconDrawable
     } else {
-        val newStartMarker = Marker(mapView).apply {
-            position = GeoPoint(originLat, originLng)
+        val newCarMarker = Marker(mapView).apply {
+            position = GeoPoint(conductorPosLat, conductorPosLng)
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-            title = "Origen"
+            title = "Conductor"
             icon = carIconDrawable
             setInfoWindow(null)
         }
-        mapView.overlays.add(newStartMarker)
+        mapView.overlays.add(newCarMarker)
     }
 
-    val esHaciaUam = viaje.destino?.nombre?.contains("UAM", ignoreCase = true) == true
-    val endMarker = mapView.overlays.filterIsInstance<Marker>().find { it.title == "Destino" }
+    // 2. DIBUJAR AL USUARIO (SI ES PASAJERO, PUNTO AZUL)
+    if (!soyElConductor && miUbicacionUsuario != null) {
+        val personMarker = mapView.overlays.filterIsInstance<Marker>().find { it.title == "Mi Ubicación" }
+        if (personMarker != null) {
+            personMarker.position = miUbicacionUsuario
+        } else {
+            val newPersonMarker = Marker(mapView).apply {
+                position = miUbicacionUsuario
+                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                title = "Mi Ubicación"
+                setInfoWindow(null)
+                icon = android.graphics.drawable.ShapeDrawable(android.graphics.drawable.shapes.OvalShape()).apply {
+                    intrinsicWidth = 35
+                    intrinsicHeight = 35
+                    paint.color = android.graphics.Color.BLUE
+                }
+            }
+            mapView.overlays.add(newPersonMarker)
+        }
+    }
+
+    val esHaciaUam = viaje.destino?.universidad == true
+    val tituloDestino = if (esHaciaUam) "Destino" else (viaje.destino?.nombre ?: "Destino")
+    val endMarker = mapView.overlays.filterIsInstance<Marker>().find { it.snippet == "DESTINO_MARKER" }
     if (endMarker == null) {
         val newEndMarker = Marker(mapView).apply {
             position = GeoPoint(destLat, destLng)
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-            title = "Destino"
+            title = tituloDestino
+            snippet = "DESTINO_MARKER"
             setInfoWindow(null)
 
             if (esHaciaUam) {
@@ -573,6 +620,7 @@ private fun dibujarRuta(mapView: MapView, viaje: Viaje, currentLat: Double?, cur
         mapView.overlays.add(newEndMarker)
     } else {
         endMarker.position = GeoPoint(destLat, destLng)
+        endMarker.title = tituloDestino
     }
 
     scope.launch(Dispatchers.IO) {
@@ -600,7 +648,7 @@ private fun dibujarRuta(mapView: MapView, viaje: Viaje, currentLat: Double?, cur
             }
 
             val waypointsDinamicos = ArrayList<GeoPoint>()
-            waypointsDinamicos.add(GeoPoint(originLat, originLng))
+            waypointsDinamicos.add(GeoPoint(conductorPosLat, conductorPosLng))
             waypointsDinamicos.add(GeoPoint(destLat, destLng))
             val roadDinamica = roadManager.getRoad(waypointsDinamicos)
 

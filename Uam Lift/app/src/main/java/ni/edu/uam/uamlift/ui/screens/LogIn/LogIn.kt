@@ -205,12 +205,6 @@ fun LogIn(
                         ),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done)
                     )
-
-                    if (!googleVerificado) {
-                        TextButton(onClick = { /* Recuperar */ }, modifier = Modifier.align(Alignment.End)) {
-                            Text(text = "¿Olvidaste tu contraseña?", color = PrimaryColor, fontSize = 12.sp)
-                        }
-                    }
                 }
             }
 
