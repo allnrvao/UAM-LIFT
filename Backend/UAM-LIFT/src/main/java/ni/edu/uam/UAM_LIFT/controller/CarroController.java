@@ -57,8 +57,7 @@ public class CarroController {
         if (carroOptional.isPresent()) {
             Carro carro = carroOptional.get();
             carro.setPlaca(carroDetails.getPlaca());
-            carro.setMarca(carroDetails.getMarca());
-            carro.setModelo(carroDetails.getModelo());
+            // La marca y el modelo no se pueden editar, se conservan los valores originales
             carro.setColor(carroDetails.getColor());
 
             // Si se intenta cambiar el propietario, verificar que el nuevo propietario exista
@@ -88,14 +87,14 @@ public class CarroController {
         }
     }
 
-        @GetMapping("/usuario/{usuarioId}")
-        public ResponseEntity<List<Carro>> getCarrosByUsuarioId(@PathVariable Long usuarioId) {
-            Optional<Usuario> usuarioOptional = repoUsuario.findById(usuarioId);
-            if (usuarioOptional.isPresent()) {
-                List<Carro> carros = carroService.obtenerCarrosPorPropietario(usuarioOptional.get());
-                return ResponseEntity.ok(carros);
-            } else {
-                return ResponseEntity.notFound().build();
-            }
+    @GetMapping("/usuario/{usuarioId}")
+    public ResponseEntity<List<Carro>> getCarrosByUsuarioId(@PathVariable Long usuarioId) {
+        Optional<Usuario> usuarioOptional = repoUsuario.findById(usuarioId);
+        if (usuarioOptional.isPresent()) {
+            List<Carro> carros = carroService.obtenerCarrosPorPropietario(usuarioOptional.get());
+            return ResponseEntity.ok(carros);
+        } else {
+            return ResponseEntity.notFound().build();
         }
+    }
 }

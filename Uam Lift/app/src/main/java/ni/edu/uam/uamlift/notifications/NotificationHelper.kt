@@ -14,11 +14,6 @@ import ni.edu.uam.uamlift.data.models.Notificacion
 object NotificationHelper {
 
     const val CHANNEL_ID = "uamlift_viajes_channel"
-
-    // Claves usadas para viajar los datos de la notificación dentro del Intent que
-    // abre (o trae al frente) la app cuando el usuario la toca en el panel del
-    // sistema. Con esto, UamLiftApp puede navegar exactamente a donde navegaría
-    // si el usuario hubiera tocado la misma notificación dentro de la app.
     const val EXTRA_NOTIF_ID = "extra_notificacion_id"
     const val EXTRA_NOTIF_TIPO = "extra_notificacion_tipo"
     const val EXTRA_NOTIF_VIAJE_ID = "extra_notificacion_viaje_id"
@@ -39,11 +34,6 @@ object NotificationHelper {
         }
     }
 
-    /**
-     * Muestra una notificación del sistema con el título y mensaje recibidos
-     * desde el backend. Si el usuario no ha otorgado el permiso de
-     * notificaciones (Android 13+), simplemente no se muestra nada.
-     */
     fun mostrarNotificacion(context: Context, notificacion: Notificacion) {
         val notificationId = (notificacion.id ?: System.currentTimeMillis()).toInt()
 

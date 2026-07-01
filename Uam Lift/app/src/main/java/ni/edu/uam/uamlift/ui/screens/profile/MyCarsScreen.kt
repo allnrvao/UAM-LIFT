@@ -1,8 +1,11 @@
 package ni.edu.uam.uamlift.ui.screens.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -25,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import ni.edu.uam.uamlift.data.models.Carro
+import ni.edu.uam.uamlift.data.models.Usuario
 import ni.edu.uam.uamlift.data.viewmodels.CarroViewModel
 import ni.edu.uam.uamlift.data.viewmodels.UsuarioViewModel
 import ni.edu.uam.uamlift.ui.theme.Gray
@@ -38,8 +43,7 @@ fun MyCarsScreen(
     carroViewModel: CarroViewModel = viewModel()
 ) {
     val usuario = usuarioViewModel.usuario
-    
-    // Usamos IDs y rememberSaveable para persistir el estado de los diálogos
+
     var carroAEditarId by rememberSaveable { mutableStateOf<Long?>(null) }
     var mostrarConfirmarEliminarId by rememberSaveable { mutableStateOf<Long?>(null) }
 
@@ -50,7 +54,6 @@ fun MyCarsScreen(
         carroViewModel.listaCarros.find { it.id == mostrarConfirmarEliminarId }
     }
 
-    // Cargar los carros al entrar usando el ID del usuario actual
     LaunchedEffect(usuario.id) {
         usuario.id?.let { carroViewModel.obtenerCarrosPorUsuario(it) }
     }
@@ -89,7 +92,6 @@ fun MyCarsScreen(
                     CircularProgressIndicator(color = UAMColor)
                 }
             } else if (carroViewModel.listaCarros.isEmpty()) {
-                // Estado vacío estético
                 Column(
                     modifier = Modifier.fillMaxSize().padding(32.dp),
                     verticalArrangement = Arrangement.Center,
@@ -123,20 +125,8 @@ fun MyCarsScreen(
                         modifier = Modifier.padding(top = 8.dp),
                         lineHeight = 20.sp
                     )
-                    Spacer(modifier = Modifier.height(32.dp))
-                    Button(
-                        onClick = { navController.navigate("add_car") },
-                        colors = ButtonDefaults.buttonColors(containerColor = UAMColor),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.height(50.dp).fillMaxWidth(0.7f)
-                    ) {
-                        Icon(Icons.Default.Add, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Registrar Vehículo", fontWeight = FontWeight.Bold)
-                    }
                 }
             } else {
-                // Lista de vehículos
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
@@ -164,47 +154,57 @@ fun MyCarsScreen(
         }
     }
 
-    // Diálogo de Edición
-    if (carroAEditar != null) {
+    carroAEditar?.let { carroSeguro ->
         EditCarDialog(
-            carro = carroAEditar!!,
+            carro = carroSeguro,
+            usuarioPropietario = usuario,
+            isLoading = carroViewModel.cargando,
             onDismiss = { carroAEditarId = null },
             onConfirm = { carroActualizado ->
-                carroViewModel.actualizarCarro(carroActualizado) {
-                    carroAEditarId = null
+                carroViewModel.actualizarCarro(carroActualizado) { exito ->
+                    if (exito) carroAEditarId = null
                 }
             }
         )
     }
 
-    // Confirmación de Eliminación
-    if (mostrarConfirmarEliminar != null) {
+    // CORRECCIÓN/MEJORA: Diálogo de eliminación adaptado al estilo institucional solicitado
+    mostrarConfirmarEliminar?.let { carroAEliminar ->
         AlertDialog(
             onDismissRequest = { mostrarConfirmarEliminarId = null },
-            title = { Text("¿Eliminar vehículo?", fontWeight = FontWeight.Bold) },
-            text = { Text("¿Estás seguro de eliminar el vehículo ${mostrarConfirmarEliminar!!.marca} con placa ${mostrarConfirmarEliminar!!.placa}?") },
+            containerColor = Color.White,
+            title = {
+                Text(
+                    text = "¿Eliminar vehículo?",
+                    color = UAMColor,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = { Text("¿Estás seguro de que deseas eliminar permanentemente el vehículo ${carroAEliminar.marca} con placa ${carroAEliminar.placa}?") },
             confirmButton = {
                 Button(
                     onClick = {
-                        val cid = mostrarConfirmarEliminar!!.id
+                        val cid = carroAEliminar.id
                         val uid = usuario.id
                         if (cid != null && uid != null) {
                             carroViewModel.eliminarCarro(cid, uid)
                         }
                         mostrarConfirmarEliminarId = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)) // Botón rojo para acciones destructivas
                 ) {
                     Text("Eliminar", color = Color.White)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { mostrarConfirmarEliminarId = null }) {
+                TextButton(
+                    onClick = { mostrarConfirmarEliminarId = null },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Gray)
+                ) {
                     Text("Cancelar")
                 }
-            },
-            shape = RoundedCornerShape(24.dp),
-            containerColor = Color.White
+            }
         )
     }
 }
@@ -258,12 +258,27 @@ fun CarItem(carro: Carro, onEdit: () -> Unit, onDelete: () -> Unit) {
 }
 
 @Composable
-fun EditCarDialog(carro: Carro, onDismiss: () -> Unit, onConfirm: (Carro) -> Unit) {
-    // Usamos rememberSaveable para que los cambios en el diálogo no se pierdan al rotar
+fun EditCarDialog(
+    carro: Carro,
+    usuarioPropietario: Usuario,
+    isLoading: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: (Carro) -> Unit
+) {
     var placa by rememberSaveable { mutableStateOf(carro.placa) }
-    var marca by rememberSaveable { mutableStateOf(carro.marca) }
-    var modelo by rememberSaveable { mutableStateOf(carro.modelo) }
-    var color by rememberSaveable { mutableStateOf(carro.color) }
+    var colorSeleccionado by rememberSaveable { mutableStateOf(carro.color) }
+
+    var mostrarConfirmacionGuardar by remember { mutableStateOf(false) }
+
+    val coloresMap = mapOf(
+        "Blanco" to Color.White,
+        "Negro" to Color.Black,
+        "Gris" to Color.Gray,
+        "Plateado" to Color(0xFFC0C0C0),
+        "Rojo" to Color.Red,
+        "Azul" to Color.Blue,
+        "Vino" to Color(0xFF800000)
+    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -271,18 +286,51 @@ fun EditCarDialog(carro: Carro, onDismiss: () -> Unit, onConfirm: (Carro) -> Uni
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 8.dp)) {
                 val textFieldColors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.Black, unfocusedTextColor = Color.Black)
-                OutlinedTextField(value = placa, onValueChange = { if (it.matches(Regex("^[a-zA-Z0-9-]*\$"))) placa = it.uppercase() }, label = { Text("Placa") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = textFieldColors)
-                OutlinedTextField(value = marca, onValueChange = { if (it.matches(Regex("^[a-zA-Z0-9\\s\\u00C0-\\u017F]*\$"))) marca = it }, label = { Text("Marca") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = textFieldColors)
-                OutlinedTextField(value = modelo, onValueChange = { if (it.matches(Regex("^[a-zA-Z0-9\\s\\u00C0-\\u017F]*\$"))) modelo = it }, label = { Text("Modelo") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = textFieldColors)
-                OutlinedTextField(value = color, onValueChange = { if (it.matches(Regex("^[a-zA-Z0-9\\s\\u00C0-\\u017F]*\$"))) color = it }, label = { Text("Color") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = textFieldColors)
+                val disabledFieldColors = OutlinedTextFieldDefaults.colors(
+                    disabledTextColor = Color.Gray,
+                    disabledBorderColor = Color.LightGray,
+                    disabledLabelColor = Color.Gray
+                )
+                OutlinedTextField(
+                    value = placa,
+                    onValueChange = { if (it.matches(Regex("^[a-zA-Z0-9-]*\$"))) placa = it.uppercase().take(8) },
+                    label = { Text("Placa") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = textFieldColors
+                )
+                OutlinedTextField(value = carro.marca, onValueChange = {}, enabled = false, label = { Text("Marca") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = disabledFieldColors)
+                OutlinedTextField(value = carro.modelo, onValueChange = {}, enabled = false, label = { Text("Modelo") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = disabledFieldColors)
+
+                Text("Color del vehículo", fontWeight = FontWeight.Bold, color = Color.DarkGray)
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(coloresMap.toList()) { (nombre, colorOp) ->
+                        CarColorItem(
+                            color = colorOp,
+                            nombre = nombre,
+                            seleccionado = colorSeleccionado == nombre,
+                            onClick = { colorSeleccionado = nombre }
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(carro.copy(placa = placa, marca = marca, modelo = modelo, color = color)) },
+                onClick = { mostrarConfirmacionGuardar = true },
+                enabled = !isLoading && placa.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = UAMColor),
                 shape = RoundedCornerShape(12.dp)
-            ) { Text("Guardar Cambios", fontWeight = FontWeight.Bold) }
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                } else {
+                    Text("Guardar Cambios", fontWeight = FontWeight.Bold)
+                }
+            }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancelar") }
@@ -290,4 +338,62 @@ fun EditCarDialog(carro: Carro, onDismiss: () -> Unit, onConfirm: (Carro) -> Uni
         shape = RoundedCornerShape(28.dp),
         containerColor = Color.White
     )
+
+    if (mostrarConfirmacionGuardar) {
+        AlertDialog(
+            onDismissRequest = { mostrarConfirmacionGuardar = false },
+            containerColor = Color.White,
+            title = {
+                Text(
+                    text = "Guardar Cambios",
+                    color = UAMColor,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = { Text("¿Estás seguro de que deseas guardar los cambios realizados en este vehículo?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        mostrarConfirmacionGuardar = false
+                        val carroActualizado = Carro(
+                            id = carro.id,
+                            placa = placa.uppercase().trim(),
+                            marca = carro.marca,
+                            modelo = carro.modelo,
+                            color = colorSeleccionado,
+                            propietario = usuarioPropietario
+                        )
+                        onConfirm(carroActualizado)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = UAMColor)
+                ) {
+                    Text("Confirmar", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { mostrarConfirmacionGuardar = false },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Gray)
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun CarColorItem(color: Color, nombre: String, seleccionado: Boolean, onClick: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier = Modifier
+                .size(45.dp)
+                .clip(CircleShape)
+                .background(color)
+                .border(if (seleccionado) 3.dp else 1.dp, if (seleccionado) UAMColor else Color.LightGray, CircleShape)
+                .clickable { onClick() }
+        )
+        Text(nombre, fontSize = 10.sp, color = if (seleccionado) UAMColor else Color.Gray)
+    }
 }
