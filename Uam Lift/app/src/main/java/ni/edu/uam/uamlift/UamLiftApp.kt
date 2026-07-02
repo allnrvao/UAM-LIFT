@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -67,6 +68,9 @@ fun UamLiftApp(
     val navController = rememberNavController()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Para evitar múltiples clics rápidos (rapid click protection)
+    var isNavigating by remember { mutableStateOf(false) }
 
     val appViewModelFactory = AppViewModelFactory()
     val usuarioViewModel: UsuarioViewModel = viewModel(factory = appViewModelFactory)
@@ -160,7 +164,7 @@ fun UamLiftApp(
                         )
                     )
                     navController.navigate("home") {
-                        popUpTo(navController.graph.id) { inclusive = true }
+                        popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
                         launchSingleTop = true
                     }
                 }
@@ -176,13 +180,12 @@ fun UamLiftApp(
         }
     }
 
-    // Rutas en las que se muestra la barra inferior
+    // Rutas en las que se muestra la barra inferior (Ocultamos en "create" para evitar errores)
     val bottomBarRoutes = setOf(
-        "home", "search", "my_rides", "create", "messages?viajeId={viajeId}", "profile"
+        "home", "search", "my_rides", "messages?viajeId={viajeId}", "profile"
     )
 
-    val viajeIdArgActual = navBackStackEntry?.arguments?.getString("viajeId")?.toLongOrNull()
-    val enChatDeViajeActivo = currentRoute?.startsWith("messages") == true && viajeIdArgActual != null
+    val enChatDeViajeActivo = currentRoute?.startsWith("messages") == true && navBackStackEntry?.arguments?.getString("viajeId")?.toLongOrNull() != null
 
     // La pestaña resaltada en la barra inferior se calcula siempre a partir de la ruta
     val currentTabForBar = when {
@@ -216,45 +219,40 @@ fun UamLiftApp(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            if (currentRoute in bottomBarRoutes && !enChatDeViajeActivo) {
+            // No mostramos la barra inferior en "create" ni en chat activo
+            if (currentRoute in bottomBarRoutes && currentRoute != "create" && !enChatDeViajeActivo) {
                 BottomNavigationBar(currentTabForBar) { newTab ->
+                    if (isNavigating || currentTabForBar == newTab) return@BottomNavigationBar
+                    isNavigating = true
+
                     if (newTab == "create") {
-                        val usuarioId = usuarioViewModel.usuario.id ?: 0L
-                        if (usuarioId != 0L) {
-                            viajeViewModel.validarNumViajes(usuarioId) { esValido ->
+                        val uid = usuarioViewModel.usuario.id ?: 0L
+                        if (uid != 0L) {
+                            viajeViewModel.validarNumViajes(uid) { esValido ->
                                 if (esValido) {
                                     currentTab = newTab
                                     navController.navigate(newTab) {
-                                        popUpTo(navController.graph.startDestinationId) {
-                                            saveState = true
-                                        }
+                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                         launchSingleTop = true
                                         restoreState = true
                                     }
                                 } else {
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar(
-                                            "Has alcanzado el límite de viajes permitidos."
-                                        )
-                                    }
+                                    scope.launch { snackbarHostState.showSnackbar("Límite de viajes alcanzado.") }
                                 }
+                                isNavigating = false
                             }
                         } else {
-                            scope.launch {
-                                snackbarHostState.showSnackbar(
-                                    "Cargando datos de usuario... Inténtalo de nuevo."
-                                )
-                            }
+                            scope.launch { snackbarHostState.showSnackbar("Cargando usuario...") }
+                            isNavigating = false
                         }
                     } else {
                         currentTab = newTab
                         navController.navigate(newTab) {
-                            popUpTo(navController.graph.startDestinationId) {
-                                saveState = true
-                            }
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                             launchSingleTop = true
                             restoreState = true
                         }
+                        isNavigating = false
                     }
                 }
             }
@@ -269,46 +267,28 @@ fun UamLiftApp(
 
             // ── SPLASH ────────────────────────────────────────────────────────
             composable("splash") {
-                val context = LocalContext.current
-                val estaLogeado = usuarioViewModel.estaLogeado
-                val sesionVerificada = usuarioViewModel.sesionVerificada
-
-                LaunchedEffect(Unit) {
-                    usuarioViewModel.verificarSesion(context)
-                }
-
+                val contextSplash = LocalContext.current
+                LaunchedEffect(Unit) { usuarioViewModel.verificarSesion(contextSplash) }
                 SplashScreen(onDone = { })
 
-                LaunchedEffect(sesionVerificada) {
-                    if (sesionVerificada) {
-                        if (estaLogeado) {
-                            val usuarioId = usuarioViewModel.usuario.id
-                            if (usuarioId != null) {
-                                // Antes de ir a "home", revisamos si el usuario tiene un viaje
-                                // EN_CURSO: si es así, lo mandamos directo a esa pantalla.
-                                viajeViewModel.cargarViajesDesdeBackend(usuarioId) {
-                                    val viajeEnCurso = viajeViewModel.misViajes.value.firstOrNull {
-                                        it.estadoViaje == EstadoViaje.EN_CURSO
-                                    }
+                LaunchedEffect(usuarioViewModel.sesionVerificada) {
+                    if (usuarioViewModel.sesionVerificada) {
+                        if (usuarioViewModel.estaLogeado) {
+                            val uid = usuarioViewModel.usuario.id
+                            if (uid != null) {
+                                viajeViewModel.cargarViajesDesdeBackend(uid) {
+                                    val viajeEnCurso = viajeViewModel.misViajes.value.firstOrNull { it.estadoViaje == EstadoViaje.EN_CURSO }
                                     if (viajeEnCurso != null) {
-                                        navController.navigate("active_ride/${viajeEnCurso.id}") {
-                                            popUpTo("splash") { inclusive = true }
-                                        }
+                                        navController.navigate("active_ride/${viajeEnCurso.id}") { popUpTo("splash") { inclusive = true } }
                                     } else {
-                                        navController.navigate("home") {
-                                            popUpTo("splash") { inclusive = true }
-                                        }
+                                        navController.navigate("home") { popUpTo("splash") { inclusive = true } }
                                     }
                                 }
                             } else {
-                                navController.navigate("home") {
-                                    popUpTo("splash") { inclusive = true }
-                                }
+                                navController.navigate("home") { popUpTo("splash") { inclusive = true } }
                             }
                         } else {
-                            navController.navigate("login") {
-                                popUpTo("splash") { inclusive = true }
-                            }
+                            navController.navigate("login") { popUpTo("splash") { inclusive = true } }
                         }
                     }
                 }
@@ -316,156 +296,82 @@ fun UamLiftApp(
 
             // ── LOGIN ─────────────────────────────────────────────────────────
             composable("login") {
-                LogIn(
-                    navController = navController,
-                    usuarioViewModel = usuarioViewModel,
-                    onLogin = {
-                        navController.navigate("home") {
-                            popUpTo("login") { inclusive = true }
-                        }
-                    }
-                )
+                LogIn(navController = navController, usuarioViewModel = usuarioViewModel, onLogin = {
+                    navController.navigate("home") { popUpTo("login") { inclusive = true } }
+                })
             }
 
             // ── CREAR CUENTA ──────────────────────────────────────────────────
             composable("createAccount") {
-                CreateAccountScreen(
-                    usuarioViewModel = usuarioViewModel,
-                    onAccountCreated = {
-                        navController.navigate("home") {
-                            popUpTo("createAccount") { inclusive = true }
-                        }
-                    },
-                    onBackToLogin = { navController.popBackStack() }
-                )
+                CreateAccountScreen(usuarioViewModel = usuarioViewModel, onAccountCreated = {
+                    navController.navigate("home") { popUpTo("createAccount") { inclusive = true } }
+                }, onBackToLogin = { navController.popBackStack() })
             }
 
             // ── HOME ──────────────────────────────────────────────────────────
             composable("home") {
-                HomeScreen(
-                    navController = navController,
-                    usuarioViewModel = usuarioViewModel,
-                    viajeViewModel = viajeViewModel,
-                    notificacionViewModel = notificacionViewModel
-                )
+                HomeScreen(navController = navController, usuarioViewModel = usuarioViewModel, viajeViewModel = viajeViewModel, notificacionViewModel = notificacionViewModel)
             }
 
             // ── SEARCH ────────────────────────────────────────────────────────
-            composable("search") {
-                SearchScreen(usuarioViewModel = usuarioViewModel)
-            }
+            composable("search") { SearchScreen(usuarioViewModel = usuarioViewModel) }
 
             // ── MY RIDES ─────────────────────────────────────────────────────
-            composable("my_rides") {
-                MyRidesScreen(
-                    viajeViewModel = viajeViewModel,
-                    usuarioViewModel = usuarioViewModel
-                )
-            }
+            composable("my_rides") { MyRidesScreen(viajeViewModel = viajeViewModel, usuarioViewModel = usuarioViewModel) }
 
             // ── CREATE RIDE ───────────────────────────────────────────────────
-            composable("create") {
-                CreateRideScreen(
-                    navController = navController,
-                    usuarioViewModel = usuarioViewModel
-                )
-            }
+            composable("create") { CreateRideScreen(navController = navController, usuarioViewModel = usuarioViewModel) }
 
             // ── MESSAGES ──────────────────────────────────────────────────────
-            // "viajeId" es opcional: si viene (p. ej. desde el mapa de un viaje activo),
             composable(
                 route = "messages?viajeId={viajeId}",
-                arguments = listOf(
-                    navArgument("viajeId") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    }
-                )
+                arguments = listOf(navArgument("viajeId") { type = NavType.StringType; nullable = true; defaultValue = null })
             ) { backStackEntry ->
-                val viajeIdArg = backStackEntry.arguments?.getString("viajeId")?.toLongOrNull()
-                MessagesScreen(
-                    usuarioViewModel = usuarioViewModel,
-                    viajeViewModel = viajeViewModel,
-                    initialViajeId = viajeIdArg,
-                    onBack = { navController.popBackStack() } // <--- ¡AGREGA ESTA LÍNEA!
-                )
-            }
-            // ── PROFILE ───────────────────────────────────────────────────────
-            composable("profile") {
-                ProfileScreen(
-                    navController = navController,
-                    usuarioViewModel = usuarioViewModel,
-                    modifier = Modifier
-                )
+                val vId = backStackEntry.arguments?.getString("viajeId")?.toLongOrNull()
+                MessagesScreen(usuarioViewModel = usuarioViewModel, viajeViewModel = viajeViewModel, initialViajeId = vId, onBack = { navController.popBackStack() })
             }
 
-            // ── EDIT PROFILE (con onBack correcto → regresa a "profile") ──────
+            // ── PROFILE ───────────────────────────────────────────────────────
+            composable("profile") { ProfileScreen(navController = navController, usuarioViewModel = usuarioViewModel, modifier = Modifier) }
+
+            // ── EDIT PROFILE ──
             composable("edit_profile") {
-                EditProfileScreen(
-                    usuarioViewModel = usuarioViewModel,
-                    onBack = {
-                        // Siempre regresa a la pantalla principal de perfil
-                        navController.navigate("profile") {
-                            popUpTo("profile") { inclusive = true }
-                        }
-                    }
-                )
+                EditProfileScreen(usuarioViewModel = usuarioViewModel, onBack = {
+                    navController.navigate("profile") { popUpTo("profile") { inclusive = true } }
+                })
             }
 
             // ── ADD CAR ───────────────────────────────────────────────────────
-            composable("add_car") {
-                AddCarScreen(
-                    navController = navController,
-                    usuarioViewModel = usuarioViewModel
-                )
-            }
+            composable("add_car") { AddCarScreen(navController = navController, usuarioViewModel = usuarioViewModel) }
 
             // ── MY CARS ───────────────────────────────────────────────────────
-            composable("my_cars") {
-                MyCarsScreen(
-                    navController = navController,
-                    usuarioViewModel = usuarioViewModel
-                )
-            }
+            composable("my_cars") { MyCarsScreen(navController = navController, usuarioViewModel = usuarioViewModel) }
 
             // ── MAPA DEL VIAJE ACTIVO ─────────────────────────────────────────
             composable("active_ride/{viajeId}") { backStackEntry ->
-                val viajeId = backStackEntry.arguments?.getString("viajeId")?.toLongOrNull() ?: 0L
+                val vId = backStackEntry.arguments?.getString("viajeId")?.toLongOrNull() ?: 0L
                 ActiveRideMapScreen(
-                    viajeId = viajeId,
-                    viajeViewModel = viajeViewModel,
-                    usuarioViewModel = usuarioViewModel,
+                    viajeId = vId, viajeViewModel = viajeViewModel, usuarioViewModel = usuarioViewModel,
                     onBack = { navController.popBackStack() },
                     onChat = { id -> navController.navigate("messages?viajeId=$id") },
-                    onNavigateToHome = { // <--- AGRÉGALO AQUÍ
-                        navController.navigate("home") { // Cambia "home" por tu ruta principal
-                            popUpTo(navController.graph.startDestinationId) {
-                                inclusive = true
-                            }
-                        }
-                    }
+                    onNavigateToHome = { navController.navigate("home") { popUpTo(navController.graph.findStartDestination().id) { inclusive = true } } }
                 )
             }
-
 
             // ── NOTIFICACIONES ───────────────────────────────────────────────
-            composable("notifications") {
-                NotificationsScreen(
-                    navController = navController,
-                    usuarioViewModel = usuarioViewModel,
-                    notificacionViewModel = notificacionViewModel
-                )
-            }
+            composable("notifications") { NotificationsScreen(navController = navController, usuarioViewModel = usuarioViewModel, notificacionViewModel = notificacionViewModel) }
         }
     }
-    BackHandler(enabled = currentRoute != null && currentRoute != "splash" && currentRoute != "login") {
+
+    // Manejo global del botón atrás físico
+    BackHandler(enabled = currentRoute != null && currentRoute != "splash" && currentRoute != "login" && currentRoute != "create") {
         if (currentRoute == "home") {
             showExitDialog = true
         } else {
             navController.navigate("home") {
-                popUpTo(navController.graph.id) { inclusive = true }
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                 launchSingleTop = true
+                restoreState = true
             }
         }
     }

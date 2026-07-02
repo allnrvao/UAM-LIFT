@@ -1,7 +1,6 @@
 package ni.edu.uam.uamlift.ui.components
 
 import android.content.Context
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -21,13 +20,6 @@ import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
 
-/**
- * Componente de mapa OSM con:
- * - Desplazamiento fluido mejorado
- * - Soporte para selección de ubicación
- * - Dibuja ruta REAL por calles y ubicación actual del conductor
- * - Mantiene los íconos/pines originales de Origen y Destino
- */
 @Composable
 fun MapLibreView(
     modifier: Modifier = Modifier,
@@ -39,10 +31,11 @@ fun MapLibreView(
     currentLng: Double? = null,
     isSelectionEnabled: Boolean = false,
     isGesturesEnabled: Boolean = true,
+    draggableMarkerType: String = "BOTH", // "ORIGIN", "DEST", "BOTH", "NONE"
     onLocationSelected: (Double, Double) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope() // Para calcular la ruta en segundo plano
+    val scope = rememberCoroutineScope()
     val roadManager: RoadManager = remember { OSRMRoadManager(context, "UamLift") }
 
     LaunchedEffect(Unit) {
@@ -70,7 +63,7 @@ fun MapLibreView(
         },
         modifier = modifier,
         update = { view ->
-            val routeKey = "$originLat,$originLng,$destLat,$destLng,$currentLat,$currentLng,$isSelectionEnabled"
+            val routeKey = "$originLat,$originLng,$destLat,$destLng,$currentLat,$currentLng,$isSelectionEnabled,$draggableMarkerType"
 
             if (lastRoute.value != routeKey) {
                 lastRoute.value = routeKey
@@ -92,35 +85,57 @@ fun MapLibreView(
 
                 val points = mutableListOf<GeoPoint>()
 
-                // --- MARCADOR ORIGEN ORIGINAL ---
+                // --- MARCADOR ORIGEN ---
                 originLat?.let { lat ->
                     originLng?.let { lng ->
                         val p = GeoPoint(lat, lng)
                         points.add(p)
                         val marker = Marker(view).apply {
                             position = p
-                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM) // Pin estándar
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                             title = "Origen"
+
+                            if (isSelectionEnabled && (draggableMarkerType == "ORIGIN" || draggableMarkerType == "BOTH")) {
+                                isDraggable = true
+                                setOnMarkerDragListener(object : Marker.OnMarkerDragListener {
+                                    override fun onMarkerDragStart(marker: Marker) {}
+                                    override fun onMarkerDrag(marker: Marker) {}
+                                    override fun onMarkerDragEnd(marker: Marker) {
+                                        onLocationSelected(marker.position.latitude, marker.position.longitude)
+                                    }
+                                })
+                            }
                         }
                         view.overlays.add(marker)
                     }
                 }
 
-                // --- MARCADOR DESTINO ORIGINAL ---
+                // --- MARCADOR DESTINO ---
                 destLat?.let { lat ->
                     destLng?.let { lng ->
                         val p = GeoPoint(lat, lng)
                         points.add(p)
                         val marker = Marker(view).apply {
                             position = p
-                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM) // Pin estándar
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                             title = "Destino"
+
+                            if (isSelectionEnabled && (draggableMarkerType == "DEST" || draggableMarkerType == "BOTH")) {
+                                isDraggable = true
+                                setOnMarkerDragListener(object : Marker.OnMarkerDragListener {
+                                    override fun onMarkerDragStart(marker: Marker) {}
+                                    override fun onMarkerDrag(marker: Marker) {}
+                                    override fun onMarkerDragEnd(marker: Marker) {
+                                        onLocationSelected(marker.position.latitude, marker.position.longitude)
+                                    }
+                                })
+                            }
                         }
                         view.overlays.add(marker)
                     }
                 }
 
-                // Marcador de ubicación actual del conductor (ROJO y prominente)
+                // --- MARCADOR CONDUCTOR ---
                 currentLat?.let { lat ->
                     currentLng?.let { lng ->
                         val p = GeoPoint(lat, lng)
@@ -137,15 +152,12 @@ fun MapLibreView(
                             val canvas = android.graphics.Canvas(bitmap)
                             val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
 
-                            // Borde blanco para visibilidad
                             paint.color = android.graphics.Color.WHITE
                             canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
 
-                            // Círculo rojo
                             paint.color = android.graphics.Color.RED
                             canvas.drawCircle(size / 2f, size / 2f, size / 2.6f, paint)
 
-                            // Punto blanco central
                             paint.color = android.graphics.Color.WHITE
                             canvas.drawCircle(size / 2f, size / 2f, size / 8f, paint)
 
@@ -173,7 +185,7 @@ fun MapLibreView(
                                         outlinePaint.isAntiAlias = true
                                     }
                                     view.overlays.add(polyline)
-                                    view.invalidate() // Refresca el mapa para pintar la ruta nueva
+                                    view.invalidate()
                                 }
                             }
                         } catch (e: Exception) {
