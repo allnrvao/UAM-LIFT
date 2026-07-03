@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material3.*
@@ -36,6 +37,10 @@ fun MyRidesScreen(
     val userCif = usuarioViewModel.usuario.cif ?: ""
     val userId = usuarioViewModel.usuario.id ?: 0L
 
+    // Estados para el diálogo de inicio de viaje
+    var showStartConfirmDialog by remember { mutableStateOf(false) }
+    var viajeIdAIniciar by remember { mutableStateOf<Long?>(null) }
+
     // Cargar viajes al entrar para asegurar que la lista esté actualizada
     LaunchedEffect(userId) {
         viajeViewModel.cargarViajesDesdeBackend(userId)
@@ -59,6 +64,40 @@ fun MyRidesScreen(
                 delay(5000)
             }
         }
+    }
+
+    // Diálogo de confirmación para iniciar viaje
+    if (showStartConfirmDialog && viajeIdAIniciar != null) {
+        AlertDialog(
+            onDismissRequest = { showStartConfirmDialog = false },
+            title = { Text("¿Iniciar Viaje?", fontWeight = FontWeight.Bold, color = UAMColor) },
+            text = { Text("¿Estás seguro de que deseas iniciar este viaje ahora? Se notificará a los pasajeros que el conductor está en camino.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val id = viajeIdAIniciar!!
+                        showStartConfirmDialog = false
+                        viajeViewModel.iniciarViaje(
+                            viajeId = id,
+                            conductorId = userId,
+                            onExito = {
+                                ubicacionViewModel.conectar(id)
+                            }
+                        )
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = UAMColor)
+                ) {
+                    Text("Iniciar", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStartConfirmDialog = false }) {
+                    Text("Cancelar", color = Color.Gray)
+                }
+            },
+            shape = RoundedCornerShape(16.dp),
+            containerColor = Color.White
+        )
     }
 
     Column(modifier = Modifier.fillMaxSize().background(Gray)) {
@@ -111,13 +150,8 @@ fun MyRidesScreen(
                         usuarioIdActual = userId,
                         esConductor = true,
                         onIniciarViaje = { id ->
-                            viajeViewModel.iniciarViaje(
-                                viajeId = id,
-                                conductorId = userId,
-                                onExito = {
-                                    ubicacionViewModel.conectar(id)
-                                }
-                            )
+                            viajeIdAIniciar = id
+                            showStartConfirmDialog = true
                         },
                         onFinalizarViaje = { id ->
                             viajeViewModel.finalizarViaje(id, userId)

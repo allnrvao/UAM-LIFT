@@ -110,6 +110,7 @@ fun ActiveRideMapScreen(
     }
 
     var cardExpandida by rememberSaveable { mutableStateOf(false) }
+    var showConfirmDialog by remember { mutableStateOf(false) }
     var miUbicacionActual by remember { mutableStateOf<GeoPoint?>(null) }
     var mapViewInstance by remember { mutableStateOf<MapView?>(null) }
 
@@ -159,7 +160,6 @@ fun ActiveRideMapScreen(
                     res.lastLocation?.let { location ->
                         if (location.latitude != 0.0 && location.longitude != 0.0) {
                             miUbicacionActual = GeoPoint(location.latitude, location.longitude)
-                            // SOLO EL CONDUCTOR ENVÍA SU UBICACIÓN
                             if (esConductor && viaje?.estadoViaje == EstadoViaje.EN_CURSO) {
                                 ubicacionViewModel.enviar(viajeId, location.latitude, location.longitude)
                             }
@@ -187,6 +187,50 @@ fun ActiveRideMapScreen(
 
     val colorPrincipal = UAMColor.toArgb()
 
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = {
+                Text("¿Finalizar Viaje?", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = UAMColor)
+            },
+            text = {
+                Text("¿Estás seguro de que quieres finalizar el viaje ahora? Se notificará a los pasajeros que han llegado a su destino.", fontSize = 15.sp)
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showConfirmDialog = false
+                        val miId = usuarioActual.id
+                        if (miId != null) {
+                            viajeViewModel.finalizarViaje(
+                                viajeId = viajeId,
+                                usuarioId = miId,
+                                onExito = {
+                                    scope.launch { snackbarHostState.showSnackbar("¡Viaje finalizado!") }
+                                    onNavigateToHome()
+                                },
+                                onError = { error ->
+                                    scope.launch { snackbarHostState.showSnackbar(error) }
+                                }
+                            )
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = UAMColor),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Sí, finalizar", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDialog = false }) {
+                    Text("Volver", color = Color.Gray)
+                }
+            },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = Color.White
+        )
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = Modifier.fillMaxSize()
@@ -198,474 +242,145 @@ fun ActiveRideMapScreen(
                         setTileSource(TileSourceFactory.MAPNIK)
                         setMultiTouchControls(true)
                         controller.setZoom(15.0)
-                        val center = GeoPoint(
-                            viaje?.origen?.latitud ?: 12.108038,
-                            viaje?.origen?.longitud ?: -86.257292
-                        )
+                        val center = GeoPoint(viaje?.origen?.latitud ?: 12.108038, viaje?.origen?.longitud ?: -86.257292)
                         controller.setCenter(center)
                         mapViewInstance = this
                     }
                 },
                 modifier = Modifier.fillMaxSize(),
                 update = { mv ->
-                    // El carro siempre representa al conductor.
-                    // Si soy el conductor, uso mi ubicación local. Si soy pasajero, uso la del socket.
                     val latConductor = if (esConductor) (miUbicacionActual?.latitude ?: ubicacion?.latitud) else ubicacion?.latitud
                     val lngConductor = if (esConductor) (miUbicacionActual?.longitude ?: ubicacion?.longitud) else ubicacion?.longitud
-
                     if (viaje != null) {
-                        dibujarRuta(
-                            mapView = mv,
-                            viaje = viaje,
-                            conductorLat = latConductor,
-                            conductorLng = lngConductor,
-                            roadManager = roadManager,
-                            scope = scope,
-                            colorPrincipal = colorPrincipal,
-                            miUbicacionUsuario = miUbicacionActual,
-                            soyElConductor = esConductor
-                        )
+                        dibujarRuta(mv, viaje, latConductor, lngConductor, roadManager, scope, colorPrincipal, miUbicacionActual, esConductor)
                     }
                 }
             )
 
-            // Botón de Chat alineado a la DERECHA
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(16.dp), horizontalArrangement = Arrangement.End) {
                 if (esParticipante) {
-                    IconButton(
-                        onClick = { onChat(viajeId) },
-                        modifier = Modifier.size(44.dp).background(UAMColor, CircleShape)
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Chat, "Chat Grupal", tint = Color.White)
+                    IconButton(onClick = { onChat(viajeId) }, modifier = Modifier.size(44.dp).background(UAMColor, CircleShape)) {
+                        Icon(Icons.AutoMirrored.Filled.Chat, "Chat", tint = Color.White)
                     }
                 }
             }
 
             Column(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()) {
                 if (viaje != null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(end = 16.dp, bottom = 16.dp),
-                        contentAlignment = Alignment.CenterEnd
-                    ) {
-                        FloatingActionButton(
-                            onClick = {
-                                miUbicacionActual?.let {
-                                    mapViewInstance?.controller?.animateTo(it)
-                                }
-                            },
-                            containerColor = Color.White,
-                            contentColor = UAMColor,
-                            modifier = Modifier.size(54.dp),
-                            shape = CircleShape
-                        ) {
-                            Icon(Icons.Default.MyLocation, contentDescription = "Mi Ubicación")
+                    Box(modifier = Modifier.fillMaxWidth().padding(end = 16.dp, bottom = 16.dp), contentAlignment = Alignment.CenterEnd) {
+                        FloatingActionButton(onClick = { miUbicacionActual?.let { mapViewInstance?.controller?.animateTo(it) } }, containerColor = Color.White, contentColor = UAMColor, modifier = Modifier.size(54.dp), shape = CircleShape) {
+                            Icon(Icons.Default.MyLocation, "Ubicación")
                         }
                     }
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
-                    ) {
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(16.dp)) {
                         Column(modifier = Modifier.fillMaxWidth()) {
-                            Box(
-                                modifier = Modifier.fillMaxWidth()
-                                    .clickable { cardExpandida = !cardExpandida }
-                                    .padding(top = 10.dp, bottom = 4.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Box(
-                                    modifier = Modifier.width(40.dp).height(4.dp)
-                                        .background(Color(0xFFDDDDDD), RoundedCornerShape(2.dp))
-                                )
+                            Box(modifier = Modifier.fillMaxWidth().clickable { cardExpandida = !cardExpandida }.padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
+                                Box(modifier = Modifier.width(40.dp).height(4.dp).background(Color(0xFFDDDDDD), RoundedCornerShape(2.dp)))
                             }
 
-                            Column(
-                                modifier = Modifier.fillMaxWidth()
-                                    .clickable { cardExpandida = !cardExpandida }
-                                    .padding(horizontal = 20.dp, vertical = 12.dp)
-                            ) {
-                                val nombreConductor =
-                                    viaje.conductor?.nombreUsuario?.takeIf { it.isNotBlank() }
-                                        ?: "${viaje.conductor?.nombre ?: ""} ${viaje.conductor?.apellido ?: ""}".trim()
-                                            .ifEmpty { "Conductor" }
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    val foto = viaje.conductor?.imagenUrl
-                                    val modelConductor = remember(foto) {
-                                        if (foto.isNullOrBlank()) null
-                                        else if (foto.startsWith("http")) foto
-                                        else "${RetrofitClient.BASE_URL.trimEnd('/')}/${
-                                            foto.trimStart('/')
-                                        }"
-                                    }
-                                    Box(
-                                        modifier = Modifier.size(40.dp).clip(CircleShape)
-                                            .background(Color(0xFFE0F7FA)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        if (modelConductor != null) {
-                                            AsyncImage(
-                                                model = modelConductor,
-                                                contentDescription = null,
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                        } else {
-                                            Text(
-                                                (viaje.conductor?.nombre?.take(1)
-                                                    ?: "C").uppercase(),
-                                                fontWeight = FontWeight.Bold,
-                                                color = UAMColor
-                                            )
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            nombreConductor,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 15.sp
-                                        )
-                                        Text("Conductor", fontSize = 12.sp, color = Color.Gray)
-                                    }
-                                    Icon(
-                                        if (cardExpandida) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
-                                        null,
-                                        tint = Color.Gray
-                                    )
+                            Row(modifier = Modifier.fillMaxWidth().clickable { cardExpandida = !cardExpandida }.padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                val foto = viaje.conductor?.imagenUrl
+                                val modelConductor = remember(foto) {
+                                    if (foto.isNullOrBlank()) null else if (foto.startsWith("http")) foto else "${RetrofitClient.BASE_URL.trimEnd('/')}/${foto.trimStart('/')}"
                                 }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    "Asientos disponibles: $asientosLibres",
-                                    fontSize = 13.sp,
-                                    color = UAMColor,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color(0xFFE0F7FA)), contentAlignment = Alignment.Center) {
+                                    if (modelConductor != null) AsyncImage(model = modelConductor, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                    else Text((viaje.conductor?.nombre?.take(1) ?: "C").uppercase(), fontWeight = FontWeight.Bold, color = UAMColor)
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(viaje.conductor?.nombreUsuario ?: "Conductor", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                    Text("En camino", fontSize = 12.sp, color = Color.Gray)
+                                }
+                                Icon(if (cardExpandida) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp, null, tint = Color.Gray)
                             }
 
-                            AnimatedVisibility(
-                                visible = cardExpandida,
-                                enter = expandVertically(),
-                                exit = shrinkVertically()
-                            ) {
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    HorizontalDivider(color = Color(0xFFF0F0F0))
-                                    Column(
-                                        modifier = Modifier.fillMaxWidth()
-                                            .padding(horizontal = 20.dp, vertical = 12.dp)
-                                    ) {
-                                        Text(
-                                            "PASAJEROS",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = Color.Gray,
-                                            letterSpacing = 1.sp
-                                        )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        if (pasajeros.isEmpty()) {
-                                            Text(
-                                                "Sin pasajeros aún",
-                                                fontSize = 13.sp,
-                                                color = Color.LightGray
-                                            )
-                                        } else {
-                                            pasajeros.forEach { pasajero ->
-                                                MiniPasajeroItem(
-                                                    usuario = pasajero,
-                                                    puedeEliminar = viaje.conductor?.id == usuarioActual.id,
-                                                    onEliminar = {
-                                                        viajeViewModel.eliminarPasajero(
-                                                            viajeId,
-                                                            usuarioActual.id ?: 0L,
-                                                            pasajero.cif ?: "",
-                                                            onExito = {
-                                                                scope.launch {
-                                                                    snackbarHostState.showSnackbar(
-                                                                        "Asiento liberado"
-                                                                    )
-                                                                }
-                                                            },
-                                                            onError = { e ->
-                                                                scope.launch {
-                                                                    snackbarHostState.showSnackbar(e)
-                                                                }
-                                                            }
-                                                        )
-                                                    }
-                                                )
-                                                Spacer(modifier = Modifier.height(6.dp))
-                                            }
-                                        }
-                                    }
+                            AnimatedVisibility(visible = cardExpandida) {
+                                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
+                                    Text("PASAJEROS", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Color.Gray)
+                                    if (pasajeros.isEmpty()) Text("Sin pasajeros", fontSize = 13.sp, color = Color.LightGray)
+                                    else pasajeros.forEach { MiniPasajeroItem(it, esConductor, { viajeViewModel.eliminarPasajero(viajeId, usuarioActual.id ?: 0L, it.cif ?: "", {}, {}) }) }
                                 }
                             }
 
-                            // Botón de Finalizar Viaje
                             if (esConductor) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Button(
-                                    onClick = {
-                                        val miId = usuarioActual.id
-                                        if (miId != null) {
-                                            viajeViewModel.finalizarViaje(
-                                                viajeId = viajeId,
-                                                usuarioId = miId,
-                                                onExito = {
-                                                    scope.launch {
-                                                        snackbarHostState.showSnackbar("Viaje finalizado. Se notificó a los pasajeros.")
-                                                    }
-                                                    onNavigateToHome()
-                                                },
-                                                onError = { error ->
-                                                    scope.launch {
-                                                        snackbarHostState.showSnackbar(error)
-                                                    }
-                                                }
-                                            )
-                                        } else {
-                                            scope.launch { snackbarHostState.showSnackbar("Error: Usuario no identificado") }
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 20.dp, vertical = 8.dp)
-                                        .height(48.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFFE53935)
-                                    ),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Text(
-                                        "Finalizar Viaje",
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp
-                                    )
+                                Button(onClick = { showConfirmDialog = true }, modifier = Modifier.fillMaxWidth().padding(20.dp).height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)), shape = RoundedCornerShape(12.dp)) {
+                                    Text("Finalizar Viaje", color = Color.White, fontWeight = FontWeight.Bold)
                                 }
                             }
                             Spacer(modifier = Modifier.navigationBarsPadding())
-                        } // 1. Cierra el Column dentro del Card
-                    } // 2. Cierra el Card
-                } // 3. Cierra el if (viaje != null)
-            } // 4. Cierra el Column de BottomCenter
-        } // 5. Cierra el Box que envuelve AndroidView y todo lo demás
-    } // 6. Cierra el Scaffold
-} // 7. CIERRA ActiveRideMapScreen FINALMENTE!
-
-
-// AHORA SÍ, ESTAS FUNCIONES ESTÁN FUERA, DONDE DEBEN ESTAR
-
-@Composable
-private fun MiniPasajeroItem(usuario: Usuario, puedeEliminar: Boolean, onEliminar: () -> Unit) {
-    val foto = usuario.imagenUrl
-    val modelPasajero = remember(foto) {
-        if (foto.isNullOrBlank()) null
-        else if (foto.startsWith("http")) foto
-        else "${RetrofitClient.BASE_URL.trimEnd('/')}/${foto.trimStart('/')}"
-    }
-
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFFE2E8F0)), contentAlignment = Alignment.Center) {
-            if (modelPasajero != null) AsyncImage(model = modelPasajero, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            else Text((usuario.nombre?.take(1) ?: "").uppercase(), color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-        }
-        Spacer(modifier = Modifier.width(10.dp))
-        Text(usuario.nombreUsuario ?: "Pasajero", fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-        if (puedeEliminar) {
-            IconButton(onClick = onEliminar, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.PersonRemove, "Eliminar", tint = Color.Red.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
+                        }
+                    }
+                }
             }
         }
     }
 }
 
-private fun dibujarRuta(
-    mapView: MapView,
-    viaje: Viaje,
-    conductorLat: Double?,
-    conductorLng: Double?,
-    roadManager: RoadManager,
-    scope: CoroutineScope,
-    colorPrincipal: Int,
-    miUbicacionUsuario: GeoPoint?,
-    soyElConductor: Boolean
-) {
-    val context = mapView.context
-
-    val conductorPosLat = conductorLat ?: viaje.origen?.latitud ?: return
-    val conductorPosLng = conductorLng ?: viaje.origen?.longitud ?: return
-
-    val destLat = viaje.destino?.latitud ?: return
-    val destLng = viaje.destino?.longitud ?: return
-
-    val originalViajeLat = viaje.origen?.latitud
-    val originalViajeLng = viaje.origen?.longitud
-
-    val drawableOriginalCarro = ContextCompat.getDrawable(context, R.drawable.car_icon)
-    val density = context.resources.displayMetrics.density
-    val sizeInPx = (40 * density).toInt()
-    val carBitmap = android.graphics.Bitmap.createBitmap(
-        sizeInPx,
-        sizeInPx,
-        android.graphics.Bitmap.Config.ARGB_8888
-    )
-    val carCanvas = android.graphics.Canvas(carBitmap)
-    carCanvas.drawColor(android.graphics.Color.TRANSPARENT, android.graphics.PorterDuff.Mode.CLEAR)
-    drawableOriginalCarro?.setBounds(0, 0, carCanvas.width, carCanvas.height)
-    drawableOriginalCarro?.draw(carCanvas)
-    val carIconDrawable = android.graphics.drawable.BitmapDrawable(context.resources, carBitmap)
-
-    // 1. DIBUJAR AL CONDUCTOR (EL CARRO)
-    val existingPolylineActiva =
-        mapView.overlays.filterIsInstance<Polyline>().find { it.id == "RutaActiva" }
-
-    if (existingPolylineActiva != null) {
-        val primerPuntoRuta = existingPolylineActiva.actualPoints.firstOrNull()
-        if (primerPuntoRuta != null) {
-            val distanciaMetros = primerPuntoRuta.distanceToAsDouble(GeoPoint(conductorPosLat, conductorPosLng))
-            if (distanciaMetros < 15.0) {
-                val carMarker = mapView.overlays.filterIsInstance<Marker>().find { it.title == "Conductor" }
-                if (carMarker != null) {
-                    carMarker.position = GeoPoint(conductorPosLat, conductorPosLng)
-                    carMarker.icon = carIconDrawable
-                }
-                mapView.invalidate()
-            }
+@Composable
+private fun MiniPasajeroItem(usuario: Usuario, puedeEliminar: Boolean, onEliminar: () -> Unit) {
+    val foto = usuario.imagenUrl
+    val model = remember(foto) { if (foto.isNullOrBlank()) null else if (foto.startsWith("http")) foto else "${RetrofitClient.BASE_URL.trimEnd('/')}/${foto.trimStart('/')}" }
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFFE2E8F0)), contentAlignment = Alignment.Center) {
+            if (model != null) AsyncImage(model = model, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            else Text((usuario.nombre?.take(1) ?: "").uppercase(), color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
         }
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(usuario.nombreUsuario ?: "Pasajero", fontSize = 13.sp, modifier = Modifier.weight(1f))
+        if (puedeEliminar) IconButton(onClick = onEliminar) { Icon(Icons.Default.PersonRemove, null, tint = Color.Red.copy(alpha = 0.6f), modifier = Modifier.size(18.dp)) }
     }
+}
+
+private fun dibujarRuta(mapView: MapView, viaje: Viaje, conductorLat: Double?, conductorLng: Double?, roadManager: RoadManager, scope: CoroutineScope, colorPrincipal: Int, miUbicacion: GeoPoint?, soyElConductor: Boolean) {
+    val context = mapView.context
+    val cLat = conductorLat ?: viaje.origen?.latitud ?: return
+    val cLng = conductorLng ?: viaje.origen?.longitud ?: return
+    val dLat = viaje.destino?.latitud ?: return
+    val dLng = viaje.destino?.longitud ?: return
 
     val carMarker = mapView.overlays.filterIsInstance<Marker>().find { it.title == "Conductor" }
     if (carMarker != null) {
-        carMarker.position = GeoPoint(conductorPosLat, conductorPosLng)
-        carMarker.icon = carIconDrawable
+        carMarker.position = GeoPoint(cLat, cLng)
     } else {
-        val newCarMarker = Marker(mapView).apply {
-            position = GeoPoint(conductorPosLat, conductorPosLng)
+        val marker = Marker(mapView).apply {
+            position = GeoPoint(cLat, cLng)
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
             title = "Conductor"
-            icon = carIconDrawable
             setInfoWindow(null)
+            val d = ContextCompat.getDrawable(context, R.drawable.car_icon)
+            val b = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888)
+            val c = Canvas(b)
+            d?.setBounds(0, 0, 100, 100)
+            d?.draw(c)
+            icon = BitmapDrawable(context.resources, b)
         }
-        mapView.overlays.add(newCarMarker)
+        mapView.overlays.add(marker)
     }
 
-    // 2. DIBUJAR AL USUARIO (SI ES PASAJERO, PUNTO AZUL)
-    if (!soyElConductor && miUbicacionUsuario != null) {
-        val personMarker = mapView.overlays.filterIsInstance<Marker>().find { it.title == "Mi Ubicación" }
-        if (personMarker != null) {
-            personMarker.position = miUbicacionUsuario
-        } else {
-            val newPersonMarker = Marker(mapView).apply {
-                position = miUbicacionUsuario
-                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                title = "Mi Ubicación"
-                setInfoWindow(null)
-                icon = android.graphics.drawable.ShapeDrawable(android.graphics.drawable.shapes.OvalShape()).apply {
-                    intrinsicWidth = 35
-                    intrinsicHeight = 35
-                    paint.color = android.graphics.Color.BLUE
-                }
-            }
-            mapView.overlays.add(newPersonMarker)
-        }
-    }
-
-    val esHaciaUam = viaje.destino?.universidad == true
-    val tituloDestino = if (esHaciaUam) "Destino" else (viaje.destino?.nombre ?: "Destino")
-    val endMarker = mapView.overlays.filterIsInstance<Marker>().find { it.snippet == "DESTINO_MARKER" }
-    if (endMarker == null) {
-        val newEndMarker = Marker(mapView).apply {
-            position = GeoPoint(destLat, destLng)
+    val destMarker = mapView.overlays.filterIsInstance<Marker>().find { it.snippet == "DEST" }
+    if (destMarker == null) {
+        val marker = Marker(mapView).apply {
+            position = GeoPoint(dLat, dLng)
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-            title = tituloDestino
-            snippet = "DESTINO_MARKER"
+            title = viaje.destino?.nombre ?: "Destino"
+            snippet = "DEST"
             setInfoWindow(null)
-
-            if (esHaciaUam) {
-                val uamIconId = context.resources.getIdentifier("uam_icon_location", "drawable", context.packageName)
-                if (uamIconId != 0) {
-                    val drawableOriginal = ContextCompat.getDrawable(context, uamIconId)
-                    if (drawableOriginal != null) {
-                        val bitmapUam = Bitmap.createBitmap(sizeInPx, sizeInPx, Bitmap.Config.ARGB_8888)
-                        val canvasUam = Canvas(bitmapUam)
-                        canvasUam.drawColor(android.graphics.Color.TRANSPARENT, android.graphics.PorterDuff.Mode.CLEAR)
-                        drawableOriginal.setBounds(0, 0, canvasUam.width, canvasUam.height)
-                        drawableOriginal.draw(canvasUam)
-                        icon = BitmapDrawable(context.resources, bitmapUam)
-                    }
-                } else {
-                    icon = android.graphics.drawable.ShapeDrawable(android.graphics.drawable.shapes.OvalShape()).apply {
-                        intrinsicWidth = 40; intrinsicHeight = 40; paint.color = AndroidColor.parseColor("#E74C3C")
-                    }
-                }
-            } else {
-                icon = android.graphics.drawable.ShapeDrawable(android.graphics.drawable.shapes.OvalShape()).apply {
-                    intrinsicWidth = 40; intrinsicHeight = 40; paint.color = AndroidColor.parseColor("#E74C3C")
-                }
-            }
+            icon = ContextCompat.getDrawable(context, org.osmdroid.library.R.drawable.marker_default)
         }
-        mapView.overlays.add(newEndMarker)
-    } else {
-        endMarker.position = GeoPoint(destLat, destLng)
-        endMarker.title = tituloDestino
+        mapView.overlays.add(marker)
     }
 
     scope.launch(Dispatchers.IO) {
-        try {
-            if (originalViajeLat != null && originalViajeLng != null) {
-                val existingEstatica = mapView.overlays.filterIsInstance<Polyline>().find { it.id == "RutaEstatica" }
-                if (existingEstatica == null) {
-                    val waypointsEstaticos = ArrayList<GeoPoint>()
-                    waypointsEstaticos.add(GeoPoint(originalViajeLat, originalViajeLng))
-                    waypointsEstaticos.add(GeoPoint(destLat, destLng))
-                    val roadEstatica = roadManager.getRoad(waypointsEstaticos)
-
-                    if (roadEstatica.mRouteHigh.isNotEmpty()) {
-                        withContext(Dispatchers.Main) {
-                            val polylineEstatica = Polyline().apply {
-                                id = "RutaEstatica"
-                                setPoints(roadEstatica.mRouteHigh)
-                                outlinePaint.color = AndroidColor.LTGRAY
-                                outlinePaint.strokeWidth = 6f
-                            }
-                            mapView.overlays.add(0, polylineEstatica)
-                        }
-                    }
-                }
+        val road = roadManager.getRoad(arrayListOf(GeoPoint(cLat, cLng), GeoPoint(dLat, dLng)))
+        if (road.mRouteHigh.isNotEmpty()) {
+            withContext(Dispatchers.Main) {
+                mapView.overlays.filterIsInstance<Polyline>().forEach { mapView.overlays.remove(it) }
+                val line = Polyline().apply { setPoints(road.mRouteHigh); outlinePaint.color = colorPrincipal; outlinePaint.strokeWidth = 8f }
+                mapView.overlays.add(line)
+                mapView.invalidate()
             }
-
-            val waypointsDinamicos = ArrayList<GeoPoint>()
-            waypointsDinamicos.add(GeoPoint(conductorPosLat, conductorPosLng))
-            waypointsDinamicos.add(GeoPoint(destLat, destLng))
-            val roadDinamica = roadManager.getRoad(waypointsDinamicos)
-
-            if (roadDinamica.mRouteHigh.isNotEmpty()) {
-                withContext(Dispatchers.Main) {
-                    existingPolylineActiva?.let { mapView.overlays.remove(it) }
-
-                    val polylineActiva = Polyline().apply {
-                        id = "RutaActiva"
-                        setPoints(roadDinamica.mRouteHigh)
-                        outlinePaint.color = colorPrincipal
-                        outlinePaint.strokeWidth = 8f
-                    }
-                    mapView.overlays.add(polylineActiva)
-                    mapView.invalidate()
-                }
-            }
-        } catch (e: Exception) { e.printStackTrace() }
+        }
     }
 }

@@ -152,6 +152,10 @@ fun HomeScreen(
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
     val tabs = listOf("Explorar", "Mis Viajes")
     var selectedViaje by remember { mutableStateOf<Viaje?>(null) }
+    
+    // Estados para el diálogo de inicio de viaje
+    var showStartConfirmDialog by remember { mutableStateOf(false) }
+    var viajeIdAIniciar by remember { mutableStateOf<Long?>(null) }
 
     // ── CORRECCIÓN AQUÍ: RENDERIZACIÓN DEL DIÁLOGO ADAPTATIVO DE NOTIFICACIONES ──
     val notificacionPendiente = notificacionViewModel.notificacionPendiente
@@ -178,6 +182,40 @@ fun HomeScreen(
                 )
             },
             onDismissRequest = { selectedViaje = null }
+        )
+    }
+    
+    // Diálogo de confirmación para iniciar viaje
+    if (showStartConfirmDialog && viajeIdAIniciar != null) {
+        AlertDialog(
+            onDismissRequest = { showStartConfirmDialog = false },
+            title = { Text("¿Iniciar Viaje?", fontWeight = FontWeight.Bold, color = UAMColor) },
+            text = { Text("¿Estás seguro de que deseas iniciar este viaje ahora? Se notificará a los pasajeros que el conductor está en camino.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val id = viajeIdAIniciar!!
+                        showStartConfirmDialog = false
+                        viajeViewModel.iniciarViaje(id, usuario?.id ?: 0L,
+                            onExito = {
+                                scope.launch { snackbarHostState.showSnackbar("¡Viaje iniciado!") }
+                                ubicacionViewModel.conectar(id)
+                            },
+                            onError = { scope.launch { snackbarHostState.showSnackbar(it) } }
+                        )
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = UAMColor)
+                ) {
+                    Text("Iniciar", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStartConfirmDialog = false }) {
+                    Text("Cancelar", color = Color.Gray)
+                }
+            },
+            shape = RoundedCornerShape(16.dp),
+            containerColor = Color.White
         )
     }
 
@@ -318,13 +356,8 @@ fun HomeScreen(
                                         )
                                     },
                                     onIniciarViaje = { id ->
-                                        viajeViewModel.iniciarViaje(id, usuario?.id ?: 0L,
-                                            onExito = {
-                                                scope.launch { snackbarHostState.showSnackbar("¡Viaje iniciado!") }
-                                                ubicacionViewModel.conectar(id)
-                                            },
-                                            onError = { scope.launch { snackbarHostState.showSnackbar(it) } }
-                                        )
+                                        viajeIdAIniciar = id
+                                        showStartConfirmDialog = true
                                     },
                                     onFinalizarViaje = { id ->
                                         viajeViewModel.finalizarViaje(id, usuario?.id ?: 0L,
@@ -413,7 +446,7 @@ fun HomeNotificationAdaptativeDialog(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
                         .background(fondoItem)
-                        .border(1.5.dp, colorTema, RoundedCornerShape(14.dp))
+                        .border(1.dp, colorTema, RoundedCornerShape(14.dp))
                         .padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
